@@ -51,7 +51,6 @@
     .glass-pill:active {
       transform: scale(0.95);
     }
-    /* Unified Right Gamepad Dock */
     .gamepad-dock {
       background: rgba(15, 23, 42, 0.76);
       backdrop-filter: blur(14px);
@@ -104,7 +103,6 @@
       font-weight: 700;
       color: rgba(203, 213, 225, 0.72);
     }
-    /* Custom Scrollbar for Modals */
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -147,7 +145,7 @@
         NGABRAG <span class="text-amber-400">3D</span>
       </h1>
       <p class="text-xs sm:text-sm text-slate-300 mb-5 leading-relaxed">
-        Jelajahi koridor Pantura hidup! Kendarai mobil & motor sport, buka pintu toko/warteg, belanja perlengkapan, ikuti lomba 17-an, dan selesaikan tantangan edukasi kota.
+        Jelajahi koridor Pantura hidup! Kendarai mobil & motor sport, buka pintu toko/warteg, belanja perlengkapan & simpan di Ransel, ikuti lomba 17-an, dan selesaikan tantangan edukasi kota.
       </p>
 
       <!-- Hero Name Input -->
@@ -173,9 +171,9 @@
       <!-- Quick Controls Guide -->
       <div class="grid grid-cols-2 gap-2.5 text-xs text-slate-300 bg-slate-950/60 rounded-2xl p-3.5 border border-white/10 mb-6">
         <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">WASD / Tuas</span> Jalan & Setir</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">E / Pintu</span> Masuk Mobil & Pintu</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">F / Pukul</span> Aksi & Tembak</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">B / K / M</span> Toko, Edukasi, Lomba</div>
+        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">Lompat 2x</span> Salto Muter</div>
+        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">B / I</span> Toko & Ransel</div>
+        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300">K / M</span> Edukasi & Lomba</div>
       </div>
 
       <button id="btn-start-game" type="button" class="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base py-4 shadow-lg shadow-amber-500/25 transition transform active:scale-98">
@@ -236,10 +234,13 @@
           </div>
         </div>
 
-        <!-- Primary Feature Pills (Toko, Edukasi, Lomba, Gaya) -->
+        <!-- Primary Feature Pills (Toko, Ransel, Edukasi, Lomba, Gaya) -->
         <div class="flex flex-wrap items-center gap-1.5">
           <button id="btn-hud-shop" type="button" class="glass-pill rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-amber-300 flex items-center gap-1 shadow">
             <span>🛒</span><span>TOKO</span>
+          </button>
+          <button id="btn-hud-ransel" type="button" class="glass-pill rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-emerald-300 flex items-center gap-1 shadow">
+            <span>🎒</span><span>RANSEL</span>
           </button>
           <button id="btn-hud-edu" type="button" class="glass-pill rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-sky-300 flex items-center gap-1 shadow">
             <span>🎓</span><span>EDUKASI</span>
@@ -274,10 +275,10 @@
         </div>
 
         <!-- Equipped Gear Indicator -->
-        <div id="hud-gear-pill" class="glass-pill rounded-xl px-2.5 py-1 text-[10px] font-bold text-slate-300 flex items-center gap-1.5">
+        <button id="hud-gear-pill" type="button" title="Buka Ransel untuk Pasang/Lepas Item" class="glass-pill rounded-xl px-2.5 py-1 text-[10px] font-bold text-slate-200 flex items-center gap-1.5 hover:border-emerald-400/50">
           <span>🎒</span>
           <span id="hud-gear-text">Tangan Kosong</span>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -406,7 +407,7 @@
           </div>
 
           <div>
-            <div class="text-xs font-bold text-slate-300 mb-1.5">Aksesoris & Perlengkapan</div>
+            <div class="text-xs font-bold text-slate-300 mb-1.5">Pasang / Lepas Perlengkapan (Tersimpan di Ransel)</div>
             <div id="acc-options" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5"></div>
           </div>
 
@@ -509,10 +510,13 @@
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
         <div>
           <h2 class="text-lg sm:text-xl font-black text-white">🛒 TOKO & SHOWROOM PANTURA</h2>
-          <p class="text-xs text-slate-300">Beli baju, tas, sarung tinju, blaster, bola sepak, buku, motor & mobil!</p>
+          <p class="text-xs text-slate-300">Semua barang yang dibeli tersimpan di Ransel dan bisa dipasang atau dilepas kapan saja!</p>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="rounded-xl bg-emerald-500/20 border border-emerald-400/40 px-3 py-1.5 text-xs sm:text-sm font-black text-emerald-300">
+        <div class="flex items-center gap-2.5">
+          <button id="btn-shop-open-ransel" type="button" class="rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 px-3 py-1.5 text-xs font-black text-emerald-300">
+            🎒 Buka Ransel
+          </button>
+          <div class="rounded-xl bg-slate-900 border border-amber-400/40 px-3 py-1.5 text-xs sm:text-sm font-black text-amber-300">
             💰 <span id="shop-cash-display">Rp 1.250.000</span>
           </div>
           <button id="btn-close-shop" type="button" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">✕</button>
@@ -524,6 +528,39 @@
 
       <!-- Items Grid -->
       <div id="shop-items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-5 overflow-y-auto custom-scroll flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3B: RANSEL / INVENTORI HERO (PASANG & LEPAS PERLENGKAPAN)       -->
+  <!-- ===================================================================== -->
+  <div id="modal-ransel" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-6">
+    <div class="glass-panel w-full max-w-3xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden border border-emerald-400/35">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black text-white">🎒 RANSEL & PERLENGKAPAN HERO</h2>
+          <p class="text-xs text-slate-300">Pasang atau lepas tembakan, sarung tinju, tas, jaket & barang milikmu dengan bebas</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-ransel-open-shop" type="button" class="rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 px-3 py-1.5 text-xs font-black text-amber-300">
+            🛒 Ke Toko
+          </button>
+          <button id="btn-close-ransel" type="button" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">✕</button>
+        </div>
+      </div>
+
+      <!-- Active Gear Bar -->
+      <div class="px-5 py-3 bg-slate-900/70 border-b border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="font-bold text-slate-300">
+          Sedang Dipakai: <span id="ransel-equipped-summary" class="text-emerald-300 font-black">Tangan Kosong</span>
+        </div>
+        <button id="btn-ransel-unequip-all" type="button" class="rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/15 px-3 py-1 text-[11px] font-bold text-rose-300">
+          📥 Lepas Semua ke Ransel
+        </button>
+      </div>
+
+      <!-- Stored Items Grid -->
+      <div id="ransel-items-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5 overflow-y-auto custom-scroll flex-1"></div>
     </div>
   </div>
 
@@ -671,14 +708,13 @@
       nitro: 100,
       cash: 1250000,
       radioIndex: 0,
-      ownedItems: new Set(['top_kaos', 'pants_panjang', 'hair_buzz']),
+      ownedItems: new Set(['top_kaos']),
       equipped: {
         backpack: false,
         gloves: false,
         blaster: false,
         glasses: false,
-        mask: false,
-        book: false
+        mask: false
       }
     };
 
@@ -730,7 +766,6 @@
             pos.x += (dx / dist) * overlap;
             pos.z += (dz / dist) * overlap;
           } else {
-            // Center inside AABB fallback pushout
             const leftPen = Math.abs(pos.x - b.minX);
             const rightPen = Math.abs(b.maxX - pos.x);
             const topPen = Math.abs(pos.z - b.minZ);
@@ -787,6 +822,11 @@
 
       playJump() {
         this.playTone(220, 0.14, 'sine', 0.08, 460);
+      }
+
+      playSalto() {
+        this.playTone(340, 0.12, 'triangle', 0.09, 640);
+        setTimeout(() => this.playTone(520, 0.14, 'sine', 0.07, 880), 65);
       }
 
       playShoot() {
@@ -868,7 +908,6 @@
           ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
         }
 
-        // Edge lines & dashed center divider
         ctx.fillStyle = '#f8fafc';
         ctx.fillRect(8, 0, 4, 256);
         ctx.fillRect(244, 0, 4, 256);
@@ -892,7 +931,6 @@
         ctx.fillStyle = wallHex;
         ctx.fillRect(0, 0, 256, 256);
 
-        // Subtle architectural horizontal bands
         ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
         for (let r = 0; r < rows; r++) {
           const y = (r / rows) * 256;
@@ -950,7 +988,7 @@
     }
 
     // ==========================================================================
-    // 4. BEKASI - KARAWANG MODULAR 3D CITY WORLD (ENTERABLE BUILDINGS, TRAFFIC LIGHTS, BALL)
+    // 4. BEKASI - KARAWANG MODULAR 3D CITY WORLD
     // ==========================================================================
     class CityWorld {
       constructor(scene) {
@@ -960,7 +998,7 @@
         this.interiorZones = [];
         this.neonSigns = [];
         this.trafficLights = [];
-        this.trafficPhase = 'ns_green'; // 'ns_green', 'ns_yellow', 'ew_green', 'ew_yellow'
+        this.trafficPhase = 'ns_green';
         this.trafficTimer = 0;
         this.cashPickups = [];
         this.roadCoords = [-105, -35, 35, 105];
@@ -1065,7 +1103,6 @@
       }
 
       _buildGroundAndRoads() {
-        // Base Ground (y = 0.0)
         const baseGround = new THREE.Mesh(
           new THREE.PlaneGeometry(340, 340),
           new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.92 })
@@ -1074,7 +1111,6 @@
         baseGround.receiveShadow = true;
         this.scene.add(baseGround);
 
-        // Kalimalang Canal along North Edge (z = -126)
         const canalWater = new THREE.Mesh(
           new THREE.BoxGeometry(270, 0.08, 9),
           new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.25, metalness: 0.3 })
@@ -1094,7 +1130,6 @@
         });
         roadMatEW.map.repeat.set(1, 18);
 
-        // North-South & East-West Roads (Top surface at y = 0.055)
         this.roadCoords.forEach(coord => {
           const nsRoad = new THREE.Mesh(new THREE.BoxGeometry(14, 0.06, 250), roadMatNS);
           nsRoad.position.set(coord, 0.025, 0);
@@ -1107,7 +1142,6 @@
           this.scene.add(ewRoad);
         });
 
-        // Intersection Pads & Zebra Crossings (y = 0.058, zero z-fighting)
         const interMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
         const stripeMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
 
@@ -1130,7 +1164,6 @@
           });
         });
 
-        // Sidewalk Blocks (Top surface at y = 0.28)
         const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.85 });
         this.blockCenters.forEach(bx => {
           this.blockCenters.forEach(bz => {
@@ -1141,7 +1174,6 @@
           });
         });
 
-        // Perimeter Boundary Walls
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
         [
           { x: 0, z: -141, w: 284, d: 2 },
@@ -1162,7 +1194,6 @@
 
         [-35, 35].forEach(ix => {
           [-35, 35].forEach(iz => {
-            // NS Facing Light (Corner +X, +Z) & EW Facing Light (Corner -X, +Z)
             [
               { x: ix + 8.2, z: iz + 8.2, axis: 'ns' },
               { x: ix - 8.2, z: iz + 8.2, axis: 'ew' }
@@ -1283,7 +1314,6 @@
         const wallTex = TextureFactory.createBuildingTexture(wallHex, winHex, Math.max(3, Math.floor(h / 3)), 4);
         const extMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.72, metalness: 0.12 });
 
-        // Interior Tiled Floor (y = 0.30)
         const floorMat = new THREE.MeshStandardMaterial({
           color: furnitureType === 'warteg' ? 0xd6d3d1 : (furnitureType === 'shop' ? 0xe2e8f0 : 0xcbd5e1),
           roughness: 0.55
@@ -1293,7 +1323,6 @@
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        // Roof Slab
         const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.45, d + 0.3), extMat);
         roof.position.set(x, baseY + h + 0.2, z);
         roof.castShadow = true;
@@ -1355,7 +1384,6 @@
           this._createHingedDoor({ x: frontX, z, doorW, doorH, baseY, orientation: 'ew', buildingName });
         }
 
-        // Interior Ceiling Lamp & Counter
         const lampGlow = new THREE.Mesh(
           new THREE.BoxGeometry(1.6, 0.14, 1.6),
           new THREE.MeshBasicMaterial({ color: 0xfef3c7 })
@@ -1473,22 +1501,18 @@
 
         this.blockCenters.forEach((bx, ix) => {
           this.blockCenters.forEach((bz, iz) => {
-            // Landmark 1: Summarecon Bekasi Pyramid (-70, 0)
             if (ix === 0 && iz === 1) {
               this._buildSummareconPyramid(bx, bz);
               return;
             }
-            // Landmark 2: Service Plaza SPBU, Indomart & Warteg (0, 0)
             if (ix === 1 && iz === 1) {
               this._buildPanturaServicePlaza(bx, bz);
               return;
             }
-            // Landmark 3: Tugu Padi Karawang & Kawasan Industri (70, 0)
             if (ix === 2 && iz === 1) {
               this._buildKarawangTuguPadi(bx, bz);
               return;
             }
-            // Leave South-Center (0, 70) open for Alun-Alun & Lapangan Bola Warga!
             if (ix === 1 && iz === 2) {
               return;
             }
@@ -1597,7 +1621,6 @@
 
       _buildPanturaServicePlaza(bx, bz) {
         const baseY = 0.28;
-        // 1. SPBU Pantura Canopy & Pumps
         const canopy = new THREE.Mesh(
           new THREE.BoxGeometry(16, 0.8, 12),
           new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 })
@@ -1620,7 +1643,6 @@
           this.scene.add(pillar);
         });
 
-        // Fuel Dispenser Islands
         [-14, -10].forEach(ox => {
           const pump = new THREE.Mesh(
             new THREE.BoxGeometry(1.1, 1.8, 0.8),
@@ -1631,7 +1653,6 @@
           this._addCollider(bx + ox, bz - 12, 1.3, 1.0, 'Pompa SPBU');
         });
 
-        // 2. Enterable Minimarket Pantura
         this._buildEnterableBuilding({
           x: bx + 12,
           z: bz - 12,
@@ -1657,7 +1678,6 @@
         this.scene.add(miniSign);
         this.neonSigns.push(miniSignMat);
 
-        // 3. Enterable Warteg Bahari & Kopi Kalimalang
         this._buildEnterableBuilding({
           x: bx,
           z: bz + 13,
@@ -1688,7 +1708,6 @@
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
         const leafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
 
-        // Roadside Trees at safe sidewalk corners
         const treeSpots = [
           [-92, -46], [-48, -46], [-22, -46], [22, -46], [48, -46], [92, -46],
           [-92, 46], [-48, 46], [-22, 46], [22, 46], [48, 46], [92, 46],
@@ -1717,7 +1736,6 @@
         pitch.receiveShadow = true;
         this.scene.add(pitch);
 
-        // White Pitch Lines & Goalposts
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
         const midLine = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.01, 22), lineMat);
         midLine.position.set(0, 0.315, 70);
@@ -1734,7 +1752,6 @@
           this.scene.add(leftPost, rightPost, crossbar);
         });
 
-        // Physical Interactive 3D Soccer Ball
         this.soccerBall = new THREE.Mesh(
           new THREE.SphereGeometry(0.36, 14, 14),
           new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 })
@@ -1759,7 +1776,6 @@
         const bPos = this.soccerBall.position;
         const gy = this.getGroundHeight(bPos.x, bPos.z) + 0.36;
 
-        // Player kick on contact
         const dx = bPos.x - playerPos.x;
         const dz = bPos.z - playerPos.z;
         const dist = Math.hypot(dx, dz);
@@ -1789,7 +1805,6 @@
         this.soccerBall.rotation.x += this.soccerVel.z * dt * 2.2;
         this.soccerBall.rotation.z -= this.soccerVel.x * dt * 2.2;
 
-        // Keep ball inside arena
         if (Math.abs(bPos.x) > 135) { bPos.x = clamp(bPos.x, -135, 135); this.soccerVel.x *= -0.7; }
         if (Math.abs(bPos.z) > 135) { bPos.z = clamp(bPos.z, -135, 135); this.soccerVel.z *= -0.7; }
       }
@@ -1849,7 +1864,7 @@
     }
 
     // ==========================================================================
-    // 4B. TRANSIENT 3D IMPACT & PROJECTILE FX SYSTEM
+    // 4B. TRANSIENT 3D IMPACT & GUN MUZZLE PROJECTILE FX SYSTEM
     // ==========================================================================
     class ImpactFXSystem {
       constructor(scene) {
@@ -1859,23 +1874,40 @@
         this.sparkGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
         this.starGeo = new THREE.OctahedronGeometry(0.22, 0);
         this.smokeGeo = new THREE.SphereGeometry(0.28, 7, 7);
-        this.boltGeo = new THREE.SphereGeometry(0.16, 8, 8);
+        this.boltGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.42, 8);
+        this.boltGeo.rotateX(Math.PI / 2);
         this.ringGeo = new THREE.RingGeometry(0.3, 0.55, 20);
         this.ringGeo.rotateX(-Math.PI / 2);
       }
 
-      spawnBlasterBolt(originPos, heading) {
+      spawnBlasterBolt(muzzleWorldPos, heading) {
+        // 1. Muzzle flash right at the barrel tip
+        const flashMat = new THREE.MeshBasicMaterial({
+          color: 0xfef08a,
+          transparent: true,
+          opacity: 0.95
+        });
+        const flashMesh = new THREE.Mesh(this.sparkGeo, flashMat);
+        flashMesh.position.copy(muzzleWorldPos);
+        this.scene.add(flashMesh);
+        this.particles.push({
+          mesh: flashMesh,
+          vel: new THREE.Vector3(Math.sin(heading) * 2.5, 0.5, Math.cos(heading) * 2.5),
+          life: 0.14,
+          maxLife: 0.14,
+          growRate: 6.0,
+          gravity: 0
+        });
+
+        // 2. Glowing projectile emerging directly from the gun muzzle
         const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
         const mesh = new THREE.Mesh(this.boltGeo, mat);
-        mesh.position.set(
-          originPos.x + Math.sin(heading) * 0.85,
-          originPos.y + 1.18,
-          originPos.z + Math.cos(heading) * 0.85
-        );
+        mesh.position.copy(muzzleWorldPos);
+        mesh.rotation.y = heading;
         this.scene.add(mesh);
         this.projectiles.push({
           mesh,
-          vel: new THREE.Vector3(Math.sin(heading) * 28, 0, Math.cos(heading) * 28),
+          vel: new THREE.Vector3(Math.sin(heading) * 30, 0, Math.cos(heading) * 30),
           life: 1.1
         });
       }
@@ -1998,7 +2030,6 @@
       }
 
       update(dt, world = null, pedestrians = null, vehicles = null, soundEngine = null) {
-        // Update transient particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
           const p = this.particles[i];
           p.life -= dt;
@@ -2017,7 +2048,6 @@
           p.mesh.material.opacity = clamp(p.life / p.maxLife, 0, 1);
         }
 
-        // Update Blaster Projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
           const pr = this.projectiles[i];
           pr.life -= dt;
@@ -2086,6 +2116,8 @@
         this.velocityY = 0;
         this.isGrounded = true;
         this.jumpCount = 0;
+        this.isSalto = false;
+        this.saltoAngle = 0;
         this.bumpCooldown = 0;
 
         this.rollTimer = 0;
@@ -2125,7 +2157,7 @@
 
         const root = new THREE.Group();
 
-        // Pelvis & Torso (Shoe soles calibrated cleanly to local Y = +0.01)
+        // Pelvis & Torso
         const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.24, 0.28), mats.pants);
         pelvis.position.y = 0.90;
         pelvis.castShadow = true;
@@ -2136,7 +2168,7 @@
         torso.castShadow = true;
         pelvis.add(torso);
 
-        // Top Style Details (Jaket / Hoodie / Rompi / Kemeja)
+        // Top Style Details
         if (app.topStyle === 'jaket') {
           const collar = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.1, 0.32), mats.accent);
           collar.position.y = 0.32;
@@ -2156,7 +2188,7 @@
           torso.add(tie);
         }
 
-        // Backpack Gear (if purchased & equipped)
+        // Backpack Gear
         if (gear.backpack) {
           const pack = new THREE.Mesh(
             new THREE.BoxGeometry(0.38, 0.46, 0.22),
@@ -2167,7 +2199,7 @@
           torso.add(pack);
         }
 
-        // Neck & Head with Facial Features
+        // Neck & Head
         const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.12, 8), mats.skin);
         neck.position.y = 0.35;
         torso.add(neck);
@@ -2177,7 +2209,6 @@
         head.castShadow = true;
         torso.add(head);
 
-        // Eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
         [-0.07, 0.07].forEach(ex => {
           const eye = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.03), eyeMat);
@@ -2185,7 +2216,6 @@
           head.add(eye);
         });
 
-        // Sunglasses / Mask Accessories
         if (gear.glasses) {
           const shades = new THREE.Mesh(
             new THREE.BoxGeometry(0.30, 0.08, 0.06),
@@ -2203,7 +2233,6 @@
           head.add(maskMesh);
         }
 
-        // Hairstyles & Hats
         const hs = app.hairStyle || 'buzz';
         if (hs === 'buzz') {
           const hair = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.34), mats.hair);
@@ -2248,7 +2277,7 @@
           head.add(band);
         }
 
-        // Articulated Arms (Sleeves + Forearms + Optional Boxing Gloves / Blaster)
+        // Articulated Arms
         const isLongSleeve = app.topStyle === 'jaket' || app.topStyle === 'hoodie';
         const leftArmPivot = new THREE.Group();
         leftArmPivot.position.set(0.35, 0.24, 0);
@@ -2290,24 +2319,45 @@
           rightArmPivot.add(rGlove);
         }
 
+        // 3D Blaster with Dedicated Muzzle Tip Anchor (Bullets spawn directly from barrel tip!)
+        let muzzlePoint = null;
         if (gear.blaster) {
           const blasterGroup = new THREE.Group();
-          blasterGroup.position.set(0, -0.52, 0.16);
+          blasterGroup.position.set(0, -0.53, 0.04);
+          blasterGroup.rotation.x = Math.PI / 2;
+
           const body = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.14, 0.34),
-            new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.5 })
+            new THREE.BoxGeometry(0.11, 0.15, 0.36),
+            new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.55, roughness: 0.3 })
           );
+          const grip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.09, 0.14, 0.1),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b })
+          );
+          grip.position.set(0, -0.1, -0.08);
+
           const barrel = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.03, 0.03, 0.18, 8),
-            new THREE.MeshStandardMaterial({ color: 0xfacc15 })
+            new THREE.CylinderGeometry(0.036, 0.042, 0.22, 10),
+            new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6 })
           );
           barrel.rotation.x = Math.PI / 2;
-          barrel.position.set(0, 0.03, 0.22);
-          blasterGroup.add(body, barrel);
+          barrel.position.set(0, 0.03, 0.24);
+
+          const nozzle = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.045, 0.045, 0.04, 10),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+          );
+          nozzle.rotation.x = Math.PI / 2;
+          nozzle.position.set(0, 0.03, 0.35);
+
+          muzzlePoint = new THREE.Object3D();
+          muzzlePoint.position.set(0, 0.03, 0.38);
+
+          blasterGroup.add(body, grip, barrel, nozzle, muzzlePoint);
           rightArmPivot.add(blasterGroup);
         }
 
-        // Articulated Legs with Long Pants / Cargo / Jogger / Shorts support
+        // Articulated Legs
         const isShorts = app.pantsStyle === 'pendek';
         const shinMat = isShorts ? mats.skin : mats.pants;
 
@@ -2358,6 +2408,7 @@
           pelvis,
           torso,
           head,
+          muzzlePoint,
           leftArmPivot,
           rightArmPivot,
           leftLegPivot: leftLeg.hipPivot,
@@ -2381,15 +2432,22 @@
       triggerJump() {
         if (GameState.inVehicle) return;
         this.isCrouching = false;
+        this.emoteIndex = 0;
+
         if (this.isGrounded) {
           this.velocityY = 8.4;
           this.isGrounded = false;
           this.jumpCount = 1;
+          this.isSalto = false;
+          this.saltoAngle = 0;
           this.sound.playJump();
         } else if (this.jumpCount === 1) {
-          this.velocityY = 7.6;
+          // Second jump press triggers mid-air 360° acrobatic salto!
+          this.velocityY = 8.3;
           this.jumpCount = 2;
-          this.sound.playJump();
+          this.isSalto = true;
+          this.saltoAngle = 0;
+          this.sound.playSalto();
         }
       }
 
@@ -2427,9 +2485,26 @@
         this.attackTimer = 0.34;
         this.comboStep = (this.comboStep % 3) + 1;
 
-        // If Blaster is equipped, shoot a 3D bolt forward!
+        // Aim arm forward first so bullet spawns directly from the 3D gun muzzle!
         if (GameState.equipped.blaster && fxSystem) {
-          fxSystem.spawnBlasterBolt(this.position, this.heading);
+          this.rig.rightArmPivot.rotation.x = -Math.PI * 0.5;
+          this.rig.rightArmPivot.rotation.z = 0;
+          this.rig.torso.rotation.y = 0.15;
+          this.group.position.copy(this.position);
+          this.group.rotation.y = this.heading;
+          this.group.updateMatrixWorld(true);
+
+          const muzzleWorldPos = new THREE.Vector3();
+          if (this.rig.muzzlePoint) {
+            this.rig.muzzlePoint.getWorldPosition(muzzleWorldPos);
+          } else {
+            muzzleWorldPos.set(
+              this.position.x + Math.sin(this.heading) * 0.9,
+              this.position.y + 1.38,
+              this.position.z + Math.cos(this.heading) * 0.9
+            );
+          }
+          fxSystem.spawnBlasterBolt(muzzleWorldPos, this.heading);
           this.sound.playShoot();
         }
 
@@ -2443,7 +2518,6 @@
           );
         }
 
-        // Check if punching a nearby vehicle
         if (!hitSomething && vehicles) {
           const punchX = this.position.x + Math.sin(this.heading) * 1.35;
           const punchZ = this.position.z + Math.cos(this.heading) * 1.35;
@@ -2493,6 +2567,7 @@
           this.position.set(-35, 0.055, -22);
           this.velocityY = 0;
           this.isGrounded = true;
+          this.isSalto = false;
           this.isCrouching = false;
           showToast(`🏥 Pingsan! Dirawat di Klinik Pantura (-${formatRupiah(fee)})`);
         }
@@ -2501,7 +2576,7 @@
       update(dt, input, cameraYaw, world, vehicles, pedestrians, fxSystem, camController) {
         if (this.bumpCooldown > 0) this.bumpCooldown -= dt;
 
-        // When riding a Motorbike, keep Hero visible on the bike seat!
+        // Visible Hero riding on Motorbike
         if (GameState.inVehicle && GameState.activeVehicle) {
           const v = GameState.activeVehicle;
           if (v.type === 'motorbike') {
@@ -2528,7 +2603,6 @@
           this.rig.head.visible = GameState.cameraMode !== 3;
         }
 
-        // Camera-relative movement direction
         const forward = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw));
         const right = new THREE.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw));
         const moveDir = new THREE.Vector3();
@@ -2552,7 +2626,7 @@
           this.heading = normalizeAngle(this.heading + diff * Math.min(1, dt * 14));
         }
 
-        // Ground Elevation & Gravity (Feet never sink below groundY)
+        // Ground Elevation & Gravity
         const groundY = world.getGroundHeight(this.position.x, this.position.z);
         if (this.isGrounded && this.velocityY <= 0 && Math.abs(this.position.y - groundY) <= 0.35) {
           this.position.y += (groundY - this.position.y) * Math.min(1, dt * 24);
@@ -2565,6 +2639,8 @@
             this.velocityY = 0;
             this.isGrounded = true;
             this.jumpCount = 0;
+            this.isSalto = false;
+            this.saltoAngle = 0;
           }
         }
 
@@ -2578,7 +2654,7 @@
           if (camController) camController.addShake(0.14);
         }
 
-        // Hero vs Vehicle Solid Collision (Allows standing on roofs)
+        // Hero vs Vehicle Solid Collision
         for (let i = 0; i < vehicles.length; i++) {
           const v = vehicles[i];
           const vehRadius = v.type === 'motorbike' ? 1.05 : 2.15;
@@ -2593,6 +2669,8 @@
               this.velocityY = 0;
               this.isGrounded = true;
               this.jumpCount = 0;
+              this.isSalto = false;
+              this.saltoAngle = 0;
             } else {
               const push = vehRadius - dist;
               this.position.x += (dx / dist) * push;
@@ -2628,18 +2706,15 @@
         r.torso.rotation.y = steerAngle * 0.25;
         r.torso.rotation.z = -steerAngle * 0.18;
 
-        // Both hands gripping the handlebars
         r.leftArmPivot.rotation.x = -1.18 + steerAngle * 0.22;
         r.rightArmPivot.rotation.x = -1.18 - steerAngle * 0.22;
         r.leftArmPivot.rotation.z = 0.16;
         r.rightArmPivot.rotation.z = -0.16;
 
-        // Right leg always on right footpeg
         r.rightLegPivot.rotation.x = -0.68;
         r.rightLegPivot.rotation.z = -0.22;
         r.rightKneePivot.rotation.x = 1.25;
 
-        // Left leg puts foot down on asphalt when motorbike stops!
         const isStopped = Math.abs(speed) < 1.2;
         const targetLeftHipX = isStopped ? -0.18 : -0.68;
         const targetLeftHipZ = isStopped ? 0.36 : 0.22;
@@ -2662,7 +2737,37 @@
 
         const basePelvisY = this.isCrouching ? 0.70 : 0.90;
 
-        // Parkour Combat Roll
+        // 1. Mid-Air 360° Acrobatic Salto when Jump is pressed twice!
+        if (this.isSalto && !this.isGrounded) {
+          this.saltoAngle += dt * 14.5;
+          const spinProgress = Math.min(this.saltoAngle, Math.PI * 2);
+          const tuck = Math.sin((spinProgress / (Math.PI * 2)) * Math.PI);
+
+          r.root.position.y = 0.92;
+          r.pelvis.position.y = 0;
+          r.pelvis.rotation.x = spinProgress;
+          r.torso.rotation.x = 0.45 * tuck;
+          r.torso.rotation.y = 0;
+          r.torso.rotation.z = 0;
+
+          r.leftLegPivot.rotation.x = -1.25 * tuck;
+          r.rightLegPivot.rotation.x = -1.25 * tuck;
+          r.leftKneePivot.rotation.x = 1.95 * tuck;
+          r.rightKneePivot.rotation.x = 1.95 * tuck;
+
+          r.leftArmPivot.rotation.x = -1.35 * tuck;
+          r.rightArmPivot.rotation.x = -1.35 * tuck;
+          r.leftArmPivot.rotation.z = 0.12;
+          r.rightArmPivot.rotation.z = -0.12;
+
+          if (this.saltoAngle >= Math.PI * 2) {
+            this.isSalto = false;
+            this.saltoAngle = 0;
+          }
+          return;
+        }
+
+        // 2. Parkour Forward Combat Roll
         if (this.rollTimer > 0) {
           const progress = 1 - (this.rollTimer / 0.48);
           r.root.position.y = 0.62 + Math.sin(progress * Math.PI) * 0.24;
@@ -2678,18 +2783,14 @@
           return;
         }
 
-        if (this.jumpCount === 2 && !this.isGrounded) {
-          r.root.position.y = 0.9;
-          r.pelvis.position.y = 0;
-          r.pelvis.rotation.x += dt * 13;
-        }
-
+        // 3. Punch / Kick / Blaster Firing Pose
         if (this.attackTimer > 0) {
           this.attackTimer -= dt;
           const swing = Math.sin((1 - this.attackTimer / 0.34) * Math.PI);
           if (GameState.equipped.blaster) {
-            r.rightArmPivot.rotation.x = -1.55;
-            r.torso.rotation.y = 0.25;
+            r.rightArmPivot.rotation.x = -Math.PI * 0.5 + swing * 0.14;
+            r.rightArmPivot.rotation.z = 0;
+            r.torso.rotation.y = 0.15;
           } else if (this.comboStep === 1) {
             r.rightArmPivot.rotation.x = -swing * 2.1;
             r.torso.rotation.y = swing * 0.4;
@@ -2726,7 +2827,7 @@
             r.rightArmPivot.rotation.x = -0.65 + s * 0.25;
           } else {
             r.leftArmPivot.rotation.x = -s * amp * 0.85;
-            r.rightArmPivot.rotation.x = GameState.equipped.blaster ? -0.95 : s * amp * 0.85;
+            r.rightArmPivot.rotation.x = GameState.equipped.blaster ? -1.05 : s * amp * 0.85;
           }
           r.pelvis.position.y = basePelvisY + Math.abs(Math.sin(this.animCycle)) * (this.isCrouching ? 0.03 : 0.065);
         } else {
@@ -2756,7 +2857,7 @@
           } else {
             const idleArmX = this.isCrouching ? -0.58 : 0;
             r.leftArmPivot.rotation.x += (idleArmX - r.leftArmPivot.rotation.x) * 0.22;
-            r.rightArmPivot.rotation.x += ((GameState.equipped.blaster ? -0.85 : idleArmX) - r.rightArmPivot.rotation.x) * 0.22;
+            r.rightArmPivot.rotation.x += ((GameState.equipped.blaster ? -0.95 : idleArmX) - r.rightArmPivot.rotation.x) * 0.22;
             r.leftArmPivot.rotation.z = 0.08;
             r.rightArmPivot.rotation.z = -0.08;
           }
@@ -2771,7 +2872,7 @@
       constructor(scene, config) {
         this.scene = scene;
         this.name = config.name || 'Mobil Pantura';
-        this.type = config.type || 'coupe'; // 'coupe', 'suv', 'angkot', 'motorbike'
+        this.type = config.type || 'coupe';
         this.color = config.color || 0xf59e0b;
         this.position = config.position.clone();
         this.heading = config.heading || 0;
@@ -2811,7 +2912,6 @@
         const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
         if (this.type === 'motorbike') {
-          // Sculpted Sport Motorbike
           const frame = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 1.55), bodyMat);
           frame.position.set(0, 0.62, 0);
           frame.castShadow = true;
@@ -2856,7 +2956,6 @@
           return;
         }
 
-        // 4-Wheeled Vehicles (Coupe / SUV / Angkot)
         const isTall = this.type === 'suv' || this.type === 'angkot';
         const chassisW = 1.92;
         const chassisH = isTall ? 0.66 : 0.54;
@@ -2882,7 +2981,6 @@
         roof.position.set(0, cabin.position.y + cabinH * 0.5 + 0.02, cabinZ);
         this.group.add(roof);
 
-        // Front & Rear Bumpers, Grille, Lights
         const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(chassisW + 0.06, 0.24, 0.25), darkMat);
         frontBumper.position.set(0, 0.44, chassisL * 0.5 + 0.04);
         this.group.add(frontBumper);
@@ -2899,14 +2997,12 @@
           this.group.add(hl, tl);
         });
 
-        // Side Mirrors
         [-1.04, 1.04].forEach(mx => {
           const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.18), bodyMat);
           mirror.position.set(mx, 1.02, 0.68);
           this.group.add(mirror);
         });
 
-        // Wheels + Alloy Rims (Tire radius = 0.42, center at y = 0.43 so bottom touches road cleanly)
         const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.28, 16);
         wheelGeo.rotateZ(Math.PI / 2);
         const rimGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.30, 10);
@@ -2938,8 +3034,8 @@
         let activeNitro = false;
 
         if (isPlayerControlled) {
-          const throttle = input.throttle; // +1 forward, -1 reverse/brake
-          const steerInput = input.steer;  // +1 left, -1 right
+          const throttle = input.throttle;
+          const steerInput = input.steer;
           activeNitro = input.nitro && GameState.nitro > 2 && throttle > 0.1;
 
           const topSpeed = activeNitro ? this.maxSpeed * 1.32 : this.maxSpeed;
@@ -2973,13 +3069,11 @@
             onDriftBonus(dt);
           }
         } else if (this.isAI) {
-          // Structured Right-Hand Lane AI Traffic obeying Red Lights & Vehicles Ahead
           let blockedAhead = world.isRedLightAhead(this.position, this.heading);
 
           const fwdX = Math.sin(this.heading);
           const fwdZ = Math.cos(this.heading);
 
-          // Check other vehicles in front
           for (let i = 0; i < allVehicles.length; i++) {
             const other = allVehicles[i];
             if (other === this) continue;
@@ -2993,7 +3087,6 @@
             }
           }
 
-          // Check pedestrians or Hero in front
           if (!blockedAhead && playerPos) {
             const dx = playerPos.x - this.position.x;
             const dz = playerPos.z - this.position.z;
@@ -3007,7 +3100,6 @@
           const targetCruise = blockedAhead ? 0 : 12.5;
           this.speed += (targetCruise - this.speed) * Math.min(1, dt * (blockedAhead ? 6.5 : 2.5));
 
-          // Turn cleanly at major intersections or map perimeter
           if (this.aiTurnCooldown <= 0) {
             const nearBoundary = Math.abs(this.position.x) > 103 || Math.abs(this.position.z) > 103;
             const onInterX = world.roadCoords.some(rc => Math.abs(this.position.x - rc) < 1.2);
@@ -3023,12 +3115,10 @@
             }
           }
         } else {
-          // Parked Vehicle Rolling Friction
           this.speed *= Math.pow(0.05, dt);
           if (Math.abs(this.speed) < 0.05) this.speed = 0;
         }
 
-        // Move Forward & Align to Road Surface
         this.position.x += Math.sin(this.heading) * this.speed * dt;
         this.position.z += Math.cos(this.heading) * this.speed * dt;
         this.position.x = clamp(this.position.x, -136, 136);
@@ -3038,7 +3128,6 @@
         this.position.y += (targetGroundY - this.position.y) * Math.min(1, dt * 20);
         if (Math.abs(this.position.y - targetGroundY) < 0.004) this.position.y = targetGroundY;
 
-        // Building & Closed Door Collision
         const preSpeed = Math.abs(this.speed);
         const beforeWall = this.position.clone();
         resolveCircleAABBCollision(this.position, this.type === 'motorbike' ? 0.95 : 1.75, activeColliders);
@@ -3055,7 +3144,6 @@
           this.speed *= -0.28;
         }
 
-        // Vehicle-to-Vehicle Elastic Collision
         const myRadius = this.type === 'motorbike' ? 1.1 : 1.75;
         for (let i = 0; i < allVehicles.length; i++) {
           const other = allVehicles[i];
@@ -3094,7 +3182,6 @@
           }
         }
 
-        // Vehicle vs Pedestrian Impact
         if (pedestrians && Math.abs(this.speed) > 2.2) {
           pedestrians.checkVehicleCollision(
             this.position,
@@ -3105,7 +3192,6 @@
           );
         }
 
-        // Suspension Lean & Wheel Rotation
         this.group.position.copy(this.position);
         this.group.rotation.y = this.heading;
         const targetRoll = this.type === 'motorbike'
@@ -3123,7 +3209,7 @@
     }
 
     // ==========================================================================
-    // 7. LIVING CITIZEN & DAILY ROUTINE SYSTEM (MAKAN, JAJAN, BOLA, SPBU, NGOBROL)
+    // 7. LIVING CITIZEN & DAILY ROUTINE SYSTEM
     // ==========================================================================
     class PedestrianSystem {
       constructor(scene, count = 24, world = null) {
@@ -3132,12 +3218,12 @@
         this.bumpCooldown = 0;
 
         const roles = [
-          { shirt: 0x16a34a, pants: 0x1e293b, headGear: 'helmet', activity: 'spbu' },    // Ojol
-          { shirt: 0x2563eb, pants: 0x1e3a8a, headGear: 'cap', activity: 'kerja' },      // Pekerja Industri
-          { shirt: 0xe11d48, pants: 0x334155, headGear: 'hair', activity: 'jajan' },     // Warga Jajan
-          { shirt: 0xf59e0b, pants: 0x0f172a, headGear: 'hair', activity: 'bola' },      // Warga Main Bola
-          { shirt: 0x0d9488, pants: 0x1e293b, headGear: 'hair', activity: 'makan' },     // Pelanggan Warteg
-          { shirt: 0x7c3aed, pants: 0x334155, headGear: 'cap', activity: 'ngobrol' }     // Warga Ngobrol
+          { shirt: 0x16a34a, pants: 0x1e293b, headGear: 'helmet', activity: 'spbu' },
+          { shirt: 0x2563eb, pants: 0x1e3a8a, headGear: 'cap', activity: 'kerja' },
+          { shirt: 0xe11d48, pants: 0x334155, headGear: 'hair', activity: 'jajan' },
+          { shirt: 0xf59e0b, pants: 0x0f172a, headGear: 'hair', activity: 'bola' },
+          { shirt: 0x0d9488, pants: 0x1e293b, headGear: 'hair', activity: 'makan' },
+          { shirt: 0x7c3aed, pants: 0x334155, headGear: 'cap', activity: 'ngobrol' }
         ];
 
         const activityHubs = {
@@ -3158,7 +3244,6 @@
           const skinMat = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.65 });
           const shoeMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
 
-          // Pelvis & Torso
           const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.22, 0.26), pantsMat);
           pelvis.position.y = 0.86;
           pelvis.castShadow = true;
@@ -3169,7 +3254,6 @@
           body.castShadow = true;
           group.add(body);
 
-          // Neck & Head
           const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 8), skinMat);
           neck.position.y = 1.56;
           group.add(neck);
@@ -3179,7 +3263,6 @@
           head.castShadow = true;
           group.add(head);
 
-          // Eyes
           const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
           [-0.065, 0.065].forEach(ex => {
             const eye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.025), eyeMat);
@@ -3187,7 +3270,6 @@
             head.add(eye);
           });
 
-          // Hair / Cap / Helmet
           if (role.headGear === 'helmet') {
             const helmet = new THREE.Mesh(
               new THREE.SphereGeometry(0.20, 12, 12),
@@ -3211,7 +3293,6 @@
             head.add(hair);
           }
 
-          // Left & Right Articulated Arms with Hands
           const buildArm = (xPos) => {
             const pivot = new THREE.Group();
             pivot.position.set(xPos, 1.48, 0);
@@ -3230,7 +3311,6 @@
           const leftArmPivot = buildArm(0.32);
           const rightArmPivot = buildArm(-0.32);
 
-          // Left & Right Legs with Shoes
           const buildLeg = (xPos) => {
             const pivot = new THREE.Group();
             pivot.position.set(xPos, 0.78, 0);
@@ -3267,7 +3347,6 @@
             heading: Math.random() * Math.PI * 2,
             speed: 1.45 + Math.random() * 0.6,
             phase: Math.random() * Math.PI * 2,
-            activityTimer: 2 + Math.random() * 4,
             waveTimer: 0,
             fleeTimer: 0,
             fightTimer: 0,
@@ -3403,7 +3482,6 @@
           const pos = p.group.position;
           const groundY = world.getGroundHeight(pos.x, pos.z);
 
-          // Stun / Knockback Recovery Pose
           if (p.stunTimer > 0) {
             p.stunTimer -= dt;
             const beforeKnock = pos.clone();
@@ -3426,7 +3504,6 @@
           p.group.rotation.x = 0;
           pos.y += (groundY - pos.y) * Math.min(1, dt * 20);
 
-          // Solid Collision with All Vehicles
           for (let vIdx = 0; vIdx < vehicles.length; vIdx++) {
             const v = vehicles[vIdx];
             const vehRadius = v.type === 'motorbike' ? 1.15 : 2.15;
@@ -3442,7 +3519,6 @@
             }
           }
 
-          // NPC-to-NPC Separation
           for (let j = i + 1; j < this.pedestrians.length; j++) {
             const other = this.pedestrians[j];
             const opos = other.group.position;
@@ -3458,7 +3534,6 @@
             }
           }
 
-          // Citizen Retaliation AI
           if (p.fightTimer > 0 && hero && !GameState.inVehicle) {
             p.fightTimer -= dt;
             if (p.attackCooldown > 0) p.attackCooldown -= dt;
@@ -3511,7 +3586,6 @@
             }
           }
 
-          // Wave Gesture
           if (p.waveTimer > 0) {
             p.waveTimer -= dt;
             p.rightArmPivot.rotation.z = -2.4 + Math.sin(p.waveTimer * 10) * 0.35;
@@ -3522,13 +3596,11 @@
             continue;
           }
 
-          // Living Daily Activities (Makan, Jajan, Main Bola, Isi Bensin, Kerja, Ngobrol)
           p.phase += dt * 4.5;
           p.rightArmPivot.rotation.z = -0.08;
           p.leftArmPivot.rotation.z = 0.08;
 
           if (p.activity === 'bola' && world.soccerBall && p.fleeTimer <= 0) {
-            // Chase & kick the soccer ball on Alun-Alun pitch!
             const bx = world.soccerBall.position.x;
             const bz = world.soccerBall.position.z;
             if (Math.hypot(bx, bz - 70) < 22) {
@@ -3543,7 +3615,6 @@
                 p.leftLeg.rotation.x = Math.sin(p.phase * 1.4) * 0.6;
                 p.rightLeg.rotation.x = -Math.sin(p.phase * 1.4) * 0.6;
               } else {
-                // Kick ball across the field!
                 world.soccerVel.x = (Math.random() - 0.5) * 11;
                 world.soccerVel.z = (Math.random() - 0.5) * 11;
                 world.soccerVel.y = 2.4;
@@ -3557,31 +3628,25 @@
           if (p.fleeTimer <= 0 && (p.activity === 'makan' || p.activity === 'jajan' || p.activity === 'ngobrol' || p.activity === 'spbu')) {
             const distHome = Math.hypot(pos.x - p.homePos.x, pos.z - p.homePos.z);
             if (distHome < 2.2) {
-              // Perform stationary realistic routine animation
               p.leftLeg.rotation.x *= 0.85;
               p.rightLeg.rotation.x *= 0.85;
               if (p.activity === 'makan' || p.activity === 'jajan') {
-                // Hand-to-mouth eating/drinking motion
                 p.rightArmPivot.rotation.x = -1.35 + Math.sin(p.phase * 1.4) * 0.45;
                 p.leftArmPivot.rotation.x = -0.35;
               } else if (p.activity === 'ngobrol') {
-                // Expressive hand gestures while chatting
                 p.rightArmPivot.rotation.x = -0.75 + Math.sin(p.phase * 1.6) * 0.45;
                 p.leftArmPivot.rotation.x = -0.55 + Math.cos(p.phase * 1.3) * 0.35;
               } else {
-                // SPBU refueling gesture
                 p.rightArmPivot.rotation.x = -1.05;
                 p.leftArmPivot.rotation.x = -0.2;
               }
               p.group.rotation.y = p.heading;
               continue;
             } else {
-              // Walk back toward activity hub
               p.heading = Math.atan2(p.homePos.x - pos.x, p.homePos.z - pos.z);
             }
           }
 
-          // Standard Patrol / Stroll
           const moveSpd = p.fleeTimer > 0 ? p.speed * 2.1 : p.speed;
           if (p.fleeTimer > 0) p.fleeTimer -= dt;
 
@@ -3801,7 +3866,6 @@
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, w, h);
 
-        // Roads
         ctx.fillStyle = '#334155';
         [-105, -35, 35, 105].forEach(c => {
           const p = (c + 145) * scale;
@@ -3809,7 +3873,6 @@
           ctx.fillRect(0, p - 3, w, 6);
         });
 
-        // Vehicles
         vehicles.forEach(v => {
           const vx = (v.position.x + 145) * scale;
           const vz = (v.position.z + 145) * scale;
@@ -3819,7 +3882,6 @@
           ctx.fill();
         });
 
-        // Active Mission Waypoint
         if (mission && mission.active) {
           const wp = mission.waypoints[mission.index];
           ctx.fillStyle = '#facc15';
@@ -3828,7 +3890,6 @@
           ctx.fill();
         }
 
-        // Player Arrow
         const px = (playerPos.x + 145) * scale;
         const pz = (playerPos.z + 145) * scale;
         ctx.save();
@@ -3898,6 +3959,8 @@
             if (this.cb.onCycleTime) this.cb.onCycleTime();
           } else if (e.code === 'KeyB') {
             if (this.cb.onOpenShop) this.cb.onOpenShop();
+          } else if (e.code === 'KeyI') {
+            if (this.cb.onOpenRansel) this.cb.onOpenRansel();
           } else if (e.code === 'KeyK') {
             if (this.cb.onOpenEdu) this.cb.onOpenEdu();
           } else if (e.code === 'KeyM') {
@@ -4028,7 +4091,6 @@
         const moveX = clamp(kx + this.joyX, -1, 1);
         const moveZ = clamp(kz + this.joyY, -1, 1);
 
-        // Unified Driving Input: Push up = Gas, Push down = Brake/Reverse, Left/Right = Steer
         let throttle = -moveZ;
         if (this.virtualButtons.nitro && GameState.inVehicle && throttle >= -0.05) {
           throttle = 1;
@@ -4120,29 +4182,35 @@
     }
 
     // ==========================================================================
-    // 12. TOKO & SHOWROOM PANTURA CONTROLLER
+    // 12. TOKO & RANSEL INVENTORI CONTROLLER (EQUIP / UNEQUIP ANYTIME)
     // ==========================================================================
+    const SHARED_GEAR_CATALOG = [
+      { id: 'jaket_touring', cat: 'pakaian', icon: '🧥', name: 'Jaket Touring Pantura', price: 200000, desc: 'Jaket motor gagah berkerah & resleting emas.', action: 'wear_jaket', equipType: 'top_jaket' },
+      { id: 'backpack', cat: 'perlengkapan', icon: '🎒', name: 'Tas Ransel Tactical', price: 150000, desc: 'Tas punggung 3D yang bisa dipasang & dilepas.', action: 'equip_backpack', equipKey: 'backpack' },
+      { id: 'gloves', cat: 'perlengkapan', icon: '🥊', name: 'Sarung Tinju Juara', price: 250000, desc: 'Meningkatkan kekuatan pukulan Hero menjadi serangan KO!', action: 'equip_gloves', equipKey: 'gloves' },
+      { id: 'blaster', cat: 'perlengkapan', icon: '🔫', name: 'Blaster Air / Busa 3D', price: 320000, desc: 'Menembakkan peluru dari moncong pistol saat tekan PUKUL [F]!', action: 'equip_blaster', equipKey: 'blaster' },
+      { id: 'glasses', cat: 'pakaian', icon: '🕶️', name: 'Kacamata Hitam Bekasi', price: 90000, desc: 'Tampil keren anti silau matahari Pantura.', action: 'equip_glasses', equipKey: 'glasses' },
+      { id: 'mask', cat: 'pakaian', icon: '😷', name: 'Masker Motor Pantura', price: 65000, desc: 'Masker pelindung debu jalan raya.', action: 'equip_mask', equipKey: 'mask' },
+      { id: 'soccer_ball', cat: 'hobi', icon: '⚽', name: 'Bola Sepak Pantura', price: 120000, desc: 'Memunculkan bola sepak 3D di depanmu untuk ditendang!', action: 'spawn_ball', reusable: true },
+      { id: 'book_guide', cat: 'hobi', icon: '📘', name: 'Buku Pintar Pantura', price: 75000, desc: 'Buku wawasan kota + pemulihan energi penuh 100%.', action: 'use_book', reusable: true },
+      { id: 'motor_250rr', cat: 'kendaraan', icon: '🏍️', name: 'Motor Sport 250RR Baru', price: 650000, desc: 'Antar unit Motor Sport 250RR ke jalan di depanmu.', action: 'spawn_motor' },
+      { id: 'car_gtr', cat: 'kendaraan', icon: '🏎️', name: 'Mobil Cikarang GT-R', price: 950000, desc: 'Antar unit Mobil Sport GT-R ke jalan di depanmu.', action: 'spawn_car' }
+    ];
+
     class ShopStoreController {
       constructor(app) {
         this.app = app;
         this.activeCat = 'semua';
-        this.catalog = [
-          { id: 'jaket_touring', cat: 'pakaian', icon: '🧥', name: 'Jaket Touring Pantura', price: 200000, desc: 'Jaket motor gagah berkerah & resleting emas.', action: 'wear_jaket' },
-          { id: 'backpack', cat: 'perlengkapan', icon: '🎒', name: 'Tas Ransel Tactical', price: 150000, desc: 'Tas punggung 3D yang langsung terpasang di punggung Hero.', action: 'equip_backpack' },
-          { id: 'gloves', cat: 'perlengkapan', icon: '🥊', name: 'Sarung Tinju Juara', price: 250000, desc: 'Meningkatkan kekuatan pukulan Hero menjadi serangan KO!', action: 'equip_gloves' },
-          { id: 'blaster', cat: 'perlengkapan', icon: '🔫', name: 'Blaster Air / Busa 3D', price: 320000, desc: 'Menembakkan peluru busa 3D saat menekan tombol PUKUL [F]!', action: 'equip_blaster' },
-          { id: 'glasses', cat: 'pakaian', icon: '🕶️', name: 'Kacamata Hitam Bekasi', price: 90000, desc: 'Tampil keren anti silau matahari Pantura.', action: 'equip_glasses' },
-          { id: 'soccer_ball', cat: 'hobi', icon: '⚽', name: 'Bola Sepak Pantura', price: 120000, desc: 'Memunculkan bola sepak 3D di depanmu untuk ditendang!', action: 'spawn_ball' },
-          { id: 'book_guide', cat: 'hobi', icon: '📘', name: 'Buku Pintar Pantura', price: 75000, desc: 'Buku wawasan kota + bonus energi penuh 100%.', action: 'use_book' },
-          { id: 'motor_250rr', cat: 'kendaraan', icon: '🏍️', name: 'Motor Sport 250RR Baru', price: 650000, desc: 'Antar unit Motor Sport 250RR ke jalan di depanmu.', action: 'spawn_motor' },
-          { id: 'car_gtr', cat: 'kendaraan', icon: '🏎️', name: 'Mobil Cikarang GT-R', price: 950000, desc: 'Antar unit Mobil Sport GT-R ke jalan di depanmu.', action: 'spawn_car' }
-        ];
-
+        this.catalog = SHARED_GEAR_CATALOG;
         this._bindEvents();
       }
 
       _bindEvents() {
         document.getElementById('btn-close-shop').addEventListener('click', () => this.close());
+        document.getElementById('btn-shop-open-ransel').addEventListener('click', () => {
+          this.close();
+          this.app.ranselController.open();
+        });
       }
 
       open() {
@@ -4154,6 +4222,12 @@
       close() {
         document.getElementById('modal-shop').classList.add('hidden');
         GameState.paused = false;
+      }
+
+      _isItemEquipped(item) {
+        if (item.equipKey) return Boolean(GameState.equipped[item.equipKey]);
+        if (item.equipType === 'top_jaket') return this.app.player.appearance.topStyle === 'jaket';
+        return false;
       }
 
       render() {
@@ -4187,67 +4261,128 @@
 
         const grid = document.getElementById('shop-items-grid');
         grid.innerHTML = filtered.map(item => {
-          const isOwned = GameState.ownedItems.has(item.id) && item.cat !== 'kendaraan' && item.id !== 'soccer_ball';
+          const isOwned = GameState.ownedItems.has(item.id) && item.cat !== 'kendaraan';
+          const isEquipped = this._isItemEquipped(item);
+
+          let btnLabel = '🛒 Beli & Simpan ke Ransel';
+          let btnClass = 'bg-amber-500 hover:bg-amber-400 text-slate-950';
+          if (isOwned) {
+            if (item.reusable) {
+              btnLabel = '🎒 Gunakan dari Ransel';
+              btnClass = 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/40';
+            } else if (isEquipped) {
+              btnLabel = '📥 Lepas ke Ransel';
+              btnClass = 'bg-rose-500/25 text-rose-200 border border-rose-400/40';
+            } else {
+              btnLabel = '✅ Pasang dari Ransel';
+              btnClass = 'bg-emerald-500 text-slate-950';
+            }
+          }
+
           return `
             <div class="bg-slate-900/85 border border-white/10 rounded-2xl p-4 flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-2xl">${item.icon}</span>
-                  <span class="text-xs font-black text-emerald-400">${formatRupiah(item.price)}</span>
+                  <span class="text-xs font-black text-emerald-400">${isOwned ? 'MILIKMU' : formatRupiah(item.price)}</span>
                 </div>
                 <div class="font-black text-sm text-white mb-1">${item.name}</div>
                 <p class="text-[11px] text-slate-400 leading-relaxed mb-3">${item.desc}</p>
               </div>
-              <button type="button" data-buy="${item.id}" class="shop-buy-btn w-full py-2 rounded-xl text-xs font-black transition ${isOwned ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-400/40' : 'bg-amber-500 hover:bg-amber-400 text-slate-950'}">
-                ${isOwned ? '✅ Sudah Dimiliki (Pakai)' : '🛒 Beli Sekarang'}
+              <button type="button" data-buy="${item.id}" class="shop-buy-btn w-full py-2 rounded-xl text-xs font-black transition ${btnClass}">
+                ${btnLabel}
               </button>
             </div>
           `;
         }).join('');
 
         grid.querySelectorAll('.shop-buy-btn').forEach(btn => {
-          btn.addEventListener('click', () => this._handlePurchase(btn.dataset.buy));
+          btn.addEventListener('click', () => this._handlePurchaseOrToggle(btn.dataset.buy));
         });
       }
 
-      _handlePurchase(itemId) {
+      _handlePurchaseOrToggle(itemId) {
         const item = this.catalog.find(i => i.id === itemId);
         if (!item) return;
 
-        const alreadyOwned = GameState.ownedItems.has(item.id) && item.cat !== 'kendaraan' && item.id !== 'soccer_ball';
+        const alreadyOwned = GameState.ownedItems.has(item.id) && item.cat !== 'kendaraan';
         if (!alreadyOwned) {
           if (GameState.cash < item.price) {
             showToast('❌ Saldo Rupiah belum cukup! Kumpulkan koper uang atau ikut lomba.');
             return;
           }
           GameState.cash -= item.price;
-          GameState.ownedItems.add(item.id);
+          if (item.cat !== 'kendaraan') {
+            GameState.ownedItems.add(item.id);
+          }
           this.app.sound.playPickup();
         }
 
+        this.app.ranselController.toggleOrUseItem(item, !alreadyOwned);
+        this.render();
+      }
+    }
+
+    class RanselController {
+      constructor(app) {
+        this.app = app;
+        this._bindEvents();
+      }
+
+      _bindEvents() {
+        document.getElementById('btn-close-ransel').addEventListener('click', () => this.close());
+        document.getElementById('btn-ransel-open-shop').addEventListener('click', () => {
+          this.close();
+          this.app.shopStore.open();
+        });
+        document.getElementById('btn-ransel-unequip-all').addEventListener('click', () => {
+          GameState.equipped.backpack = false;
+          GameState.equipped.gloves = false;
+          GameState.equipped.blaster = false;
+          GameState.equipped.glasses = false;
+          GameState.equipped.mask = false;
+          if (this.app.player.appearance.topStyle === 'jaket') {
+            this.app.player.rebuildAppearance({ topStyle: 'kaos' });
+          } else {
+            this.app.player.rebuildAppearance();
+          }
+          this.app.syncGearHUD();
+          this.render();
+          showToast('📥 Semua perlengkapan dilepas & disimpan rapi di Ransel');
+        });
+      }
+
+      open() {
+        GameState.paused = true;
+        document.getElementById('modal-ransel').classList.remove('hidden');
+        this.render();
+      }
+
+      close() {
+        document.getElementById('modal-ransel').classList.add('hidden');
+        GameState.paused = false;
+      }
+
+      _isItemEquipped(item) {
+        if (item.equipKey) return Boolean(GameState.equipped[item.equipKey]);
+        if (item.equipType === 'top_jaket') return this.app.player.appearance.topStyle === 'jaket';
+        return false;
+      }
+
+      toggleOrUseItem(item, forceEquip = false) {
         const p = this.app.player;
         if (item.action === 'wear_jaket') {
-          p.rebuildAppearance({ topStyle: 'jaket' });
-          showToast('🧥 Jaket Touring Pantura dipakai!');
-        } else if (item.action === 'equip_backpack') {
-          GameState.equipped.backpack = true;
+          const wear = forceEquip ? true : (p.appearance.topStyle !== 'jaket');
+          p.rebuildAppearance({ topStyle: wear ? 'jaket' : 'kaos' });
+          showToast(wear ? '🧥 Jaket Touring Pantura dipakai!' : '📥 Jaket Touring dilepas ke Ransel');
+        } else if (item.equipKey) {
+          const nextState = forceEquip ? true : !GameState.equipped[item.equipKey];
+          GameState.equipped[item.equipKey] = nextState;
           p.rebuildAppearance();
-          showToast('🎒 Tas Ransel terpasang di punggung!');
-        } else if (item.action === 'equip_gloves') {
-          GameState.equipped.gloves = true;
-          p.rebuildAppearance();
-          showToast('🥊 Sarung Tinju Juara terpasang!');
-        } else if (item.action === 'equip_blaster') {
-          GameState.equipped.blaster = true;
-          p.rebuildAppearance();
-          showToast('🔫 Blaster 3D siap ditembakkan dengan tombol PUKUL [F]!');
-        } else if (item.action === 'equip_glasses') {
-          GameState.equipped.glasses = true;
-          p.rebuildAppearance();
-          showToast('🕶️ Kacamata Hitam dipakai!');
+          showToast(nextState ? `✅ ${item.name} dipasang!` : `📥 ${item.name} dilepas ke Ransel`);
         } else if (item.action === 'spawn_ball') {
           this.app.world.spawnSoccerBallAt(p.position, p.heading);
-          showToast('⚽ Bola Sepak muncul di depanmu!');
+          showToast('⚽ Bola Sepak dikeluarkan dari Ransel!');
         } else if (item.action === 'use_book') {
           GameState.health = 100;
           GameState.nitro = 100;
@@ -4282,7 +4417,86 @@
         }
 
         this.app.syncGearHUD();
-        this.render();
+      }
+
+      render() {
+        const activeLabels = [];
+        if (GameState.equipped.backpack) activeLabels.push('Tas Ransel');
+        if (GameState.equipped.gloves) activeLabels.push('Sarung Tinju');
+        if (GameState.equipped.blaster) activeLabels.push('Blaster 3D');
+        if (GameState.equipped.glasses) activeLabels.push('Kacamata');
+        if (GameState.equipped.mask) activeLabels.push('Masker');
+        if (this.app.player.appearance.topStyle === 'jaket') activeLabels.push('Jaket Touring');
+
+        document.getElementById('ransel-equipped-summary').textContent =
+          activeLabels.length > 0 ? activeLabels.join(' • ') : 'Tangan Kosong (Semua di Ransel)';
+
+        const ownedCatalog = SHARED_GEAR_CATALOG.filter(it => GameState.ownedItems.has(it.id));
+        const grid = document.getElementById('ransel-items-grid');
+
+        if (ownedCatalog.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-8 text-slate-400">
+              <div class="text-4xl mb-2">🎒</div>
+              <div class="font-bold text-sm text-white mb-1">Ransel Masih Kosong</div>
+              <p class="text-xs mb-3">Belanja tembakan blaster, sarung tinju, jaket, atau bola di Toko Pantura!</p>
+              <button type="button" id="btn-empty-ransel-shop" class="rounded-xl bg-amber-500 text-slate-950 font-black text-xs px-4 py-2">
+                🛒 Buka Toko Sekarang
+              </button>
+            </div>
+          `;
+          const goShop = document.getElementById('btn-empty-ransel-shop');
+          if (goShop) {
+            goShop.addEventListener('click', () => {
+              this.close();
+              this.app.shopStore.open();
+            });
+          }
+          return;
+        }
+
+        grid.innerHTML = ownedCatalog.map(item => {
+          const isEquipped = this._isItemEquipped(item);
+          let statusBadge = isEquipped
+            ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black">✅ TERPASANG</span>'
+            : '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/10 text-[10px] font-bold">🎒 DI RANSEL</span>';
+
+          let btnText = isEquipped ? '📥 Lepas ke Ransel' : '✅ Pasang / Pakai';
+          let btnStyle = isEquipped
+            ? 'bg-rose-500/25 hover:bg-rose-500/35 text-rose-200 border border-rose-400/40'
+            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950';
+
+          if (item.reusable) {
+            statusBadge = '<span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30 text-[10px] font-black">🎒 TERSIMPAN</span>';
+            btnText = item.id === 'soccer_ball' ? '⚽ Keluarkan Bola' : '📘 Baca Buku (+100% Energi)';
+            btnStyle = 'bg-sky-500 hover:bg-sky-400 text-slate-950';
+          }
+
+          return `
+            <div class="bg-slate-900/85 border border-white/10 rounded-2xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-2xl">${item.icon}</span>
+                  ${statusBadge}
+                </div>
+                <div class="font-black text-sm text-white mb-1">${item.name}</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed mb-3">${item.desc}</p>
+              </div>
+              <button type="button" data-ransel-id="${item.id}" class="ransel-toggle-btn w-full py-2 rounded-xl text-xs font-black transition ${btnStyle}">
+                ${btnText}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('.ransel-toggle-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const item = SHARED_GEAR_CATALOG.find(it => it.id === btn.dataset.ranselId);
+            if (!item) return;
+            this.toggleOrUseItem(item, false);
+            this.render();
+          });
+        });
       }
     }
 
@@ -4826,6 +5040,7 @@
         this.minimap = new MinimapRenderer(document.getElementById('minimap-canvas'));
         this.previewStage = new CharacterPreviewStage(document.getElementById('preview-canvas'), this.player);
         this.miniGames = new MiniGameHubController(this);
+        this.ranselController = new RanselController(this);
         this.shopStore = new ShopStoreController(this);
         this.eduHub = new EducationHubController(this);
 
@@ -4876,7 +5091,6 @@
             maxSpeed: 24,
             accelRate: 16
           }),
-          // Structured AI Traffic Vehicles following lanes & red lights
           new Vehicle(this.scene, {
             name: 'TAXI PANTURA',
             type: 'coupe',
@@ -4923,12 +5137,15 @@
           onOpenCustomize: () => this._openCustomizeModal(),
           onOpenMiniGames: () => this.miniGames.open(),
           onOpenShop: () => this.shopStore.open(),
+          onOpenRansel: () => this.ranselController.open(),
           onOpenEdu: () => this.eduHub.open(),
           onEscape: () => {
             if (!document.getElementById('modal-minigames').classList.contains('hidden')) {
               this.miniGames.close();
             } else if (!document.getElementById('modal-shop').classList.contains('hidden')) {
               this.shopStore.close();
+            } else if (!document.getElementById('modal-ransel').classList.contains('hidden')) {
+              this.ranselController.close();
             } else if (!document.getElementById('modal-edu').classList.contains('hidden')) {
               this.eduHub.close();
             } else {
@@ -4968,6 +5185,8 @@
 
         // HUD Feature Buttons
         document.getElementById('btn-hud-shop').addEventListener('click', () => this.shopStore.open());
+        document.getElementById('btn-hud-ransel').addEventListener('click', () => this.ranselController.open());
+        document.getElementById('hud-gear-pill').addEventListener('click', () => this.ranselController.open());
         document.getElementById('btn-hud-edu').addEventListener('click', () => this.eduHub.open());
         document.getElementById('btn-hud-minigames').addEventListener('click', () => this.miniGames.open());
         document.getElementById('btn-hud-customize').addEventListener('click', () => this._openCustomizeModal());
@@ -5064,6 +5283,7 @@
           this.player.rebuildAppearance({ hairStyle: val });
         });
         renderChoiceGroup('top-options', topList, this.player.appearance.topStyle, (val) => {
+          if (val === 'jaket') GameState.ownedItems.add('jaket_touring');
           this.player.rebuildAppearance({ topStyle: val });
         });
         renderChoiceGroup('pants-options', pantsList, this.player.appearance.pantsStyle, (val) => {
@@ -5083,6 +5303,9 @@
           btn.addEventListener('click', () => {
             const k = btn.dataset.acc;
             GameState.equipped[k] = !GameState.equipped[k];
+            if (GameState.equipped[k]) {
+              GameState.ownedItems.add(k);
+            }
             this.player.rebuildAppearance();
             this.previewStage.syncModel();
             this._bindCustomizationOptions();
@@ -5188,6 +5411,7 @@
         document.getElementById('modal-cam-settings').classList.add('hidden');
         document.getElementById('modal-minigames').classList.add('hidden');
         document.getElementById('modal-shop').classList.add('hidden');
+        document.getElementById('modal-ransel').classList.add('hidden');
         document.getElementById('modal-edu').classList.add('hidden');
         if (GameState.started) GameState.paused = false;
       }
@@ -5198,6 +5422,8 @@
         if (GameState.equipped.gloves) items.push('Sarung Tinju');
         if (GameState.equipped.blaster) items.push('Blaster 3D');
         if (GameState.equipped.glasses) items.push('Kacamata');
+        if (GameState.equipped.mask) items.push('Masker');
+        if (this.player.appearance.topStyle === 'jaket') items.push('Jaket Touring');
         document.getElementById('hud-gear-text').textContent = items.length > 0 ? items.join(' • ') : 'Tangan Kosong';
       }
 
@@ -5346,8 +5572,8 @@
           document.getElementById('slot-bot1-label').textContent = GameState.equipped.blaster ? 'TEMBAK' : 'PUKUL';
           document.getElementById('slot-bot2-icon').textContent = '⚡';
           document.getElementById('slot-bot2-label').textContent = 'LARI';
-          document.getElementById('slot-bot3-icon').textContent = '⬆️';
-          document.getElementById('slot-bot3-label').textContent = 'LOMPAT';
+          document.getElementById('slot-bot3-icon').textContent = !this.player.isGrounded && this.player.jumpCount === 1 ? '🤸' : '⬆️';
+          document.getElementById('slot-bot3-label').textContent = !this.player.isGrounded && this.player.jumpCount === 1 ? 'SALTO' : 'LOMPAT';
         }
       }
 
