@@ -877,6 +877,9 @@
         food_esteh: 1
       },
       boxingStage: 0,
+      stats: { kekuatan: 0, dayaTahan: 0, kelincahan: 0 },
+      gymPassUntil: 0,
+      fishCaught: 0,
       boxingWins: 0,
       eduSolved: new Set(),
       appearance: {
@@ -1277,6 +1280,58 @@
         const base = [523.25, 659.25, 783.99, 1046.5][clamp(level - 1, 0, 3)];
         this.playTone(base, 0.2, 'triangle', 0.05, base * 1.01, 0.02, 0.35);
         this.playTone(base * 1.5, 0.26, 'sine', 0.035, base * 1.51, 0.06, 0.35);
+      }
+
+      playGymClang(power = 1) {
+        this.playNoiseBurst({ duration: 0.09, filterType: 'highpass', startFreq: 3800, endFreq: 2200, Q: 1.2, gainVal: 0.09 * power, wet: 0.2 });
+        this.playTone(1180, 0.32, 'triangle', 0.05 * power, 1130, 0, 0.35);
+        this.playTone(1760, 0.24, 'sine', 0.03 * power, 1700, 0.01, 0.35);
+        this.playTone(130, 0.12, 'sine', 0.1 * power, 70);
+      }
+
+      playBagThud(power = 1) {
+        this.playTone(95, 0.22, 'sine', 0.26 * power, 40, 0, 0.12);
+        this.playNoiseBurst({ duration: 0.1, filterType: 'lowpass', startFreq: 2200, endFreq: 240, Q: 0.8, gainVal: 0.16 * power });
+        this.playNoiseBurst({ duration: 0.22, filterType: 'bandpass', startFreq: 420, endFreq: 220, Q: 3, gainVal: 0.05 * power, delay: 0.04 });
+      }
+
+      playRopeWhip() {
+        this.playNoiseBurst({ duration: 0.07, filterType: 'bandpass', startFreq: 2600, endFreq: 900, Q: 2, gainVal: 0.06 });
+      }
+
+      playCoins() {
+        [1568, 2093, 2637].forEach((f, i) => this.playTone(f, 0.18, 'triangle', 0.045, f * 1.01, i * 0.06, 0.3));
+      }
+
+      playSplash(big = false) {
+        this.playNoiseBurst({ duration: big ? 0.35 : 0.18, filterType: 'bandpass', startFreq: 1400, endFreq: 500, Q: 0.8, gainVal: big ? 0.12 : 0.06, wet: 0.2 });
+        this.playTone(big ? 260 : 340, 0.12, 'sine', 0.05, 140, 0.02);
+      }
+
+      playReelClick() {
+        for (let i = 0; i < 5; i++) {
+          this.playTone(1500 + (i % 2) * 200, 0.025, 'square', 0.02, null, i * 0.05);
+        }
+      }
+
+      playSizzle(dur = 0.5) {
+        this.playNoiseBurst({ duration: dur, filterType: 'highpass', startFreq: 4200, endFreq: 3000, Q: 0.6, gainVal: 0.028, attack: 0.12 });
+      }
+
+      playGuitarPluck(note = 0) {
+        const scale = [196, 220, 246.9, 293.7, 329.6, 392, 440, 493.9];
+        const f = scale[((note % scale.length) + scale.length) % scale.length];
+        this.playTone(f, 0.9, 'triangle', 0.07, f * 0.995, 0, 0.35);
+        this.playTone(f * 2, 0.5, 'sine', 0.025, f * 1.99, 0, 0.35);
+        this.playNoiseBurst({ duration: 0.03, filterType: 'bandpass', startFreq: 2400, endFreq: 1800, Q: 2, gainVal: 0.03 });
+      }
+
+      playLevelUp() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.playTone(f, 0.28, 'triangle', 0.06, f * 1.005, i * 0.09, 0.4));
+      }
+
+      playMotorHum(speed = 0.5) {
+        this.playTone(60 + speed * 40, 0.14, 'sawtooth', 0.018, 62 + speed * 40);
       }
 
       playBlasterShot() {
@@ -2633,9 +2688,9 @@
         const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
         const reach = (GameState.equipped.gloves ? 2.6 : 2.15) + 0.3;
         const target = citizens.findInCone(this.pos, fwd, reach, 0.4);
-        if (!target) return;
+        if (!target) { if (this.life) this.life.tryHitBag(this, combo); return; }
 
-        const baseDmg = GameState.equipped.gloves ? 28 : 18;
+        const baseDmg = (GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult();
         const comboMult = [0, 1.0, 1.2, 1.45, 1.8][combo];
         const dmg = Math.round(baseDmg * comboMult);
         const heavy = combo >= 3;
@@ -2868,7 +2923,7 @@
       update(dt, input, cameraYaw, citizens) {
         // Stamina passive regeneration
         if (!input.sprint && this.rollTimer <= 0) {
-          GameState.nitro = Math.min(100, GameState.nitro + 12 * dt);
+          GameState.nitro = Math.min(100, GameState.nitro + 12 * dt * GameStats.staMult());
         }
 
         // 1. Handle Vehicle Boarding/Dismounting Transition
@@ -3006,6 +3061,9 @@
           return;
         }
 
+        // 3b. Life-system activities (gym, sitting, fishing...)
+        if (this.life && this.life.heroUpdate(dt, input)) return;
+
         // 4. On-Foot Timers
         if (this.attackTimer > 0) this.attackTimer = Math.max(0, this.attackTimer - dt);
         if (this.pendingHit) {
@@ -3052,7 +3110,7 @@
           GameState.nitro = Math.max(0, GameState.nitro - 20 * dt);
         }
 
-        const moveSpeed = (this.isCrouching ? 3.2 : (isSprinting ? 10.6 : 6.2)) * (this.attackTimer > 0 ? 0.5 : 1);
+        const moveSpeed = (this.isCrouching ? 3.2 : (isSprinting ? 10.6 : 6.2)) * (this.attackTimer > 0 ? 0.5 : 1) * GameStats.speedMult();
         if (this.rollTimer > 0) {
           this.rollTimer = Math.max(0, this.rollTimer - dt);
           const dur = this.rollDuration || 0.56;
@@ -3927,6 +3985,7 @@
         this.world = world;
         this.sound = sound;
         this.list = [];
+        this.life = null;
         this._spawnCitizens();
       }
 
@@ -4023,7 +4082,10 @@
           `"Wah mantap gayanya! Mau mampir ke Warteg Bahari?"`,
           `"Selamat siang! Sukses terus di Bekasi–Karawang!"`
         ];
-        showToast(`${c.name}: ${lines[Math.floor(Math.random() * lines.length)]}`, 'wave');
+        const pool = c.lines ? c.lines.map(l => `"${l}"`) : lines;
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        showToast(`${c.name}: ${chosen}`, 'wave');
+        if (this.life) this.life.say(c, chosen, 3.2);
       }
 
       reactToHorn(hornPos) {
@@ -4057,10 +4119,82 @@
       }
 
       update(dt, hero) {
+        this._updateCore(dt, hero);
+        this._separate(dt, hero);
+      }
+
+      // Tabrakan antar-warga & dengan Hero: saling dorong + berbelok, tidak lagi tembus
+      _separate(dt, hero) {
+        const L = this.list;
+        const R = 0.9;
+        const mobile = c => !c._busy && c.downBlend < 0.3;
+        for (let i = 0; i < L.length; i++) {
+          const a = L[i];
+          if (!a.rig.root.visible) continue;
+          for (let j = i + 1; j < L.length; j++) {
+            const b = L[j];
+            const dx = b.pos.x - a.pos.x;
+            const dz = b.pos.z - a.pos.z;
+            const d2 = dx * dx + dz * dz;
+            if (d2 >= R * R || Math.abs(b.pos.y - a.pos.y) > 1.2) continue;
+            const am = mobile(a);
+            const bm = mobile(b);
+            if (!am && !bm) continue;
+            const d = Math.sqrt(d2) || 0.001;
+            const nx = dx / d;
+            const nz = dz / d;
+            const pen = R - d;
+            const wa = am ? (bm ? 0.5 : 1) : 0;
+            const wb = bm ? (am ? 0.5 : 1) : 0;
+            a.pos.x -= nx * pen * wa; a.pos.z -= nz * pen * wa;
+            b.pos.x += nx * pen * wb; b.pos.z += nz * pen * wb;
+            if (am && a.knockbackVel.lengthSq() <= 0.05) a.yaw = Math.atan2(-nx, -nz) + (Math.random() - 0.5) * 1.2;
+            if (bm && b.knockbackVel.lengthSq() <= 0.05) b.yaw = Math.atan2(nx, nz) + (Math.random() - 0.5) * 1.2;
+            if (am) a.turnTimer = 1.5 + Math.random();
+            if (bm) b.turnTimer = 1.5 + Math.random();
+          }
+          // Hero vs warga
+          if (hero && !GameState.inVehicle && !GameState.vehicleTransition) {
+            const dx = a.pos.x - hero.pos.x;
+            const dz = a.pos.z - hero.pos.z;
+            const d2 = dx * dx + dz * dz;
+            const HR = 0.95;
+            if (d2 < HR * HR && Math.abs(a.pos.y - hero.pos.y) < 1.2 && a.downBlend < 0.3) {
+              const d = Math.sqrt(d2) || 0.001;
+              const nx = dx / d;
+              const nz = dz / d;
+              const pen = HR - d;
+              const busyHero = hero.life && hero.life.busy;
+              if (mobile(a)) {
+                a.pos.x += nx * pen * (busyHero ? 1 : 0.7);
+                a.pos.z += nz * pen * (busyHero ? 1 : 0.7);
+                if (a.greetTimer <= 0 && a.angryTimer <= 0) a.yaw = Math.atan2(nx, nz) + (Math.random() - 0.5) * 1.4;
+                if (!busyHero) { hero.pos.x -= nx * pen * 0.3; hero.pos.z -= nz * pen * 0.3; }
+              } else if (!busyHero) {
+                hero.pos.x -= nx * pen;
+                hero.pos.z -= nz * pen;
+              }
+            }
+          }
+          if (mobile(a)) this.world.resolveCircleCollision(a.pos, 0.55);
+        }
+      }
+
+      _updateCore(dt, hero) {
         for (let i = 0; i < this.list.length; i++) {
           const c = this.list[i];
+          c._busy = false;
           if (c.flashTimer > 0) c.flashTimer -= dt;
           if (c.staggerTimer > 0) c.staggerTimer -= dt;
+
+          // Warga beraktivitas (ngobrol, olahraga, jualan, dll.) dikendalikan LifeSystem
+          if (c.act && this.life && c.downTimer <= 0 && c.staggerTimer <= 0 && c.knockbackVel.lengthSq() <= 0.05
+              && (c.fixed || (c.angryTimer <= 0 && c.greetTimer <= 0))) {
+            if (c.fixed) { c.greetTimer = 0; c.angryTimer = 0; }
+            c._busy = true;
+            this.life.updateActor(c, dt, hero);
+            continue;
+          }
 
           if (c.knockbackVel.lengthSq() > 0.05) {
             c.pos.addScaledVector(c.knockbackVel, dt);
@@ -4079,14 +4213,17 @@
             c.angryTimer -= dt;
             c.yaw = Math.atan2(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
           } else {
-            c.turnTimer -= dt;
-            if (c.turnTimer <= 0) {
-              c.turnTimer = 2.0 + Math.random() * 3.5;
-              c.yaw += (Math.random() - 0.5) * 2.4;
+            if (this.life) this.life.tickIdle(c, dt);
+            if (!c.idleKind) {
+              c.turnTimer -= dt;
+              if (c.turnTimer <= 0) {
+                c.turnTimer = 2.0 + Math.random() * 3.5;
+                c.yaw += (Math.random() - 0.5) * 2.4;
+              }
+              const speed = 1.65;
+              c.pos.x += Math.sin(c.yaw) * speed * dt;
+              c.pos.z += Math.cos(c.yaw) * speed * dt;
             }
-            const speed = 1.65;
-            c.pos.x += Math.sin(c.yaw) * speed * dt;
-            c.pos.z += Math.cos(c.yaw) * speed * dt;
           }
 
           if (this.world.resolveCircleCollision(c.pos, 0.55)) {
@@ -4154,6 +4291,8 @@
             c.rig.rightShoulderPivot.rotation.set(-0.95, -0.25, -0.15);
             c.rig.leftElbowPivot.rotation.set(-1.85, 0, 0);
             c.rig.rightElbowPivot.rotation.set(-1.85, 0, 0);
+          } else if (c.idleKind && this.life) {
+            LifePoses.apply(c.rig, LifePoses.pose(c.idleKind, this.life.t + c.walkCycle, {}));
           } else {
             c.walkCycle += dt * 5.2;
             const sw = Math.sin(c.walkCycle) * 0.42;
@@ -4693,6 +4832,62 @@
             desc: 'Pulihkan +60% Energi & +50% Stamina.'
           },
           {
+            id: 'food_bakso', name: 'Bakso Urat Mang Ujang', category: 'food', consumeType: 'food', price: 22000, hpGain: 35, nitroGain: 30,
+            statBoost: { dayaTahan: 1 }, icon: 'food', desc: 'Kuah panas gurih. +35% Energi, +30% Stamina, Daya Tahan +1.'
+          },
+          {
+            id: 'food_cilok', name: 'Cilok Bumbu Kacang', category: 'food', consumeType: 'food', price: 8000, hpGain: 12, nitroGain: 15,
+            icon: 'food', desc: 'Jajanan murah meriah. +12% Energi, +15% Stamina.'
+          },
+          {
+            id: 'food_sate_taichan', name: 'Sate Taichan Pedas', category: 'food', consumeType: 'food', price: 30000, hpGain: 42, nitroGain: 38,
+            statBoost: { kekuatan: 1 }, icon: 'food', desc: 'Dibakar langsung! +42% Energi, Kekuatan +1.'
+          },
+          {
+            id: 'food_kelapa', name: 'Es Kelapa Muda', category: 'food', consumeType: 'drink', price: 12000, hpGain: 15, nitroGain: 50,
+            icon: 'coffee', desc: 'Segar alami. +15% Energi, +50% Stamina.'
+          },
+          {
+            id: 'food_gorengan', name: 'Gorengan Hangat (5 pcs)', category: 'food', consumeType: 'food', price: 10000, hpGain: 18, nitroGain: 20,
+            icon: 'food', desc: 'Tahu isi, bakwan & pisang goreng. +18% Energi.'
+          },
+          {
+            id: 'food_martabak', name: 'Martabak Manis Spesial', category: 'food', consumeType: 'food', price: 40000, hpGain: 50, nitroGain: 30,
+            icon: 'food', desc: 'Cokelat keju melimpah. +50% Energi, +30% Stamina.'
+          },
+          {
+            id: 'food_kopi', name: 'Kopi Tubruk Warkop', category: 'food', consumeType: 'drink', price: 8000, hpGain: 8, nitroGain: 55,
+            statBoost: { kelincahan: 1 }, icon: 'coffee', desc: 'Pahit mantap. +55% Stamina, Kelincahan +1.'
+          },
+          {
+            id: 'food_kopi_susu', name: 'Kopi Susu Gula Aren', category: 'food', consumeType: 'drink', price: 15000, hpGain: 14, nitroGain: 60,
+            icon: 'coffee', desc: 'Manis & segar. +14% Energi, +60% Stamina.'
+          },
+          {
+            id: 'food_protein', name: 'Shake Protein Gym', category: 'food', consumeType: 'drink', price: 35000, hpGain: 25, nitroGain: 40,
+            statBoost: { kekuatan: 3 }, icon: 'coffee', desc: 'Bangun otot! Kekuatan +3, +40% Stamina.'
+          },
+          {
+            id: 'tool_joran', name: 'Joran Pancing Fiber', category: 'tool', price: 150000, icon: 'store',
+            desc: 'Wajib untuk mancing di Empang Pantura. Hasil ikan bisa dijual langsung!'
+          },
+          {
+            id: 'tool_dumbbell', name: 'Dumbbell Besi Pribadi', category: 'tool', price: 220000, icon: 'punch',
+            desc: 'Latihan Kekuatan +25% lebih cepat naik level.'
+          },
+          {
+            id: 'tool_sepatu', name: 'Sepatu Lari Pro', category: 'tool', price: 275000, icon: 'bolt',
+            desc: 'Kecepatan lari Hero +6% secara permanen.'
+          },
+          {
+            id: 'tool_tali', name: 'Tali Skipping Speed', category: 'tool', price: 90000, icon: 'bolt',
+            desc: 'Latihan Kelincahan +20% lebih cepat naik level.'
+          },
+          {
+            id: 'tool_gitar', name: 'Gitar Akustik Pengamen', category: 'tool', price: 320000, icon: 'trophy',
+            desc: 'Duduk di bangku lalu tekan F untuk ngamen & dapat saweran!'
+          },
+          {
             id: 'gear_gloves',
             name: 'Sarung Tinju Juara Pantura',
             category: 'gear',
@@ -4806,9 +5001,10 @@
         });
       }
 
-      openShop(tab = 'all') {
+      openShop(tab = 'all', filterIds = null) {
         GameState.paused = true;
         this.activeTab = tab;
+        this.filterIds = filterIds;
         document.getElementById('modal-shop')?.classList.remove('hidden');
         this.renderShop();
       }
@@ -4821,11 +5017,12 @@
           { id: 'all', label: 'Semua' },
           { id: 'food', label: 'Kuliner & Minuman' },
           { id: 'gear', label: 'Perlengkapan' },
+          { id: 'tool', label: 'Alat & Perkakas' },
           { id: 'vehicle', label: 'Showroom Kendaraan' }
         ];
         const tabWrap = document.getElementById('shop-tabs');
         if (tabWrap) {
-          tabWrap.innerHTML = tabs.map(t => `
+          tabWrap.innerHTML = this.filterIds ? '' : tabs.map(t => `
             <button type="button" data-stab="${t.id}" class="px-3.5 py-1.5 rounded-xl transition whitespace-nowrap ${
               this.activeTab === t.id
                 ? 'bg-amber-500 text-slate-950 font-black'
@@ -4842,12 +5039,12 @@
 
         const grid = document.getElementById('shop-items-grid');
         if (!grid) return;
-        const filtered = this.activeTab === 'all'
-          ? this.catalog
-          : this.catalog.filter(it => it.category === this.activeTab);
+        const filtered = this.filterIds
+          ? this.catalog.filter(it => this.filterIds.includes(it.id))
+          : (this.activeTab === 'all' ? this.catalog : this.catalog.filter(it => it.category === this.activeTab));
 
         grid.innerHTML = filtered.map(item => {
-          const isOwned = item.equipKey && GameState.ownedItems.has(item.id);
+          const isOwned = (item.equipKey || item.category === 'tool') && GameState.ownedItems.has(item.id);
           return `
             <div class="bg-slate-900/85 border border-white/10 rounded-2xl p-3.5 flex flex-col justify-between gap-3">
               <div>
@@ -4893,6 +5090,7 @@
               return;
             }
             GameState.cash -= it.price;
+            if (this.app.life) this.app.life.onPurchase(it);
             this.consumeFoodItem(it);
             document.getElementById('modal-shop')?.classList.add('hidden');
             GameState.paused = false;
@@ -4910,6 +5108,7 @@
             }
             GameState.cash -= it.price;
             GameState.foodInventory[it.id] = (GameState.foodInventory[it.id] || 0) + 1;
+            if (this.app.life) this.app.life.onPurchase(it);
             this.app.sound.playPickup();
             showToast(`${it.name} disimpan ke Ransel!`, 'backpack');
             this.renderShop();
@@ -4921,6 +5120,10 @@
           btn.addEventListener('click', () => {
             const it = this.catalog.find(x => x.id === btn.getAttribute('data-buy-item'));
             if (!it) return;
+            if (it.category === 'tool' && GameState.ownedItems.has(it.id)) {
+              showToast('Alat ini sudah kamu miliki!', it.icon);
+              return;
+            }
             if (it.equipKey && GameState.ownedItems.has(it.id)) {
               document.getElementById('modal-shop')?.classList.add('hidden');
               this.openRansel();
@@ -4938,6 +5141,11 @@
               document.getElementById('modal-shop')?.classList.add('hidden');
               GameState.paused = false;
               showToast(`${it.name} tiba di dekatmu!`, it.icon);
+            } else if (it.category === 'tool') {
+              GameState.ownedItems.add(it.id);
+              if (this.app.life) this.app.life.onPurchase(it);
+              showToast(`${it.name} dibeli! ${it.desc}`, it.icon);
+              this.renderShop();
             } else if (it.equipKey) {
               GameState.ownedItems.add(it.id);
               GameState.equipped[it.equipKey] = true;
@@ -4960,6 +5168,7 @@
           this.app.sound.playEatCrunch();
         }
         this.app.hero.startConsumeAnimation(item.consumeType);
+        if (item.statBoost) Object.keys(item.statBoost).forEach(k => GameStats.add(k, item.statBoost[k] * 2));
         showToast(`Menikmati ${item.name}! Energi +${item.hpGain}%`, item.icon);
       }
 
@@ -5845,7 +6054,7 @@
           }
           guarding = false;
           heroStamina = Math.max(0, heroStamina - stamCost);
-          const gloveBonus = GameState.equipped.gloves ? 1.25 : 1.0;
+          const gloveBonus = (GameState.equipped.gloves ? 1.25 : 1.0) * GameStats.dmgMult();
           const counter = Boolean(oppTelegraph);
           const totalDmg = Math.round(dmg * gloveBonus * (counter ? 1.35 : 1.0));
           oppHp -= totalDmg;
@@ -5913,7 +6122,7 @@
         let tick = 0;
         this.activeTimer = setInterval(() => {
           tick++;
-          heroStamina = Math.min(100, heroStamina + 2.8);
+          heroStamina = Math.min(100, heroStamina + 2.8 * GameStats.staMult());
 
           if (tick % 16 === 0 && !oppTelegraph) {
             oppTelegraph = { countdown: 6 };
@@ -6164,6 +6373,2044 @@
     }
 
     // ==========================================================================
+    // 14B. LIFE SYSTEM — WARGA BERAKTIVITAS, GYM, JAJAN, TOKO ALAT, MANCING, NONGKRONG
+    // ==========================================================================
+    const GameStats = {
+      names: { kekuatan: 'Kekuatan', dayaTahan: 'Daya Tahan', kelincahan: 'Kelincahan' },
+      level(k) {
+        return Math.min(10, 1 + Math.floor((GameState.stats[k] || 0) / 6));
+      },
+      progress(k) {
+        const lv = this.level(k);
+        if (lv >= 10) return 1;
+        return ((GameState.stats[k] || 0) % 6) / 6;
+      },
+      add(k, pts) {
+        let p = pts;
+        if (k === 'kekuatan' && GameState.ownedItems.has('tool_dumbbell')) p *= 1.25;
+        if (k === 'kelincahan' && GameState.ownedItems.has('tool_tali')) p *= 1.2;
+        const before = this.level(k);
+        GameState.stats[k] = (GameState.stats[k] || 0) + p;
+        const after = this.level(k);
+        if (after > before) {
+          const app = window.ngabragApp;
+          if (app) {
+            app.sound.playLevelUp();
+            app.fx.screenFlash('250,204,21', 0.3, 520);
+            app.fx.floatText(app.hero.pos.clone().setY(app.hero.pos.y + 2.6), `${this.names[k]} LV ${after}!`, '#facc15', 1.25);
+          }
+          showToast(`${this.names[k]} naik ke Level ${after}!`, 'trophy');
+        }
+      },
+      dmgMult() { return 1 + 0.06 * (this.level('kekuatan') - 1); },
+      staMult() { return 1 + 0.1 * (this.level('dayaTahan') - 1); },
+      speedMult() {
+        return (1 + 0.015 * (this.level('kelincahan') - 1)) * (GameState.ownedItems.has('tool_sepatu') ? 1.06 : 1);
+      }
+    };
+
+    class LifePoses {
+      static apply(rig, o) {
+        const p = Object.assign({
+          ls: [0, 0, 0.08], le: -0.15, rs: [0, 0, -0.08], re: -0.15,
+          hl: [0, 0, 0], hr: [0, 0, 0], kl: 0, kr: 0,
+          torso: [0, 0, 0], head: [0, 0, 0], py: 0.95
+        }, o);
+        rig.leftShoulderPivot.rotation.set(p.ls[0], p.ls[1], p.ls[2]);
+        rig.leftElbowPivot.rotation.set(p.le, 0, 0);
+        rig.rightShoulderPivot.rotation.set(p.rs[0], p.rs[1], p.rs[2]);
+        rig.rightElbowPivot.rotation.set(p.re, 0, 0);
+        rig.leftHipPivot.rotation.set(p.hl[0], p.hl[1], p.hl[2]);
+        rig.rightHipPivot.rotation.set(p.hr[0], p.hr[1], p.hr[2]);
+        rig.leftKneePivot.rotation.set(p.kl, 0, 0);
+        rig.rightKneePivot.rotation.set(p.kr, 0, 0);
+        rig.torso.rotation.set(p.torso[0], p.torso[1], p.torso[2]);
+        rig.head.rotation.set(p.head[0], p.head[1], p.head[2]);
+        rig.pelvis.position.y = p.py;
+        rig.pelvis.rotation.set(0, 0, 0);
+      }
+
+      static pose(kind, t, a) {
+        const S = Math.sin;
+        const C = Math.cos;
+        switch (kind) {
+          case 'chat': {
+            const breathe = S(t * 1.7) * 0.012;
+            if (a.speaking) {
+              return {
+                rs: [-0.95 + S(t * 4.6) * 0.35, -0.35, -0.3], re: -1.3 + S(t * 6.2) * 0.45,
+                ls: [-0.35 + S(t * 3.1) * 0.12, 0.1, 0.15], le: -0.8,
+                torso: [breathe + 0.03, S(t * 2.1) * 0.1, 0], head: [S(t * 5.1) * 0.07, S(t * 0.9) * 0.22, 0],
+                hl: [S(t * 0.6) * 0.05, 0, 0.03], hr: [-S(t * 0.6) * 0.05, 0, -0.03]
+              };
+            }
+            const nod = S(t * 2.2) > 0.82 ? 0.2 : 0.03;
+            return {
+              ls: [-0.75, 0.95, 0.15], le: -2.0, rs: [-0.75, -0.95, -0.15], re: -2.0,
+              torso: [breathe, 0, 0], head: [nod, -0.1, 0],
+              hl: [-S(t * 0.6) * 0.05, 0, 0.03], hr: [S(t * 0.6) * 0.05, 0, -0.03]
+            };
+          }
+          case 'sit': {
+            const base = { py: 0.54, hl: [-1.5, 0.05, 0.06], hr: [-1.5, -0.05, -0.06], kl: 1.5, kr: 1.5, torso: [0.06, 0, 0] };
+            switch (a.sitKind) {
+              case 'phone':
+                return Object.assign(base, {
+                  rs: [-1.0, -0.2, -0.1], re: -1.85 + S(t * 1.2) * 0.05, ls: [-0.65, 0.15, 0.1], le: -0.9,
+                  head: [0.4, S(t * 0.4) * 0.1, 0], torso: [0.14, 0, 0]
+                });
+              case 'coffee': {
+                const sip = Math.max(0, S(t * 0.7));
+                const up = sip > 0.55 ? (sip - 0.55) / 0.45 : 0;
+                return Object.assign(base, {
+                  rs: [-0.95 - up * 0.9, -0.1, -0.1], re: -1.3 - up * 0.9, ls: [-0.6, 0.2, 0.1], le: -0.9,
+                  head: [-up * 0.2, S(t * 0.3) * 0.2, 0]
+                });
+              }
+              case 'chat': {
+                if (a.speaking) {
+                  return Object.assign(base, {
+                    rs: [-0.95 + S(t * 4.6) * 0.35, -0.35, -0.3], re: -1.3 + S(t * 6.2) * 0.45,
+                    ls: [-0.6, 0.2, 0.1], le: -0.9, head: [S(t * 5.1) * 0.07, S(t * 0.9) * 0.22, 0]
+                  });
+                }
+                const sip = Math.max(0, S(t * 0.5 + 1));
+                const up = sip > 0.6 ? (sip - 0.6) / 0.4 : 0;
+                return Object.assign(base, {
+                  rs: [-0.9 - up * 0.9, -0.1, -0.1], re: -1.3 - up * 0.9, ls: [-0.6, 0.2, 0.1], le: -0.9,
+                  head: [S(t * 2.2) > 0.82 ? 0.2 : 0.03, -0.1, 0]
+                });
+              }
+              case 'guitar':
+                return Object.assign(base, {
+                  rs: [-0.75 + S(t * 8) * 0.16, -0.3, -0.2], re: -1.05 + S(t * 8) * 0.08,
+                  ls: [-1.25, 0.55, 0.1], le: -0.75,
+                  head: [0.22, S(t * 0.8) * 0.15, 0], torso: [0.1, 0, 0],
+                  kr: 1.5 + Math.max(0, S(t * 4)) * 0.12
+                });
+              case 'fish':
+                return Object.assign(base, {
+                  rs: [-0.85, -0.1, -0.1], re: -1.1, ls: [-0.8, 0.3, 0.1], le: -0.9, head: [0.15, 0, 0], torso: [0.08, 0, 0]
+                });
+              default:
+                return Object.assign(base, { ls: [-0.5, 0.1, 0.15], le: -0.8, rs: [-0.5, -0.1, -0.15], re: -0.8 });
+            }
+          }
+          case 'jog': {
+            const wc = t * 13;
+            const sw = S(wc) * 0.95;
+            return {
+              hl: [sw, 0, 0], hr: [-sw, 0, 0], kl: Math.max(0, -sw) * 1.5, kr: Math.max(0, sw) * 1.5,
+              ls: [-sw * 0.9, 0, 0.1], le: -1.5, rs: [sw * 0.9, 0, -0.1], re: -1.5,
+              torso: [0.18, S(wc) * 0.1, 0], py: 0.95 - Math.abs(C(wc)) * 0.05
+            };
+          }
+          case 'treadmill': {
+            const wc = t * (6 + (a.pace === undefined ? 0.5 : a.pace) * 9);
+            const amp = 0.45 + (a.pace === undefined ? 0.5 : a.pace) * 0.55;
+            const sw = S(wc) * amp;
+            return {
+              hl: [sw, 0, 0], hr: [-sw, 0, 0], kl: Math.max(0, -sw) * 1.4, kr: Math.max(0, sw) * 1.4,
+              ls: [-sw * 0.9, 0, 0.1], le: -1.4, rs: [sw * 0.9, 0, -0.1], re: -1.4,
+              torso: [0.12 + amp * 0.1, S(wc) * 0.08, 0], py: 0.95 - Math.abs(C(wc)) * 0.04
+            };
+          }
+          case 'sweep': {
+            const sw = S(t * 2.2);
+            return {
+              rs: [-0.9, -0.25, -0.1], re: -0.55, ls: [-0.85, 0.3, 0.1], le: -0.75,
+              torso: [0.34, sw * 0.5, 0], head: [0.2, 0, 0],
+              hl: [S(t * 2.2) * 0.2, 0, 0], hr: [-S(t * 2.2) * 0.2, 0, 0]
+            };
+          }
+          case 'cook': {
+            const fan = a.fan;
+            const r = fan ? S(t * 11) * 0.45 : S(t * 3.2) * 0.15;
+            const serve = a.serveT > 0 ? Math.sin(Math.min(1, (1.2 - a.serveT) / 1.2) * Math.PI) : 0;
+            return {
+              rs: [-1.1 + r - serve * 0.6, (fan ? 0 : C(t * 3.2) * 0.3) - 0.1, -0.2], re: -1.0 - serve * 0.5,
+              ls: [-0.9 - serve * 0.5, 0.2, 0.2], le: -1.2 + serve * 0.5,
+              torso: [0.16 + serve * 0.12, S(t * 0.7) * 0.1, 0], head: [0.2 - serve * 0.15, S(t * 0.5) * 0.3, 0]
+            };
+          }
+          case 'owner': {
+            const serve = a.serveT > 0 ? Math.sin(Math.min(1, (1.2 - a.serveT) / 1.2) * Math.PI) : 0;
+            const pt = Math.max(0, S(t * 0.55));
+            return {
+              ls: [-0.75 - serve * 0.6, 0.35, 0.15], le: -1.5 + serve * 0.6,
+              rs: [-0.6 - pt * 1.0 - serve * 0.6, -0.2, -0.15], re: -1.0 - pt * 0.4 + serve * 0.5,
+              head: [0.05, S(t * 0.5) * 0.4, 0], torso: [0.04 + serve * 0.1, 0, 0]
+            };
+          }
+          case 'curl': {
+            const s1 = 0.5 + 0.5 * S(t * 3);
+            const s2 = 0.5 + 0.5 * S(t * 3 + Math.PI);
+            return {
+              ls: [-0.05, 0, 0.14], le: -(0.15 + s1 * 2.0), rs: [-0.05, 0, -0.14], re: -(0.15 + s2 * 2.0),
+              hl: [0, 0, 0.05], hr: [0, 0, -0.05], torso: [-0.03, 0, 0], head: [-0.03, 0, 0]
+            };
+          }
+          case 'squat': {
+            const s = 0.5 + 0.5 * S(t * 1.8);
+            return {
+              py: 0.95 - s * 0.4, hl: [-s * 1.15, 0, 0.08], hr: [-s * 1.15, 0, -0.08], kl: s * 1.65, kr: s * 1.65,
+              ls: [-1.5, 0, 0.1], le: -0.1, rs: [-1.5, 0, -0.1], re: -0.1, torso: [s * 0.35, 0, 0], head: [-s * 0.25, 0, 0]
+            };
+          }
+          case 'bench': {
+            const p = a.press === undefined ? 0.5 + 0.5 * S(t * 1.5) : a.press;
+            return {
+              hl: [-0.15, 0.2, 0.18], hr: [-0.15, -0.2, -0.18], kl: 1.25, kr: 1.25,
+              ls: [-1.52, 0, 0.1], le: -(1 - p) * 1.9, rs: [-1.52, 0, -0.1], re: -(1 - p) * 1.9, head: [-0.05, 0, 0]
+            };
+          }
+          case 'rope': {
+            const h = a.hop || 0;
+            const air = Math.sin(h * Math.PI);
+            return {
+              py: 0.95 + air * 0.22 - (a.tripped ? 0.05 : 0), hl: [-air * 0.3, 0, 0.04], hr: [-air * 0.3, 0, -0.04],
+              kl: air * 0.9, kr: air * 0.9,
+              ls: [-0.15, 0, 0.5], le: -1.0, rs: [-0.15, 0, -0.5], re: -1.0, torso: [0.06, 0, 0]
+            };
+          }
+          case 'fishstand':
+            return {
+              rs: [-0.9 + (a.strike ? -0.5 : 0), -0.1, -0.1], re: -1.0 - (a.strike ? 0.5 : 0), ls: [-0.8, 0.3, 0.1], le: -0.9,
+              head: [0.15 + S(t * 0.4) * 0.03, 0, 0], torso: [0.05 + (a.strike ? -0.12 : 0), 0, 0],
+              hl: [0, 0, 0.05], hr: [0.05, 0, -0.05]
+            };
+          case 'kid': {
+            const k = a.kickT > 0 ? Math.sin(Math.min(1, (0.5 - a.kickT) / 0.5) * Math.PI) : 0;
+            const bob = Math.abs(S(t * 5)) * 0.05;
+            return {
+              py: 0.95 - bob, hr: [-1.0 * k, 0, -0.05], kr: k * 0.6, hl: [0.2 * k, 0, 0.05],
+              ls: [-0.5 + S(t * 5) * 0.4, 0, 0.3], le: -0.8, rs: [-0.5 - S(t * 5) * 0.4, 0, -0.3], re: -0.8, torso: [0.1 - k * 0.2, 0, 0]
+            };
+          }
+          case 'phone':
+            return {
+              rs: [-1.1, -0.2, -0.1], re: -1.75, ls: [-0.1, 0, 0.1], le: -0.3, head: [0.38, S(t * 0.5) * 0.15, 0],
+              torso: [0.06, 0, 0], hl: [S(t * 0.6) * 0.04, 0, 0.03], hr: [0, 0, -0.03]
+            };
+          case 'stretch': {
+            const k = 0.5 + 0.5 * S(t * 1.4);
+            return {
+              ls: [-2.9, 0, 0.3], le: -0.2, rs: [-2.9, 0, -0.3], re: -0.2, torso: [-0.1 - k * 0.12, S(t * 0.7) * 0.2, 0], head: [-0.15, 0, 0]
+            };
+          }
+          case 'look':
+            return {
+              rs: [-2.0, 0.2, -0.1], re: -1.7, ls: [0, 0, 0.1], le: -0.2, head: [0.02, S(t * 1.3) * 0.7, 0], torso: [0, S(t * 1.3) * 0.2, 0]
+            };
+          case 'guitar_stand':
+            return {};
+          default:
+            return {};
+        }
+      }
+    }
+
+    const LIFE_CHAT = [
+      'Kemarin macet banget di Cikarang!', 'Harga cabe naik lagi nih...', 'Udah makan belum, Bang?',
+      'Bola semalam seru banget!', 'Hujan terus, jemuran gak kering', 'Gajian dulu, baru jajan!',
+      'Eh, tahu gak ada diskon di Indomart?', 'Anak saya juara kelas lho!', 'Tol Karawang Barat lancar hari ini',
+      'Nanti sore ronda ya, Pak RT', 'Warteg Bahari enak banget!', 'Mau ikut mancing di empang?',
+      'Katanya ada turnamen tinju di Sasana', 'Panas banget siang ini...', 'Kopi di sini juara!',
+      'Motor saya baru servis nih', 'Ayo olahraga biar sehat!', 'Wah, ramai ya hari ini'
+    ];
+
+    class LifeSystem {
+      constructor(app) {
+        this.app = app;
+        this.scene = app.scene;
+        this.world = app.world;
+        this.sound = app.sound;
+        this.fx = app.fx;
+        this.hero = app.hero;
+        this.citizens = app.citizens;
+        this.t = 0;
+        this.mats = {};
+        this.benches = [];
+        this.bags = [];
+        this.stalls = [];
+        this.lights = [];
+        this.bulbMats = [];
+        this.heroAct = null;
+        this.bobbers = [];
+        this.ripples = [];
+        this.steamSources = [];
+        this.sizzleT = 0;
+        this.rods = [];
+        this.ball = null;
+
+        this.hero.rig.root.rotation.order = 'YXZ';
+        this._buildPlaza();
+        this._buildGym();
+        this._buildFoodCourt();
+        this._buildToolShop();
+        this._buildPond();
+        this._buildDecor();
+        this._spawnActors();
+        this._buildUI();
+      }
+
+      get busy() { return Boolean(this.heroAct); }
+
+      // ---------------- generic helpers ----------------
+      _mat(color, rough = 0.7, extra = null) {
+        const key = `${color}|${rough}|${extra ? JSON.stringify(extra) : ''}`;
+        if (!this.mats[key]) {
+          this.mats[key] = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: rough }, extra || {}));
+        }
+        return this.mats[key];
+      }
+
+      _box(parent, w, h, d, mat, x, y, z, cast = true) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.castShadow = cast;
+        m.receiveShadow = true;
+        parent.add(m);
+        return m;
+      }
+
+      _cyl(parent, rt, rb, h, mat, x, y, z, seg = 12) {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
+        m.position.set(x, y, z);
+        m.castShadow = true;
+        parent.add(m);
+        return m;
+      }
+
+      _sign(parent, title, subtitle, accent, w, h, x, y, z, ry = 0) {
+        const tex = TextureFactory.createSignTexture(title, subtitle, '#0f172a', accent);
+        const mat = new THREE.MeshStandardMaterial({
+          map: tex, emissive: new THREE.Color(accent), emissiveMap: tex, emissiveIntensity: 0.45
+        });
+        this.world.neonSigns.push(mat);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.18), mat);
+        m.position.set(x, y, z);
+        m.rotation.y = ry;
+        parent.add(m);
+        return m;
+      }
+
+      _zone(x, z, radius, action, label, extra = {}) {
+        const gy = this.world.getGroundHeight(x, z);
+        const zone = Object.assign({ pos: new THREE.Vector3(x, gy, z), radius, action, label }, extra);
+        this.world.serviceZones.push(zone);
+        return zone;
+      }
+
+      _elev(x, z, halfW, halfD, y) {
+        this.world.elevatedZones.push({ x, z, halfW, halfD, y });
+      }
+
+      _light(x, y, z, color, nightInt, dayInt, dist = 26) {
+        const l = new THREE.PointLight(color, dayInt, dist);
+        l.position.set(x, y, z);
+        this.scene.add(l);
+        this.lights.push({ l, nightInt, dayInt });
+        return l;
+      }
+
+      _bulb(parent, x, y, z, r = 0.07) {
+        if (!this._bulbMat) {
+          this._bulbMat = new THREE.MeshStandardMaterial({ color: 0xfff1b8, emissive: 0xffd36b, emissiveIntensity: 0.3 });
+          this.bulbMats.push(this._bulbMat);
+        }
+        const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), this._bulbMat);
+        m.position.set(x, y, z);
+        parent.add(m);
+        return m;
+      }
+
+      // ---------------- benches in the plaza ----------------
+      _makeBench(x, z, yaw, y = 0.22, withZone = true, label = 'Duduk Santai & Nongkrong [E]') {
+        const g = new THREE.Group();
+        g.position.set(x, y, z);
+        g.rotation.y = yaw;
+        const wood = this._mat(0x92602a, 0.8);
+        const metal = this._mat(0x1f2937, 0.5, { metalness: 0.6 });
+        this._box(g, 2.4, 0.07, 0.52, wood, 0, 0.42, 0);
+        this._box(g, 2.4, 0.5, 0.06, wood, 0, 0.72, -0.27).rotation.x = -0.12;
+        [-1.05, 1.05].forEach(lx => {
+          this._box(g, 0.07, 0.42, 0.5, metal, lx, 0.21, 0);
+          this._box(g, 0.07, 0.62, 0.06, metal, lx, 0.62, -0.27);
+        });
+        this.scene.add(g);
+        const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+        const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+        const bench = {
+          pos: new THREE.Vector3(x, y, z), yaw, fwd, right,
+          slots: [-0.6, 0.6].map((off, i) => ({
+            pos: new THREE.Vector3(x, y, z).addScaledVector(right, off), taken: false, idx: i
+          }))
+        };
+        this.benches.push(bench);
+        if (withZone) {
+          const zp = bench.pos.clone().addScaledVector(fwd, 0.75).addScaledVector(right, 0.6);
+          this._zone(zp.x, zp.z, 1.6, 'bench_sit', label, { bench });
+        }
+        return bench;
+      }
+
+      _buildPlaza() {
+        this._makeBench(-10, 19.4, Math.PI);
+        this._makeBench(10, 19.4, Math.PI);
+        this._makeBench(-10, -19.4, 0);
+        this._makeBench(10, -19.4, 0);
+        // trash bins & potted plants around the plaza
+        const binMat = this._mat(0x15803d, 0.7);
+        [[-16, 19.6], [16, 19.6], [-16, -19.6], [16, -19.6]].forEach(([x, z]) => {
+          const g = new THREE.Group();
+          g.position.set(x, 0.22, z);
+          this._cyl(g, 0.28, 0.24, 0.75, binMat, 0, 0.38, 0, 10);
+          this._cyl(g, 0.3, 0.3, 0.06, this._mat(0x166534, 0.6), 0, 0.77, 0, 10);
+          this.scene.add(g);
+        });
+        const potMat = this._mat(0xb45309, 0.8);
+        const leaf = this._mat(0x22c55e, 0.8);
+        [[-20, 12], [20, 12], [-20, -12], [20, -12]].forEach(([x, z]) => {
+          const g = new THREE.Group();
+          g.position.set(x, 0.22, z);
+          this._cyl(g, 0.38, 0.28, 0.5, potMat, 0, 0.25, 0, 10);
+          for (let i = 0; i < 6; i++) {
+            const lf = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.9, 5), leaf);
+            const a = (i / 6) * Math.PI * 2;
+            lf.position.set(Math.cos(a) * 0.18, 0.95, Math.sin(a) * 0.18);
+            lf.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
+            g.add(lf);
+          }
+          this.scene.add(g);
+        });
+      }
+
+      // ---------------- GYM ----------------
+      _buildGym() {
+        const GX = -40;
+        const GZ = 36;
+        this.gymPos = new THREE.Vector3(GX, 0.22, GZ);
+        const g = new THREE.Group();
+        g.position.set(GX, 0.22, GZ);
+        this.scene.add(g);
+        this._elev(GX, GZ, 12.5, 8.5, 0.22);
+
+        const rubber = this._mat(0x1f2937, 0.95);
+        const steel = this._mat(0x94a3b8, 0.35, { metalness: 0.8 });
+        const dark = this._mat(0x0f172a, 0.5, { metalness: 0.5 });
+        const red = this._mat(0xdc2626, 0.5);
+        const plateMat = this._mat(0x111827, 0.5, { metalness: 0.6 });
+
+        // floor slab + colored mats
+        const slab = this._box(g, 25, 0.22, 17, rubber, 0, -0.11, 0, false);
+        slab.receiveShadow = true;
+        this._box(g, 24, 0.02, 16, this._mat(0x374151, 0.9), 0, 0.011, 0, false);
+        this._box(g, 3.2, 0.03, 3.6, this._mat(0x2563eb, 0.9), -5.6, 0.02, 0.5, false);
+        this._box(g, 3.4, 0.03, 3.6, this._mat(0xdc2626, 0.9), 3.2, 0.02, 0.5, false);
+        this._box(g, 2.4, 0.03, 2.4, this._mat(0xf59e0b, 0.9), 9, 0.02, 1.8, false);
+
+        // pillars, beams, translucent roof
+        [[-12, -8], [12, -8], [-12, 8], [12, 8], [0, -8], [0, 8]].forEach(([px, pz]) => {
+          this._cyl(g, 0.17, 0.17, 4.6, steel, px, 2.3, pz, 10);
+        });
+        this._box(g, 25, 0.22, 0.3, dark, 0, 4.7, -8);
+        this._box(g, 25, 0.22, 0.3, dark, 0, 4.7, 8);
+        [-12, -6, 0, 6, 12].forEach(bx => this._box(g, 0.2, 0.2, 16.4, dark, bx, 4.68, 0));
+        const roof = new THREE.Mesh(
+          new THREE.BoxGeometry(25.4, 0.12, 17),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3, roughness: 0.2, metalness: 0.2 })
+        );
+        roof.position.set(0, 4.85, 0);
+        g.add(roof);
+
+        // back wall with mirrors + posters
+        this._box(g, 25, 4.6, 0.4, this._mat(0x1e293b, 0.8), 0, 2.3, 8.2);
+        const mirror = this._mat(0xbfdbfe, 0.08, { metalness: 0.9 });
+        [-9, -3, 3, 9].forEach(mx => this._box(g, 4.6, 2.3, 0.06, mirror, mx, 2.2, 7.96, false));
+        // side railings
+        this._box(g, 0.1, 1.0, 16, steel, -12.3, 0.5, 0);
+        this._box(g, 0.1, 1.0, 16, steel, 12.3, 0.5, 0);
+
+        // front sign facing the plaza (-z)
+        this._sign(g, 'GOR OTOT PANTURA', 'Angkat Besi • Lari • Tinju Samsak', '#22d3ee', 12, 1.8, 0, 5.8, -8.2, 0);
+        this._sign(g, 'GOR OTOT PANTURA', 'Tiket Harian Rp 20.000', '#22d3ee', 8, 1.2, 0, 3.4, 8.0, Math.PI);
+
+        // --- bench press stations (z axis, head toward -z) ---
+        this.benchStations = [];
+        [-8, -4].forEach((bx, i) => {
+          const s = new THREE.Group();
+          s.position.set(bx, 0, 0.5);
+          g.add(s);
+          this._box(s, 0.55, 0.14, 1.55, this._mat(0x111827, 0.7), 0, 0.4, 0);
+          this._box(s, 0.5, 0.06, 1.5, red, 0, 0.47, 0, false);
+          this._box(s, 0.1, 0.4, 0.1, steel, 0, 0.2, -0.6);
+          this._box(s, 0.1, 0.4, 0.1, steel, 0, 0.2, 0.6);
+          this._box(s, 1.1, 0.05, 0.5, steel, 0, 0.03, 0);
+          [-0.52, 0.52].forEach(rx => {
+            this._box(s, 0.07, 1.25, 0.07, steel, rx, 0.62, -0.62);
+            this._box(s, 0.28, 0.05, 0.07, steel, rx, 0.62, -0.62 + 0.1);
+          });
+          this._box(s, 1.3, 0.05, 0.06, steel, 0, 0.03, -0.62);
+          const bar = new THREE.Group();
+          bar.position.set(0, 1.28, -0.62 + 0.2);
+          s.add(bar);
+          const barRod = this._cyl(bar, 0.022, 0.022, 2.1, steel, 0, 0, 0, 8);
+          barRod.rotation.z = Math.PI / 2;
+          [-0.88, -0.8, 0.8, 0.88].forEach((px, k) => {
+            const pl = this._cyl(bar, k % 3 === 0 ? 0.24 : 0.2, k % 3 === 0 ? 0.24 : 0.2, 0.055, plateMat, px, 0, 0, 16);
+            pl.rotation.z = Math.PI / 2;
+          });
+          this.benchStations.push({ group: s, bar, bx, worldX: GX + bx, worldZ: GZ + 0.5, barRestY: 1.28 });
+        });
+
+        // --- treadmills (runner faces -z) ---
+        this.treadStations = [];
+        [1.6, 5.2].forEach((tx) => {
+          const s = new THREE.Group();
+          s.position.set(tx, 0, 0.6);
+          g.add(s);
+          this._box(s, 0.95, 0.28, 2.15, this._mat(0x1f2937, 0.5), 0, 0.14, 0);
+          const beltMat = new THREE.MeshStandardMaterial({ color: 0x0b0f19, roughness: 0.85 });
+          this._box(s, 0.72, 0.03, 1.8, beltMat, 0, 0.295, 0.05, false);
+          for (let k = 0; k < 6; k++) this._box(s, 0.7, 0.005, 0.04, this._mat(0x475569, 0.9), 0, 0.312, -0.8 + k * 0.32, false).userData.belt = true;
+          [-0.43, 0.43].forEach(px => {
+            this._box(s, 0.05, 1.05, 0.05, steel, px, 0.8, -0.95);
+            this._box(s, 0.05, 0.05, 0.9, steel, px, 1.0, -0.5);
+          });
+          const consoleBox = this._box(s, 0.9, 0.3, 0.12, dark, 0, 1.28, -0.95);
+          this._box(s, 0.6, 0.14, 0.02, this._mat(0x22d3ee, 0.3, { emissive: 0x06b6d4, emissiveIntensity: 0.7 }), 0, 1.3, -0.885, false);
+          this.treadStations.push({ group: s, tx, worldX: GX + tx, worldZ: GZ + 0.6, belts: s.children.filter(m => m.userData && m.userData.belt) });
+        });
+
+        // --- heavy bags (samsak) ---
+        [8.2, 10.6].forEach((bx, i) => {
+          const pivot = new THREE.Group();
+          pivot.position.set(bx, 4.4, -3.4);
+          g.add(pivot);
+          this._box(g, 0.14, 0.14, 1.6, dark, bx, 4.55, -3.4);
+          const chain = this._cyl(pivot, 0.02, 0.02, 1.4, steel, 0, -0.7, 0, 6);
+          const bag = this._cyl(pivot, 0.27, 0.27, 1.2, this._mat(i ? 0xdc2626 : 0x2563eb, 0.65), 0, -2.0, 0, 16);
+          this._cyl(pivot, 0.275, 0.275, 0.1, this._mat(0x111827, 0.7), 0, -1.5, 0, 16);
+          this._cyl(pivot, 0.275, 0.275, 0.1, this._mat(0x111827, 0.7), 0, -2.5, 0, 16);
+          this.bags.push({
+            pivot, base: new THREE.Vector3(GX + bx, 0, GZ - 3.4), sw: { x: 0, z: 0 }, vel: { x: 0, z: 0 }, hits: 0
+          });
+        });
+        this._zone(GX + 9.4, GZ - 4.8, 3.2, 'gym_bag_info', 'Samsak Tinju — tekan F untuk memukul & latihan Kekuatan');
+
+        // --- jump rope mat zone ---
+        this.ropeSpot = { worldX: GX + 9, worldZ: GZ + 1.8 };
+
+        // --- dumbbell rack, kettlebells, plates ---
+        const rack = new THREE.Group();
+        rack.position.set(-7, 0, 7.4);
+        g.add(rack);
+        this._box(rack, 5.2, 0.12, 0.6, steel, 0, 0.55, 0);
+        this._box(rack, 5.2, 0.12, 0.6, steel, 0, 1.05, 0);
+        [-2.5, 2.5, 0].forEach(px => this._box(rack, 0.08, 1.15, 0.6, steel, px, 0.58, 0));
+        for (let i = 0; i < 9; i++) {
+          [0.61, 1.11].forEach((ry, row) => {
+            const db = new THREE.Group();
+            db.position.set(-2.2 + i * 0.55, ry + 0.1, 0);
+            this._cyl(db, 0.025, 0.025, 0.26, steel, 0, 0, 0, 6).rotation.z = Math.PI / 2;
+            const c = [0xdc2626, 0xf59e0b, 0x2563eb][(i + row) % 3];
+            [-0.13, 0.13].forEach(dx => this._cyl(db, 0.085, 0.085, 0.07, this._mat(c, 0.5), dx, 0, 0, 10).rotation.z = Math.PI / 2);
+            rack.add(db);
+          });
+        }
+        for (let i = 0; i < 5; i++) {
+          const kb = new THREE.Mesh(new THREE.SphereGeometry(0.16 + i * 0.015, 10, 8), this._mat(0x111827, 0.4, { metalness: 0.6 }));
+          kb.position.set(3.6 + i * 0.45, 0.2, 7.2);
+          g.add(kb);
+        }
+        // weight plate stack
+        for (let i = 0; i < 6; i++) {
+          const pl = this._cyl(g, 0.3, 0.3, 0.06, plateMat, 11, 0.06 + i * 0.065, 6.8, 16);
+        }
+        // water cooler + towel bench
+        this._box(g, 0.5, 1.1, 0.5, this._mat(0xe2e8f0, 0.5), 11.2, 0.55, 3.2);
+        this._cyl(g, 0.22, 0.22, 0.45, this._mat(0x38bdf8, 0.2, { transparent: true, opacity: 0.7 }), 11.2, 1.3, 3.2, 12);
+        this._makeBench(GX - 9.4, GZ + 5.2, Math.PI, 0.22, false);
+
+        // posters
+        this._sign(g, 'BANGUN OTOT', 'Bangun Pantura', '#f59e0b', 3.2, 1.2, -9.5, 3.5, 7.9, Math.PI);
+        this._sign(g, 'SEHAT & KUAT', 'Latihan Tiap Hari', '#ef4444', 3.2, 1.2, 9.5, 3.5, 7.9, Math.PI);
+
+        // colliders (rack + back wall + pillars)
+        this.world.addBoxCollider(GX, GZ + 8.2, 25, 0.5);
+        this.world.addBoxCollider(GX - 7, GZ + 7.4, 5.4, 0.7);
+        [[-12, -8], [12, -8], [-12, 8], [12, 8], [0, -8]].forEach(([px, pz]) => this.world.addBoxCollider(GX + px, GZ + pz, 0.45, 0.45));
+        this.world.addBoxCollider(GX - 12.3, GZ, 0.3, 16);
+        this.world.addBoxCollider(GX + 12.3, GZ, 0.3, 16);
+
+        // lights
+        this._light(GX, 4.0, GZ, 0xe0f2fe, 1.2, 0.35, 28);
+
+        // zones
+        this._zone(GX - 8, GZ + 0.5 - 1.7, 1.7, 'gym_bench', 'Latihan Bench Press — Tiket Rp 20.000 [E]', { station: this.benchStations[0] });
+        this._zone(GX + 1.6, GZ + 0.6 + 1.9, 1.7, 'gym_treadmill', 'Lari di Treadmill — Tiket Rp 20.000 [E]', { station: this.treadStations[0] });
+        this._zone(GX + 9, GZ + 1.8, 1.6, 'gym_rope', 'Latihan Lompat Tali — Tiket Rp 20.000 [E]');
+      }
+
+      // ---------------- FOOD COURT (JAJAN MALAM PANTURA) ----------------
+      _makeStall(o) {
+        const g = new THREE.Group();
+        g.position.set(o.x, 0.1, o.z);
+        g.rotation.y = o.yaw || 0;
+        this.scene.add(g);
+        const wood = this._mat(o.color, 0.7);
+        const steel = this._mat(0xcbd5e1, 0.35, { metalness: 0.8 });
+        this._box(g, 2.6, 1.0, 1.0, wood, 0, 0.55, 0);
+        this._box(g, 2.7, 0.08, 1.1, this._mat(0xe2e8f0, 0.4), 0, 1.09, 0.02);
+        this._box(g, 2.2, 0.3, 0.06, this._mat(0xfef3c7, 0.7), 0, 0.5, 0.53, false);
+        // wheels
+        [-1.0, 1.0].forEach(wx => {
+          const w = this._cyl(g, 0.3, 0.3, 0.1, this._mat(0x111827, 0.8), wx, 0.3, -0.1, 14);
+          w.rotation.z = Math.PI / 2;
+        });
+        // canopy: striped awning + posts
+        [-1.25, 1.25].forEach(px => this._cyl(g, 0.04, 0.04, 2.5, steel, px, 1.35, -0.4, 6));
+        const awnMat = this._mat(o.awning, 0.8);
+        const awn = this._box(g, 3.0, 0.08, 1.6, awnMat, 0, 2.62, 0.05);
+        awn.rotation.x = 0.16;
+        for (let i = 0; i < 6; i++) this._box(g, 0.25, 0.09, 1.62, this._mat(0xf8fafc, 0.8), -1.25 + i * 0.5, 2.625, 0.05, false).rotation.x = 0.16;
+        for (let i = 0; i < 5; i++) this._bulb(g, -1.2 + i * 0.6, 2.45, 0.8, 0.055);
+        this._sign(g, o.title, o.subtitle, o.accent, 2.4, 0.62, 0, 3.15, 0.06, 0);
+
+        // props per stall type
+        if (o.type === 'bakso') {
+          const pot = this._cyl(g, 0.42, 0.4, 0.5, steel, -0.5, 1.38, -0.05, 16);
+          this._cyl(g, 0.38, 0.38, 0.03, this._mat(0xfde68a, 0.4), -0.5, 1.64, -0.05, 16);
+          for (let i = 0; i < 6; i++) {
+            const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), this._mat(0xd6c4a0, 0.7));
+            b.position.set(-0.5 + Math.cos(i) * 0.18, 1.68, -0.05 + Math.sin(i) * 0.18);
+            g.add(b);
+          }
+          this._box(g, 0.5, 0.3, 0.4, this._mat(0xf8fafc, 0.5), 0.6, 1.28, 0);
+          this.steamSources.push({ group: g, local: new THREE.Vector3(-0.5, 1.8, -0.05), type: 'steam' });
+        } else if (o.type === 'sate') {
+          this._box(g, 1.5, 0.22, 0.38, this._mat(0x1f2937, 0.7), 0, 1.25, -0.05);
+          this._box(g, 1.4, 0.03, 0.3, this._mat(0xf97316, 0.3, { emissive: 0xea580c, emissiveIntensity: 0.9 }), 0, 1.37, -0.05, false);
+          for (let i = 0; i < 9; i++) {
+            const st = this._cyl(g, 0.012, 0.012, 0.5, this._mat(0xd4a373, 0.8), -0.6 + i * 0.15, 1.42, -0.05, 4);
+            st.rotation.z = Math.PI / 2 + 0.0;
+            st.rotation.x = Math.PI / 2;
+            this._box(g, 0.06, 0.05, 0.05, this._mat(0x7c2d12, 0.8), -0.6 + i * 0.15, 1.42, -0.15, false);
+          }
+          this.steamSources.push({ group: g, local: new THREE.Vector3(0, 1.5, -0.05), type: 'smoke' });
+        } else if (o.type === 'kelapa') {
+          for (let i = 0; i < 7; i++) {
+            const c = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), this._mat(i % 2 ? 0x84cc16 : 0xa3e635, 0.7));
+            c.position.set(-0.9 + (i % 4) * 0.34, 1.28 + Math.floor(i / 4) * 0.28, -0.1 + (i % 2) * 0.1);
+            g.add(c);
+          }
+          for (let i = 0; i < 3; i++) this._cyl(g, 0.06, 0.05, 0.15, this._mat(0xe0f2fe, 0.1, { transparent: true, opacity: 0.7 }), 0.4 + i * 0.2, 1.2, 0.1, 8);
+          this._box(g, 0.6, 0.3, 0.45, this._mat(0x38bdf8, 0.5), 0.85, 1.28, -0.05);
+        } else if (o.type === 'gorengan') {
+          this._cyl(g, 0.4, 0.3, 0.18, this._mat(0x1f2937, 0.5, { metalness: 0.7 }), -0.55, 1.25, -0.05, 16);
+          this._box(g, 1.0, 0.12, 0.5, steel, 0.5, 1.2, 0);
+          for (let i = 0; i < 8; i++) {
+            const f = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), this._mat(0xd97706, 0.6));
+            f.scale.set(1.3, 0.7, 1);
+            f.position.set(0.15 + (i % 4) * 0.24, 1.3 + Math.floor(i / 4) * 0.08, -0.05 + Math.floor(i / 4) * 0.2);
+            g.add(f);
+          }
+          this.steamSources.push({ group: g, local: new THREE.Vector3(-0.55, 1.5, -0.05), type: 'steam' });
+        } else if (o.type === 'warkop') {
+          this._cyl(g, 0.17, 0.17, 0.55, this._mat(0x94a3b8, 0.3, { metalness: 0.8 }), -0.7, 1.4, -0.05, 12);
+          for (let i = 0; i < 5; i++) this._cyl(g, 0.06, 0.05, 0.12, this._mat(0xf8fafc, 0.4), -0.1 + i * 0.22, 1.19, 0.1, 8);
+          this._box(g, 0.7, 0.28, 0.35, this._mat(0xb45309, 0.6), 0.85, 1.27, -0.05);
+          this.steamSources.push({ group: g, local: new THREE.Vector3(-0.7, 1.75, -0.05), type: 'steam' });
+        }
+
+        // collider (world-space aligned approx.)
+        const cw = Math.abs(Math.cos(o.yaw || 0)) > 0.5 ? 2.8 : 1.3;
+        const cd = Math.abs(Math.cos(o.yaw || 0)) > 0.5 ? 1.3 : 2.8;
+        this.world.addBoxCollider(o.x, o.z, cw, cd);
+
+        const fwd = new THREE.Vector3(Math.sin(o.yaw || 0), 0, Math.cos(o.yaw || 0));
+        const zp = new THREE.Vector3(o.x, 0, o.z).addScaledVector(fwd, 2.1);
+        const zone = this._zone(zp.x, zp.z, 2.0, 'stall', `Jajan di ${o.vendor} — ${o.title} [E]`, { stall: o });
+        o.fwd = fwd;
+        o.zone = zone;
+        o.group = g;
+        this.stalls.push(o);
+        return o;
+      }
+
+      _buildFoodCourt() {
+        const FX = 42;
+        const FZ = 36;
+        const g = new THREE.Group();
+        this.scene.add(g);
+        // paving
+        const paveTex = (() => {
+          const c = document.createElement('canvas');
+          c.width = c.height = 128;
+          const x = c.getContext('2d');
+          x.fillStyle = '#8b7d6b';
+          x.fillRect(0, 0, 128, 128);
+          x.strokeStyle = 'rgba(0,0,0,0.22)';
+          x.lineWidth = 2;
+          for (let i = 0; i <= 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); }
+          for (let i = 0; i < 160; i++) { x.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '0,0,0'},0.05)`; x.fillRect(Math.random() * 128, Math.random() * 128, 3, 3); }
+          const t = new THREE.CanvasTexture(c);
+          t.wrapS = t.wrapT = THREE.RepeatWrapping;
+          t.repeat.set(10, 8);
+          return t;
+        })();
+        const pave = new THREE.Mesh(new THREE.BoxGeometry(40, 0.2, 32), new THREE.MeshStandardMaterial({ map: paveTex, roughness: 0.9 }));
+        pave.position.set(FX, 0.0, FZ);
+        pave.receiveShadow = true;
+        g.add(pave);
+        this._elev(FX, FZ, 20, 16, 0.1);
+
+        const stalls = [
+          { x: 30, z: 27, yaw: 0, type: 'bakso', title: 'BAKSO MANG UJANG', subtitle: 'Panas • Gurih • Mantap', accent: '#f59e0b', color: 0xb91c1c, awning: 0xdc2626, vendor: 'Mang Ujang', menu: ['food_bakso', 'food_cilok'], vendorKind: 'cook' },
+          { x: 38, z: 27, yaw: 0, type: 'sate', title: 'SATE TAICHAN BANG SOLEH', subtitle: 'Bakar Langsung', accent: '#ef4444', color: 0x7c2d12, awning: 0xea580c, vendor: 'Bang Soleh', menu: ['food_sate_taichan', 'food_sate'], vendorKind: 'cook', fan: true },
+          { x: 46, z: 27, yaw: 0, type: 'kelapa', title: 'ES KELAPA MUDA', subtitle: 'Segar Alami', accent: '#84cc16', color: 0x166534, awning: 0x16a34a, vendor: 'Mbak Rini', menu: ['food_kelapa', 'food_esteh'], vendorKind: 'cook' },
+          { x: 54, z: 27, yaw: 0, type: 'gorengan', title: 'GORENGAN & MARTABAK', subtitle: 'Hangat Setiap Saat', accent: '#fbbf24', color: 0x92400e, awning: 0xd97706, vendor: 'Bu Imas', menu: ['food_gorengan', 'food_martabak'], vendorKind: 'cook' },
+          { x: 58.5, z: 40, yaw: -Math.PI / 2, type: 'warkop', title: 'WARKOP PANTURA', subtitle: 'Kopi Tubruk • Nongkrong', accent: '#a16207', color: 0x422006, awning: 0x92400e, vendor: 'Mang Jaja', menu: ['food_kopi', 'food_kopi_susu', 'food_gorengan'], vendorKind: 'cook' }
+        ];
+        stalls.forEach(s => this._makeStall(s));
+
+        // dining tables with facing benches
+        const wood = this._mat(0x854d0e, 0.8);
+        [[36, 42], [46, 42]].forEach(([tx, tz], i) => {
+          const t = new THREE.Group();
+          t.position.set(tx, 0.1, tz);
+          this._box(t, 2.2, 0.07, 0.95, wood, 0, 0.78, 0);
+          this._box(t, 0.1, 0.78, 0.8, wood, -0.9, 0.39, 0);
+          this._box(t, 0.1, 0.78, 0.8, wood, 0.9, 0.39, 0);
+          this._cyl(t, 0.06, 0.06, 0.15, this._mat(0xf8fafc, 0.4), 0, 0.88, 0, 8);
+          g.add(t);
+          this.world.addBoxCollider(tx, tz, 2.3, 1.0);
+          this._makeBench(tx, tz - 1.0, 0, 0.1, true, 'Duduk di Warkop & Nongkrong [E]');
+          this._makeBench(tx, tz + 1.0, Math.PI, 0.1, true, 'Duduk di Warkop & Nongkrong [E]');
+        });
+
+        // string lights & gate sign
+        for (let k = 0; k < 2; k++) {
+          const z = 23.6 + k * 0;
+          for (let i = 0; i <= 16; i++) {
+            const x = 24 + i * 2.25;
+            const sag = Math.sin((i / 16) * Math.PI) * 0.5;
+            this._bulb(g, x, 4.0 - sag, z, 0.075);
+          }
+        }
+        [24, 60].forEach(px => this._cyl(g, 0.09, 0.09, 4.1, this._mat(0x475569, 0.6), px, 2.0, 23.6, 8));
+        this._sign(g, 'JAJAN MALAM PANTURA', 'Kuliner Kaki Lima • Buka Terus', '#f472b6', 9, 1.5, 42, 5.0, 22.6, Math.PI);
+
+        // parked ojek motorbikes
+        [[24.5, 45.5, 0.3], [25.8, 46.2, 0.5]].forEach(([mx, mz, ry]) => {
+          const m = new THREE.Group();
+          m.position.set(mx, 0.1, mz);
+          m.rotation.y = ry;
+          this._box(m, 1.5, 0.2, 0.32, this._mat(0xb91c1c, 0.4, { metalness: 0.5 }), 0, 0.55, 0);
+          this._box(m, 0.55, 0.14, 0.34, this._mat(0x111827, 0.7), -0.25, 0.72, 0);
+          [-0.62, 0.62].forEach(wx => { const w = this._cyl(m, 0.3, 0.3, 0.12, this._mat(0x0f172a, 0.8), wx, 0.3, 0, 14); w.rotation.x = Math.PI / 2; });
+          this._box(m, 0.08, 0.5, 0.5, this._mat(0x94a3b8, 0.3, { metalness: 0.8 }), 0.6, 0.85, 0);
+          this.scene.add(m);
+          this.world.addBoxCollider(mx, mz, 1.7, 0.9);
+        });
+
+        this._light(FX, 4.6, FZ - 2, 0xffd9a0, 1.4, 0.3, 34);
+      }
+
+      // ---------------- TOKO ALAT ----------------
+      _buildToolShop() {
+        const TX = 40;
+        const TZ = -14;
+        const g = new THREE.Group();
+        g.position.set(TX, 0, TZ);
+        this.scene.add(g);
+        const wood = this._mat(0x78350f, 0.75);
+        const steel = this._mat(0xcbd5e1, 0.35, { metalness: 0.8 });
+        this._elev(TX, TZ, 7.2, 4.0, 0.12);
+        this._box(g, 14, 0.12, 7.4, this._mat(0xa8a29e, 0.85), 0, 0.0, 0, false);
+        // back wall + shelves
+        this._box(g, 14, 3.6, 0.3, this._mat(0x1e3a8a, 0.8), 0, 1.8, -3.6);
+        for (let r = 0; r < 3; r++) this._box(g, 12.6, 0.07, 0.6, wood, 0, 0.85 + r * 0.85, -3.25);
+        // items on shelves: dumbbells, shoe boxes, ropes, rods, guitar
+        for (let i = 0; i < 6; i++) {
+          const db = new THREE.Group();
+          db.position.set(-5.6 + i * 0.5, 1.0, -3.2);
+          this._cyl(db, 0.02, 0.02, 0.22, steel, 0, 0, 0, 6).rotation.z = Math.PI / 2;
+          [-0.11, 0.11].forEach(dx => this._cyl(db, 0.07, 0.07, 0.06, this._mat(0xdc2626, 0.5), dx, 0, 0, 8).rotation.z = Math.PI / 2);
+          g.add(db);
+        }
+        for (let i = 0; i < 5; i++) this._box(g, 0.5, 0.26, 0.32, this._mat([0xf97316, 0x22c55e, 0x3b82f6, 0xeab308, 0xec4899][i], 0.6), -1.2 + i * 0.6, 0.98, -3.2);
+        for (let i = 0; i < 4; i++) {
+          const t = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.02, 6, 14), this._mat(0xfacc15, 0.6));
+          t.position.set(2.4 + i * 0.3, 1.9, -3.3);
+          g.add(t);
+        }
+        for (let i = 0; i < 4; i++) {
+          const rod = this._cyl(g, 0.012, 0.022, 2.3, this._mat(0x0f172a, 0.5), 5.0 + i * 0.3, 1.7, -3.3, 5);
+          rod.rotation.z = 0.12;
+        }
+        const gtr = new THREE.Group();
+        gtr.position.set(-4.5, 2.05, -3.3);
+        this._box(gtr, 0.45, 0.55, 0.12, this._mat(0xb45309, 0.4), 0, -0.3, 0);
+        this._box(gtr, 0.08, 0.7, 0.05, this._mat(0x1f2937, 0.5), 0, 0.3, 0);
+        g.add(gtr);
+        // sports shoes pairs on floor display
+        for (let i = 0; i < 4; i++) this._box(g, 0.35, 0.12, 0.2, this._mat(0xfafafa, 0.5), 3.0 + i * 0.5, 0.18, -2.2);
+        // counter facing +z
+        this._box(g, 6.4, 1.1, 0.95, wood, 0, 0.62, -1.4);
+        this._box(g, 6.5, 0.08, 1.05, this._mat(0xe2e8f0, 0.4), 0, 1.2, -1.4);
+        const reg = this._box(g, 0.5, 0.3, 0.4, this._mat(0x111827, 0.5), 2.4, 1.39, -1.4);
+        this._box(g, 0.34, 0.14, 0.02, this._mat(0x34d399, 0.3, { emissive: 0x10b981, emissiveIntensity: 0.7 }), 2.4, 1.45, -1.2, false);
+        // canopy
+        [-6.7, 6.7].forEach(px => [-3.4, 3.4].forEach(pz => this._cyl(g, 0.09, 0.09, 3.4, steel, px, 1.7, pz, 8)));
+        const canopy = this._box(g, 14.6, 0.14, 7.8, this._mat(0xdc2626, 0.7), 0, 3.5, 0);
+        for (let i = 0; i < 7; i++) this._box(g, 1.0, 0.15, 7.82, this._mat(0xf8fafc, 0.7), -6.5 + i * 2.1, 3.505, 0, false);
+        this._sign(g, 'LAPAK ALAT PANTURA', 'Dumbbell • Joran • Sepatu • Gitar', '#38bdf8', 9, 1.4, 0, 4.4, 3.6, 0);
+        for (let i = 0; i < 10; i++) this._bulb(g, -6 + i * 1.33, 3.2, 3.5, 0.06);
+        // outside display stand (barbell + dumbbells)
+        this._box(g, 1.8, 0.8, 0.5, steel, -5.4, 0.4, 2.4);
+        this.world.addBoxCollider(TX, TZ - 1.4, 6.6, 1.1);
+        this.world.addBoxCollider(TX, TZ - 3.6, 14, 0.5);
+        this._light(TX, 3.0, TZ, 0xfff7ed, 1.0, 0.45, 22);
+        this._zone(TX, TZ + 0.9, 3.4, 'toko_alat', 'Belanja Alat — Lapak Alat Pantura [E]');
+      }
+
+      // ---------------- POND (EMPANG PANTURA) ----------------
+      _buildPond() {
+        const PX = -40;
+        const PZ = -17;
+        this.pondPos = new THREE.Vector3(PX, 0, PZ);
+        const g = new THREE.Group();
+        g.position.set(PX, 0, PZ);
+        this.scene.add(g);
+        const R = 7.4;
+        // muddy bank ring + water
+        const bank = new THREE.Mesh(new THREE.CircleGeometry(R + 1.5, 36), new THREE.MeshStandardMaterial({ color: 0x5b4636, roughness: 1 }));
+        bank.rotation.x = -Math.PI / 2;
+        bank.position.y = 0.02;
+        g.add(bank);
+        const waterMat = new THREE.MeshStandardMaterial({ color: 0x2a8fa3, transparent: true, opacity: 0.82, roughness: 0.12, metalness: 0.35 });
+        const water = new THREE.Mesh(new THREE.CircleGeometry(R, 40), waterMat);
+        water.rotation.x = -Math.PI / 2;
+        water.position.y = 0.05;
+        g.add(water);
+        this.pondWater = water;
+        // rocks around
+        const rockMat = this._mat(0x6b7280, 0.9);
+        for (let i = 0; i < 20; i++) {
+          const a = (i / 20) * Math.PI * 2;
+          if (Math.abs(a - Math.PI / 2) < 0.28) continue;
+          const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.25, 0), rockMat);
+          r.position.set(Math.cos(a) * (R + 0.2), 0.15, Math.sin(a) * (R + 0.2));
+          r.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+          r.scale.y = 0.65;
+          r.castShadow = true;
+          g.add(r);
+        }
+        // reeds + lily pads
+        const reed = this._mat(0x4d7c0f, 0.8);
+        for (let i = 0; i < 26; i++) {
+          const a = Math.random() * Math.PI * 2;
+          if (Math.abs(a - Math.PI / 2) < 0.5) continue;
+          const rr = R - 0.2 + Math.random() * 1.2;
+          const rd = this._cyl(g, 0.012, 0.03, 1.2 + Math.random() * 0.8, reed, Math.cos(a) * rr, 0.7, Math.sin(a) * rr, 4);
+          rd.rotation.z = (Math.random() - 0.5) * 0.3;
+        }
+        for (let i = 0; i < 10; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const rr = Math.random() * (R - 1.5);
+          if (Math.sin(a) > 0.5 && rr < 4) continue;
+          this._cyl(g, 0.3, 0.3, 0.015, this._mat(0x22c55e, 0.7), Math.cos(a) * rr, 0.065, Math.sin(a) * rr, 10);
+        }
+        // wooden dock (south edge, z from +R-1 to +R-5.8)
+        const dockMat = this._mat(0x8b5a2b, 0.85);
+        for (let i = 0; i < 11; i++) {
+          this._box(g, 2.2, 0.08, 0.42, dockMat, 0, 0.32, 5.6 - i * 0.44 + 0.2 + 0.8 - 0.8 + 0.0);
+        }
+        [[-1.0, 5.9], [1.0, 5.9], [-1.0, 3.2], [1.0, 3.2], [-1.0, 1.0], [1.0, 1.0]].forEach(([px, pz]) => this._cyl(g, 0.07, 0.07, 0.9, dockMat, px, 0.05, pz, 6));
+        // note: dock spans z (local) ≈ +1.0 .. +6.0  → world z -16 .. -11
+        this._elev(PX, PZ + 3.6, 1.1, 2.6, 0.32);
+        this._sign(g, 'EMPANG PANTURA', 'Mancing Mania • Butuh Joran', '#34d399', 3.6, 1.0, 3.2, 1.6, 8.6, Math.PI);
+        this._cyl(g, 0.06, 0.06, 1.2, dockMat, 3.2, 0.6, 8.6, 6);
+        // pond colliders (leave a gap at the dock, south)
+        for (let k = 0; k < 16; k++) {
+          const a = (k / 16) * Math.PI * 2;
+          if (Math.abs(Math.sin(a) - 1) < 0.1 && Math.abs(Math.cos(a)) < 0.45) continue;
+          if (Math.abs(a - Math.PI / 2) < 0.4) continue;
+          this.world.addBoxCollider(PX + Math.cos(a) * 7.0, PZ + Math.sin(a) * 7.0, 3.5, 3.5);
+        }
+        // fishing zone at the dock's end
+        this.fishSpot = { x: PX, z: PZ + 1.8, yaw: Math.PI };
+        this._zone(PX, PZ + 2.8, 2.4, 'fishing', 'Mancing di Empang Pantura [E]');
+        this._light(PX + 3, 3.6, PZ + 9, 0xfff1c9, 0.7, 0.0, 20);
+        // ripples
+        for (let i = 0; i < 4; i++) {
+          const rg = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.0, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0, side: THREE.DoubleSide, depthWrite: false }));
+          rg.rotation.x = -Math.PI / 2;
+          rg.position.set(PX + (Math.random() - 0.5) * 8, 0.07, PZ + (Math.random() - 0.7) * 6);
+          this.scene.add(rg);
+          this.ripples.push({ mesh: rg, t: Math.random() * 3 });
+        }
+      }
+
+      _buildDecor() {
+        // a few extra street details: power-line style banners & fruit crates near the food court
+        const crate = this._mat(0xa16207, 0.9);
+        [[22.5, 31], [22.6, 32.1]].forEach(([x, z], i) => {
+          const m = this._box(this.scene, 0.8, 0.5 + i * 0.1, 0.6, crate, x, 0.35 + i * 0.1, z);
+        });
+        this._sign(this.scene, 'AWAS BOLA LIAR', 'Lapangan Alun-Alun Pantura', '#facc15', 3.6, 1.0, 0, 1.4, 23.2, Math.PI);
+      }
+
+      // ======================== ACTORS (WARGA BERAKTIVITAS) ========================
+      _spawnActors() {
+        this.pairs = [];
+        this.actors = [];
+        this.bubbleList = [];
+        const GX = this.gymPos.x;
+        const GZ = this.gymPos.z;
+        const names = {
+          m: ['Mas Bagas', 'Bang Tono', 'Kang Ujang', 'Pak Dadang', 'Mas Rizal', 'Bang Joko', 'Kang Eko', 'Pak Ucok', 'Bang Hendra', 'Mas Fajar', 'Bang Iwan', 'Kang Cecep', 'Mas Dimas', 'Bang Rudi'],
+          f: ['Teh Lilis', 'Mbak Dewi', 'Neng Sinta', 'Bu Wati', 'Mbak Rina', 'Teh Nunung', 'Neng Putri', 'Bu Ratna']
+        };
+        const shirts = ['#0ea5e9', '#f43f5e', '#22c55e', '#f59e0b', '#8b5cf6', '#14b8a6', '#ef4444', '#64748b', '#a855f7', '#84cc16', '#fb923c', '#38bdf8'];
+        const skins = ['#c68642', '#a0693a', '#e0ac69', '#8d5524', '#d9a066'];
+        let mi = 0;
+        let fi = 0;
+        let si = 0;
+        const pick = (female) => (female ? names.f[fi++ % names.f.length] : names.m[mi++ % names.m.length]);
+
+        const mk = (female, x, z, act, o = {}) => {
+          const rig = CharacterRigFactory.createRig({
+            hair: female ? 'hair_short' : (o.cap ? 'hair_cap' : 'hair_short'),
+            top: 'top_kaos', pants: 'pants_jeans',
+            shirtColor: o.shirt || shirts[si++ % shirts.length],
+            pantsColor: o.pants || ['#1e293b', '#334155', '#0f172a', '#475569'][si % 4],
+            shoesColor: o.shoes || '#e2e8f0',
+            skinColor: o.skin || skins[(si + mi) % skins.length]
+          });
+          rig.root.rotation.order = 'YXZ';
+          if (o.scale) rig.root.scale.setScalar(o.scale);
+          const gy = this.world.getGroundHeight(x, z);
+          const pos = new THREE.Vector3(x, gy, z);
+          rig.root.position.copy(pos);
+          this.scene.add(rig.root);
+          act.phase = Math.random() * 20;
+          act.home = pos.clone();
+          const c = {
+            name: o.name || pick(female), female, rig, pos, yaw: o.yaw || 0, walkCycle: 0, turnTimer: 3, greetTimer: 0, angryTimer: 0,
+            knockbackVel: new THREE.Vector3(), flashTimer: 0, staggerTimer: 0, downTimer: 0, downBlend: 0, dustT: 0,
+            act, lines: o.lines || null, idx: this.actors.length, fixed: Boolean(o.fixed), bubble: null
+          };
+          this.citizens.list.push(c);
+          this.actors.push(c);
+          return c;
+        };
+        this._mkActor = mk;
+        const pair = (f1, p1, f2, p2, yawA, o1 = {}, o2 = {}, kind = 'stand') => {
+          const a = mk(f1, p1[0], p1[1], { type: kind === 'sit' ? 'sit' : 'chat', sitKind: 'chat', side: 0, bench: o1.bench, slot: o1.slot }, Object.assign({ yaw: yawA, fixed: kind === 'sit' }, o1));
+          const b = mk(f2, p2[0], p2[1], { type: kind === 'sit' ? 'sit' : 'chat', sitKind: 'chat', side: 1, bench: o2.bench, slot: o2.slot }, Object.assign({ yaw: yawA + Math.PI, fixed: kind === 'sit' }, o2));
+          const pr = { a, b, speaker: Math.random() < 0.5 ? 0 : 1, timer: Math.random() * 3 };
+          a.act.pair = pr; b.act.pair = pr; a.act.partner = b; b.act.partner = a;
+          this.pairs.push(pr);
+          return pr;
+        };
+        const seat = (bench, i) => { bench.slots[i].taken = true; return bench.slots[i]; };
+
+        // 1) Standing chat pairs around the plaza
+        pair(false, [-8, 13], true, [-6.8, 12.2], Math.atan2(-1.2, -0.8) + 0, { lines: ['Eh, ngobrol dulu yuk, Bang!', 'Santai aja, kita lagi ngerumpi.'] });
+        pair(true, [8, 13], false, [9.2, 12.2], 0, { cap: false }, { cap: true });
+        pair(false, [-20, -6], false, [-18.8, -6.8], 0, { cap: true }, {});
+        pair(true, [34, 31], true, [35.2, 30.4], 0, {}, {});
+
+        // 2) Plaza benches
+        const B = this.benches;
+        const b0 = B[0];
+        const b1 = B[1];
+        const b2 = B[2];
+        const b3 = B[3];
+        mk(true, 0, 0, { type: 'sit', sitKind: 'phone', bench: b0, slot: seat(b0, 0) }, { fixed: true, yaw: b0.yaw, lines: ['Sst, lagi scroll nih...', 'Sinyal di sini lancar loh.'] });
+        mk(false, 0, 0, { type: 'sit', sitKind: 'coffee', bench: b0, slot: seat(b0, 1) }, { fixed: true, yaw: b0.yaw, lines: ['Kopinya mantap, Bang.'] });
+        pair(false, [0, 0], false, [0, 0], b1.yaw, { bench: b1, slot: seat(b1, 0) }, { bench: b1, slot: seat(b1, 1) }, 'sit');
+        mk(false, 0, 0, { type: 'sit', sitKind: 'phone', bench: b2, slot: seat(b2, 0) }, { fixed: true, yaw: b2.yaw, cap: true });
+        mk(true, 0, 0, { type: 'sit', sitKind: 'coffee', bench: b3, slot: seat(b3, 1) }, { fixed: true, yaw: b3.yaw });
+
+        // 3) Gym actors
+        const tr = this.treadStations[1];
+        mk(false, tr.worldX, tr.worldZ, { type: 'treadmill', st: tr, pace: 0.6 }, { yaw: Math.PI, shirt: '#ef4444', lines: ['Hhh... tinggal 5 menit lagi!'] });
+        const bs = this.benchStations[1];
+        mk(false, bs.worldX, bs.worldZ + 1.65, { type: 'bench', st: bs }, { yaw: 0, shirt: '#2563eb', fixed: true, lines: ['Jangan ganggu, lagi set terakhir!'] });
+        mk(false, GX - 2.2, GZ - 4.6, { type: 'curl' }, { yaw: Math.atan2(0, -1) + 0.3, shirt: '#f59e0b', lines: ['Biar lengan kayak Bang Jago!'] });
+        mk(true, GX + 4.2, GZ - 4.6, { type: 'squat' }, { yaw: Math.PI, shirt: '#ec4899', lines: ['Squat dulu biar kuat!'] });
+        mk(false, GX - 8.8, GZ - 5.3, { type: 'stretch' }, { yaw: 0.4, shirt: '#16a34a' });
+        mk(true, GX + 10.4, GZ + 2.2, { type: 'rope' }, { yaw: 0, shirt: '#06b6d4', lines: ['Lompat tali bikin lincah!'] });
+        const bag1 = this.bags[1];
+        mk(false, bag1.base.x, bag1.base.z + 0.95, { type: 'bagpunch', bag: bag1 }, { yaw: Math.PI, shirt: '#dc2626', cap: true, lines: ['Samsak ini keras banget!'] });
+        mk(false, GX + 0.5, GZ - 6.5, { type: 'owner' }, { yaw: 0, shirt: '#0f172a', pants: '#111827', name: 'Coach Bambang', lines: ['Tiket harian cuma Rp 20.000, Bro!', 'Latihan yang rajin, hasilnya kelihatan!'] });
+
+        // 4) Food court vendors & diners
+        this.stalls.forEach((s, i) => {
+          const female = ['Mbak Rini', 'Bu Imas'].includes(s.vendor);
+          const bp = new THREE.Vector3(s.x, 0.1, s.z).addScaledVector(s.fwd, -0.95);
+          const v = mk(female, bp.x, bp.z, { type: 'cook', fan: Boolean(s.fan), serveT: 0, stall: s }, {
+            name: s.vendor, yaw: s.yaw || 0, shirt: ['#fbbf24', '#fafafa', '#10b981', '#f97316', '#7c3aed'][i % 5],
+            cap: !female && i % 2 === 0, fixed: true, lines: ['Silakan mampir, Bang!', 'Pesan apa hari ini?', 'Masih panas, baru matang!']
+          });
+          s.vendorActor = v;
+        });
+        const tbl = [[36, 42], [46, 42]];
+        const bT0 = B.find(b => Math.abs(b.pos.x - 36) < 0.1 && Math.abs(b.pos.z - 41) < 0.1);
+        const bT1 = B.find(b => Math.abs(b.pos.x - 46) < 0.1 && Math.abs(b.pos.z - 43) < 0.1);
+        if (bT0) {
+          mk(false, 0, 0, { type: 'sit', sitKind: 'coffee', bench: bT0, slot: seat(bT0, 0), eat: true }, { fixed: true, yaw: bT0.yaw, lines: ['Baksonya juara!'] });
+        }
+        if (bT1) {
+          pair(true, [0, 0], false, [0, 0], bT1.yaw, { bench: bT1, slot: seat(bT1, 0) }, { bench: bT1, slot: seat(bT1, 1) }, 'sit');
+        }
+
+        // 5) Toko alat owner
+        mk(false, 40.5, -16.4, { type: 'owner', serveT: 0 }, { yaw: 0, shirt: '#2563eb', pants: '#111827', name: 'Koh Alung', fixed: true, lines: ['Alat bagus, harga bersahabat!', 'Joran buat mancing udah ada, Bang.'] });
+        this.tokoOwner = this.actors[this.actors.length - 1];
+
+        // 6) Sweeper
+        const sw = mk(false, 0, 22, { type: 'sweep', range: 4 }, { name: 'Pak Ucok', shirt: '#ea580c', pants: '#334155', lines: ['Biar bersih alun-alunnya.'] });
+        this._addBroom(sw.rig);
+
+        // 7) Pond: fishermen, guitarist
+        const f1 = mk(false, this.pondPos.x + 9.4, this.pondPos.z - 0.5, { type: 'fishstand', rodTarget: new THREE.Vector3(this.pondPos.x + 4.6, 0.07, this.pondPos.z - 0.8) }, { yaw: -Math.PI / 2, name: 'Pak Haji Mancing', shirt: '#f8fafc', cap: true, fixed: true, lines: ['Sst! Jangan berisik, ikannya kabur!'] });
+        const f2 = mk(false, this.pondPos.x - 1.6, this.pondPos.z - 9.3, { type: 'fishstand', rodTarget: new THREE.Vector3(this.pondPos.x - 1.2, 0.07, this.pondPos.z - 4.8) }, { yaw: 0, name: 'Kang Mancing', shirt: '#65a30d', cap: true, fixed: true, lines: ['Dapat lele dua, lumayan.'] });
+        [f1, f2].forEach(f => this._attachFishing(f));
+        const gb = this._makeBench(this.pondPos.x + 11, this.pondPos.z + 9, Math.atan2(-11, -9), 0.0, true, 'Duduk di Tepi Empang [E]');
+        const gt = mk(false, 0, 0, { type: 'sit', sitKind: 'guitar', bench: gb, slot: seat(gb, 0), guitar: true }, { fixed: true, yaw: gb.yaw, name: 'Bang Gitar', shirt: '#7c3aed', cap: true, lines: ['Mau request lagu, Bang?'] });
+        this._addGuitar(gt.rig);
+
+        // 8) Kids with a ball
+        const kA = mk(false, 13, -10, { type: 'kid', kickT: 0 }, { name: 'Dodi', scale: 0.74, shirt: '#ef4444', yaw: 0 });
+        const kB = mk(true, 13, -15.5, { type: 'kid', kickT: 0 }, { name: 'Sari Kecil', scale: 0.7, shirt: '#f472b6', yaw: Math.PI });
+        this.ball = { a: kA, b: kB, u: 0, dir: 1, mesh: new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.5 })) };
+        this.ball.mesh.castShadow = true;
+        this.scene.add(this.ball.mesh);
+        kA.act.kickT = 0.5;
+
+        // 9) Joggers around the pond
+        mk(false, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 12.5, ang: 0, sp: 0.42 }, { name: 'Mas Joging', shirt: '#22d3ee', fixed: true, lines: ['Hhh... jangan ganggu, lagi lari!'] });
+        mk(true, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 13.4, ang: 3.2, sp: -0.38 }, { name: 'Mbak Lari', shirt: '#f43f5e', fixed: true, lines: ['Pagi-pagi udah olahraga!'] });
+
+        // all actors start hidden-safe
+        this.actors.forEach(a => { a.rig.root.visible = true; });
+      }
+
+      _addBroom(rig) {
+        const g = new THREE.Group();
+        g.position.set(0, -0.3, 0.1);
+        const h = this._cyl(g, 0.018, 0.018, 1.5, this._mat(0x92400e, 0.8), 0, -0.4, 0.05, 5);
+        h.rotation.x = 0.25;
+        const br = this._box(g, 0.34, 0.1, 0.12, this._mat(0xca8a04, 0.9), 0, -1.12, 0.3);
+        rig.rightElbowPivot.add(g);
+      }
+
+      _addGuitar(rig) {
+        const g = new THREE.Group();
+        g.position.set(0.05, 0.1, 0.3);
+        g.rotation.set(0.0, 0.0, -0.9);
+        this._box(g, 0.36, 0.5, 0.1, this._mat(0xb45309, 0.4), 0, -0.1, 0);
+        this._box(g, 0.07, 0.68, 0.05, this._mat(0x1f2937, 0.5), 0, 0.45, 0);
+        this._box(g, 0.1, 0.12, 0.04, this._mat(0x1f2937, 0.5), 0, 0.82, 0);
+        this._cyl(g, 0.07, 0.07, 0.02, this._mat(0x111827, 0.9), 0, -0.1, 0.055, 10).rotation.x = Math.PI / 2;
+        rig.torso.add(g);
+        return g;
+      }
+
+      _makeRod(parent) {
+        const g = new THREE.Group();
+        g.position.set(0, -0.32, 0.1);
+        g.rotation.x = 0.35;
+        const shaft = this._cyl(g, 0.01, 0.026, 2.3, this._mat(0x0f172a, 0.5), 0, -0.9, 0, 5);
+        const reel = this._cyl(g, 0.045, 0.045, 0.05, this._mat(0xdc2626, 0.4, { metalness: 0.6 }), 0.0, -0.1, 0.05, 8);
+        reel.rotation.z = Math.PI / 2;
+        const tip = new THREE.Object3D();
+        tip.position.set(0, -2.05, 0);
+        g.add(tip);
+        parent.add(g);
+        return { rod: g, tip };
+      }
+
+      _makeBobber(x, z) {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x7f1d1d, emissiveIntensity: 0.4 }));
+        m.position.set(x, 0.09, z);
+        this.scene.add(m);
+        const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xf1f5f9, transparent: true, opacity: 0.7 }));
+        line.frustumCulled = false;
+        this.scene.add(line);
+        return { m, line, geo };
+      }
+
+      _attachFishing(actor) {
+        const { rod, tip } = this._makeRod(actor.rig.rightElbowPivot);
+        const t = actor.act.rodTarget;
+        const bob = this._makeBobber(t.x, t.z);
+        actor.act.fish = { rod, tip, bob, base: t.clone(), phase: Math.random() * 6 };
+        this.bobbers.push({ tip, bob, base: t.clone(), phase: Math.random() * 6, owner: actor });
+      }
+
+      // ---------------- speech bubbles ----------------
+      say(c, text, dur = 3.0) {
+        let b = c.bubble;
+        if (!b) {
+          const cv = document.createElement('canvas');
+          cv.width = 384;
+          cv.height = 128;
+          const tex = new THREE.CanvasTexture(cv);
+          const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+          const sp = new THREE.Sprite(mat);
+          sp.scale.set(3.0, 1.0, 1);
+          sp.renderOrder = 30;
+          sp.visible = false;
+          this.scene.add(sp);
+          b = c.bubble = { cv, tex, sp, t: 0, dur: 0 };
+          this.bubbleList.push(c);
+        }
+        const x = b.cv.getContext('2d');
+        x.clearRect(0, 0, 384, 128);
+        x.font = 'bold 25px sans-serif';
+        const words = String(text).replace(/^"|"$/g, '').split(' ');
+        const lines = [];
+        let cur = '';
+        words.forEach(w => {
+          const test = cur ? `${cur} ${w}` : w;
+          if (x.measureText(test).width > 330 && cur) { lines.push(cur); cur = w; } else cur = test;
+        });
+        lines.push(cur);
+        const ls = lines.slice(0, 3);
+        const bh = 22 + ls.length * 30;
+        const top = 104 - bh;
+        x.fillStyle = 'rgba(255,255,255,0.96)';
+        x.strokeStyle = 'rgba(15,23,42,0.85)';
+        x.lineWidth = 3;
+        x.beginPath();
+        x.roundRect ? x.roundRect(10, top, 364, bh, 18) : x.rect(10, top, 364, bh);
+        x.fill();
+        x.stroke();
+        x.beginPath();
+        x.moveTo(176, top + bh - 1);
+        x.lineTo(192, top + bh + 18);
+        x.lineTo(208, top + bh - 1);
+        x.closePath();
+        x.fillStyle = 'rgba(255,255,255,0.96)';
+        x.fill();
+        x.stroke();
+        x.fillStyle = '#0f172a';
+        x.textAlign = 'center';
+        ls.forEach((ln, i) => x.fillText(ln, 192, top + 34 + i * 30));
+        b.tex.needsUpdate = true;
+        b.t = dur;
+        b.dur = dur;
+        b.sp.visible = true;
+        return b;
+      }
+
+      // ---------------- actor frame update ----------------
+      updateActor(c, dt, hero) {
+        const A = c.act;
+        const dh = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
+        const vis = dh < 78;
+        if (c.rig.root.visible !== vis) c.rig.root.visible = vis;
+        if (!vis) return;
+        if (dh > 42 && ((this._frame + c.idx) % 3) !== 0) return;
+        if (dh > 42) dt *= 3;
+        const rig = c.rig;
+        const t = this.t + A.phase;
+        const sm = (target) => {
+          let d = target - c.yaw;
+          while (d > Math.PI) d -= Math.PI * 2;
+          while (d < -Math.PI) d += Math.PI * 2;
+          c.yaw += d * Math.min(1, dt * 6);
+        };
+        const ease = (hx, hz) => {
+          const k = Math.min(1, dt * 5);
+          c.pos.x += (hx - c.pos.x) * k;
+          c.pos.z += (hz - c.pos.z) * k;
+        };
+        rig.materials.shirtMat.emissive.setRGB(0, 0, 0);
+        rig.materials.skinMat.emissive.setRGB(0, 0, 0);
+        let pose = null;
+        let rootY = null;
+        let lying = false;
+        const spk = A.pair ? (A.pair.speaker === A.side && c.bubble && c.bubble.t > 0) : false;
+
+        switch (A.type) {
+          case 'chat': {
+            ease(A.home.x, A.home.z);
+            sm(Math.atan2(A.partner.pos.x - c.pos.x, A.partner.pos.z - c.pos.z));
+            pose = LifePoses.pose('chat', t, { speaking: spk });
+            break;
+          }
+          case 'phone': pose = LifePoses.pose('phone', t, {}); break;
+          case 'sit': {
+            const sl = A.slot;
+            c.pos.set(sl.pos.x - A.bench.fwd.x * 0.06, sl.pos.y, sl.pos.z - A.bench.fwd.z * 0.06);
+            c.yaw = A.bench.yaw;
+            if (A.sitKind === 'chat' && A.partner) {
+              const want = Math.atan2(A.partner.pos.x - c.pos.x, A.partner.pos.z - c.pos.z);
+              c.yaw = A.bench.yaw + clamp(((want - A.bench.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI, -0.7, 0.7);
+            }
+            rootY = sl.pos.y + 0.02;
+            pose = LifePoses.pose('sit', t, { sitKind: A.sitKind, speaking: spk });
+            if (A.guitar) {
+              // strum visible + sound when hero is near
+              if (dh < 15 && Math.floor(t * 2.4) !== Math.floor((t - dt) * 2.4) && Math.random() < 0.8) {
+                this.sound.playGuitarPluck(Math.floor(Math.random() * 8));
+              }
+            }
+            break;
+          }
+          case 'jog': {
+            A.ang += A.sp * dt;
+            const x = A.cx + Math.cos(A.ang) * A.r;
+            const z = A.cz + Math.sin(A.ang) * A.r;
+            c.pos.x = x;
+            c.pos.z = z;
+            c.pos.y = this.world.getGroundHeight(x, z);
+            const sgn = Math.sign(A.sp);
+            c.yaw = Math.atan2(-Math.sin(A.ang) * sgn, Math.cos(A.ang) * sgn);
+            pose = LifePoses.pose('jog', t, {});
+            break;
+          }
+          case 'treadmill': {
+            A.pace = 0.55 + Math.sin(t * 0.3) * 0.25;
+            c.pos.set(A.st.worldX, 0.22 + 0.3, A.st.worldZ);
+            c.yaw = Math.PI;
+            rootY = c.pos.y;
+            pose = LifePoses.pose('treadmill', t, { pace: A.pace });
+            A.st.occupied = true;
+            A.st.pace = A.pace;
+            break;
+          }
+          case 'bench': {
+            const p = 0.5 + 0.5 * Math.sin(t * 1.5);
+            c.yaw = 0;
+            c.pos.set(A.st.worldX, 0.22, A.st.worldZ + 1.65);
+            rootY = 0.22 + 0.62;
+            lying = true;
+            pose = LifePoses.pose('bench', t, { press: p });
+            A.st.bar.position.y = 0.98 + p * 0.42;
+            break;
+          }
+          case 'curl': ease(A.home.x, A.home.z); pose = LifePoses.pose('curl', t, {}); break;
+          case 'squat': ease(A.home.x, A.home.z); pose = LifePoses.pose('squat', t, {}); break;
+          case 'stretch': ease(A.home.x, A.home.z); pose = LifePoses.pose('stretch', t, {}); break;
+          case 'owner': {
+            ease(A.home.x, A.home.z);
+            if (A.serveT > 0) A.serveT -= dt;
+            sm(A.faceHero ? Math.atan2(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) : c.yaw);
+            if (dh < 7) sm(Math.atan2(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z));
+            pose = LifePoses.pose('owner', t, { serveT: A.serveT || 0 });
+            break;
+          }
+          case 'rope': {
+            ease(A.home.x, A.home.z);
+            const ph = (t * 1.5) % 1;
+            pose = LifePoses.pose('rope', t, { hop: ph < 0.45 ? ph / 0.45 : 0 });
+            break;
+          }
+          case 'bagpunch': {
+            ease(A.home.x, A.home.z);
+            const per = 1.15;
+            const ph = (t % per) / per;
+            const jab = ph < 0.2 ? Math.sin((ph / 0.2) * Math.PI) : 0;
+            const lead = Math.floor(t / per) % 2;
+            if (A.lastPh !== undefined && A.lastPh > ph) A.fired = false;
+            if (!A.fired && ph > 0.09 && ph < 0.2) {
+              A.fired = true;
+              this._bagPush(A.bag, 0, -1, 1.5, dh < 22);
+            }
+            A.lastPh = ph;
+            const side = lead ? 1 : -1;
+            pose = {
+              hl: [-0.28, 0, 0.12], hr: [0.22, 0, -0.1], kl: 0.35, kr: 0.45,
+              ls: [lead ? -0.9 - jab * 0.65 : -0.95, 0.25, 0.15], le: lead ? -1.85 + jab * 1.7 : -1.85,
+              rs: [lead ? -0.95 : -0.9 - jab * 0.65, -0.25, -0.15], re: lead ? -1.85 : -1.85 + jab * 1.7,
+              torso: [0.12, side * jab * 0.35, 0], head: [0.06, 0, 0], py: 0.9 + Math.sin(t * 7) * 0.01
+            };
+            break;
+          }
+          case 'cook': {
+            c.pos.x = A.home.x;
+            c.pos.z = A.home.z;
+            if (A.serveT > 0) A.serveT -= dt;
+            if (A.fan && dh < 40 && Math.random() < dt * 4) this.sizzleT = Math.max(this.sizzleT, 0);
+            pose = LifePoses.pose('cook', t, { fan: A.fan, serveT: A.serveT || 0 });
+            if (A.serveT > 0.01 && dh < 14) c.yaw = A.stall.yaw || 0;
+            break;
+          }
+          case 'sweep': {
+            const px = A.home.x + Math.sin(t * 0.45) * A.range;
+            const dx = Math.cos(t * 0.45);
+            c.pos.x = px;
+            c.pos.z = A.home.z;
+            c.yaw = dx > 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+            pose = LifePoses.pose('sweep', t, {});
+            break;
+          }
+          case 'fishstand': {
+            ease(A.home.x, A.home.z);
+            const bite = A.fish && Math.sin(t * 0.37 + 1.3) > 0.97;
+            pose = LifePoses.pose('fishstand', t, { strike: bite });
+            sm(c.yaw);
+            break;
+          }
+          case 'kid': {
+            if (A.kickT > 0) A.kickT -= dt;
+            ease(A.home.x, A.home.z);
+            const o = this.ball ? (this.ball.a === c ? this.ball.b : this.ball.a) : null;
+            if (o) sm(Math.atan2(o.pos.x - c.pos.x, o.pos.z - c.pos.z));
+            pose = LifePoses.pose('kid', t, { kickT: A.kickT });
+            break;
+          }
+          default: pose = {};
+        }
+
+        rig.root.position.set(c.pos.x, rootY !== null ? rootY : c.pos.y, c.pos.z);
+        rig.root.rotation.set(lying ? -Math.PI / 2 : 0, c.yaw, 0);
+        LifePoses.apply(rig, pose || {});
+      }
+
+      _bagPush(bag, dx, dz, power, audible = true) {
+        bag.vel.x += dx * power;
+        bag.vel.z += dz * power;
+        bag.hits++;
+        if (audible) this.sound.playBagThud(Math.min(1, power / 3));
+      }
+
+      // idle behaviours for wandering citizens
+      tickIdle(c, dt) {
+        if (c.idleKind) {
+          c.idleT -= dt;
+          if (c.idleT <= 0) { c.idleKind = null; c.nextIdle = 7 + Math.random() * 14; }
+          return;
+        }
+        if (c.nextIdle === undefined) c.nextIdle = 3 + Math.random() * 12;
+        c.nextIdle -= dt;
+        if (c.nextIdle <= 0) {
+          c.idleKind = ['phone', 'look', 'stretch', 'phone'][Math.floor(Math.random() * 4)];
+          c.idleT = 4 + Math.random() * 5;
+        }
+      }
+
+      // ======================== PER-FRAME WORLD UPDATE ========================
+      update(dt) {
+        this.t += dt;
+        this._frame = (this._frame || 0) + 1;
+        const hero = this.hero;
+        const night = GameState.timePresetIndex === 2 ? 1 : 0;
+        this.nightK = (this.nightK || 0) + (night - (this.nightK || 0)) * Math.min(1, dt * 2);
+
+        // lights & bulbs
+        this.lights.forEach(o => { o.l.intensity = o.dayInt + (o.nightInt - o.dayInt) * this.nightK; });
+        this.bulbMats.forEach(m => { m.emissiveIntensity = 0.35 + this.nightK * 1.9; });
+
+        // chat pairs
+        for (let i = 0; i < this.pairs.length; i++) {
+          const pr = this.pairs[i];
+          const d = Math.hypot(hero.pos.x - pr.a.pos.x, hero.pos.z - pr.a.pos.z);
+          if (d > 45) continue;
+          pr.timer -= dt;
+          if (pr.timer <= 0) {
+            pr.speaker ^= 1;
+            const who = pr.speaker ? pr.b : pr.a;
+            const pool = who.lines && Math.random() < 0.35 ? who.lines : LIFE_CHAT;
+            this.say(who, pool[Math.floor(Math.random() * pool.length)], 3.4);
+            pr.timer = 3.6 + Math.random() * 2.2;
+            if (d < 10 && Math.random() < 0.5) this.sound.playNpcVoice('greet', who.female);
+          }
+        }
+
+        // bubbles
+        for (let i = 0; i < this.bubbleList.length; i++) {
+          const c = this.bubbleList[i];
+          const b = c.bubble;
+          if (b.t > 0) {
+            b.t -= dt;
+            const sitting = c.act && (c.act.type === 'sit' || c.act.type === 'bench');
+            const hY = (c.act && c.act.type === 'bench') ? 1.4 : (sitting ? 1.75 : 2.3) * (c.rig.root.scale.y || 1);
+            b.sp.position.set(c.pos.x, c.pos.y + hY + 0.62, c.pos.z);
+            const d = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
+            const pop = Math.min(1, (b.dur - b.t) * 7);
+            b.sp.visible = b.t > 0 && d < 26;
+            b.sp.scale.set(3.0 * pop, 1.0 * pop, 1);
+            if (b.t <= 0) b.sp.visible = false;
+          }
+        }
+
+        // heavy bags
+        this.bags.forEach(bag => {
+          const k = 38;
+          const damp = 2.4;
+          ['x', 'z'].forEach(ax => {
+            bag.vel[ax] += (-k * bag.sw[ax] - damp * bag.vel[ax]) * dt;
+            bag.sw[ax] += bag.vel[ax] * dt;
+          });
+          bag.pivot.rotation.set(-bag.sw.z * 0.5, 0, bag.sw.x * 0.5);
+        });
+
+        // treadmill belts
+        this.treadStations.forEach(st => {
+          const pace = st.occupied ? (st.pace || 0.5) : 0;
+          st.beltOff = ((st.beltOff || 0) + pace * 3 * dt) % 1.92;
+          st.belts.forEach((m, k) => { m.position.z = -0.8 + (((k * 0.32 + st.beltOff) % 1.92 + 1.92) % 1.92) * 0.9 - 0.0; });
+          st.occupied = false;
+        });
+
+        // ball between kids
+        if (this.ball) {
+          const bl = this.ball;
+          const from = bl.dir > 0 ? bl.a : bl.b;
+          const to = bl.dir > 0 ? bl.b : bl.a;
+          bl.u += dt / 1.5;
+          if (bl.u >= 1) {
+            bl.u = 0;
+            bl.dir *= -1;
+            to.act.kickT = 0.5;
+          }
+          const u = bl.u;
+          bl.mesh.position.set(
+            from.pos.x + (to.pos.x - from.pos.x) * u, 0.2 + Math.sin(u * Math.PI) * 0.8 * (1 - 0) + 0.0,
+            from.pos.z + (to.pos.z - from.pos.z) * u
+          );
+          bl.mesh.rotation.x += dt * 8;
+        }
+
+        // fishermen lines & bobbers + ripples
+        for (let i = 0; i < this.bobbers.length; i++) {
+          const o = this.bobbers[i];
+          if (o.owner && !o.owner.rig.root.visible) { o.bob.m.visible = false; o.bob.line.visible = false; continue; }
+          o.bob.m.visible = true;
+          o.bob.line.visible = true;
+          const by = 0.08 + Math.sin(this.t * 1.6 + o.phase) * 0.012;
+          o.bob.m.position.set(o.base.x, by, o.base.z);
+          this._updateLine(o.tip, o.bob);
+        }
+        this.ripples.forEach(r => {
+          r.t += dt;
+          const mat = r.mesh.material;
+          if (r.t < 0 || r.t > 1.8) {
+            mat.opacity = 0;
+            if (r.t > 1.8) {
+              if (r.ambient) {
+                r.t = -Math.random() * 3.5;
+                r.mesh.position.set(this.pondPos.x + (Math.random() - 0.5) * 9, 0.07, this.pondPos.z + (Math.random() - 0.7) * 8);
+              } else r.t = 99;
+            }
+            return;
+          }
+          const s = 0.4 + r.t * 1.9;
+          r.mesh.scale.set(s, s, s);
+          mat.opacity = 0.5 * (1 - r.t / 1.8);
+        });
+
+        // steam / smoke
+        this._updateSteam(dt, hero);
+
+        // pass hud
+        this._updatePanel();
+        this._updateStatsPill();
+      }
+
+      _updateLine(tip, bob) {
+        const p = new THREE.Vector3();
+        tip.getWorldPosition(p);
+        const a = bob.geo.attributes.position;
+        a.setXYZ(0, p.x, p.y, p.z);
+        a.setXYZ(1, bob.m.position.x, bob.m.position.y, bob.m.position.z);
+        a.needsUpdate = true;
+      }
+
+      ripple(x, z) {
+        let r = this.ripples.find(q => !q.ambient && q.t > 5);
+        if (!r) {
+          const mesh = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.0, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+          mesh.rotation.x = -Math.PI / 2;
+          this.scene.add(mesh);
+          r = { mesh, t: 99, ambient: false };
+          this.ripples.push(r);
+        }
+        r.mesh.position.set(x, 0.075, z);
+        r.t = 0;
+      }
+
+      _updateSteam(dt, hero) {
+        if (!this._steamPool) {
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 64;
+          const x = cv.getContext('2d');
+          const gr = x.createRadialGradient(32, 32, 2, 32, 32, 30);
+          gr.addColorStop(0, 'rgba(255,255,255,0.9)');
+          gr.addColorStop(1, 'rgba(255,255,255,0)');
+          x.fillStyle = gr;
+          x.fillRect(0, 0, 64, 64);
+          const tex = new THREE.CanvasTexture(cv);
+          this._steamPool = [];
+          for (let i = 0; i < 36; i++) {
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 }));
+            sp.visible = false;
+            this.scene.add(sp);
+            this._steamPool.push({ sp, life: 0, max: 1, v: new THREE.Vector3(), smoke: false });
+          }
+          this._steamAcc = 0;
+        }
+        this._steamAcc += dt;
+        if (this._steamAcc > 0.16) {
+          this._steamAcc = 0;
+          this.steamSources.forEach(src => {
+            const wp = src.local.clone();
+            src.group.localToWorld(wp);
+            if (Math.hypot(hero.pos.x - wp.x, hero.pos.z - wp.z) > 38) return;
+            const p = this._steamPool.find(q => q.life <= 0);
+            if (!p) return;
+            p.life = p.max = 1.6 + Math.random() * 0.8;
+            p.smoke = src.type === 'smoke';
+            p.sp.position.set(wp.x + (Math.random() - 0.5) * 0.15, wp.y, wp.z + (Math.random() - 0.5) * 0.15);
+            p.v.set((Math.random() - 0.5) * 0.15 + 0.1, 0.55 + Math.random() * 0.3, (Math.random() - 0.5) * 0.15);
+            p.sp.material.color.set(p.smoke ? 0x9ca3af : 0xffffff);
+            p.sp.visible = true;
+          });
+        }
+        this._steamPool.forEach(p => {
+          if (p.life <= 0) return;
+          p.life -= dt;
+          if (p.life <= 0) { p.sp.visible = false; return; }
+          p.sp.position.addScaledVector(p.v, dt);
+          const k = 1 - p.life / p.max;
+          const s = 0.25 + k * (p.smoke ? 0.9 : 0.7);
+          p.sp.scale.set(s, s, s);
+          p.sp.material.opacity = (p.smoke ? 0.42 : 0.32) * Math.sin(k * Math.PI);
+        });
+      }
+
+      // ======================== HERO ACTIVITIES ========================
+      _ensureHeroProps() {
+        if (this.heroProps) return this.heroProps;
+        const rig = this.hero.rig;
+        const r = this._makeRod(rig.rightElbowPivot);
+        r.rod.visible = false;
+        const bob = this._makeBobber(this.fishSpot.x, this.fishSpot.z - 3);
+        bob.m.visible = false;
+        bob.line.visible = false;
+        const guitar = this._addGuitar(rig);
+        guitar.visible = false;
+        // jump rope (tube in the plane perpendicular to the lateral axis)
+        const pts = [];
+        for (let i = 0; i <= 20; i++) {
+          const s = (i / 20) * Math.PI;
+          pts.push(new THREE.Vector3(-0.5 * Math.cos(s), Math.sin(s) * 0.95, 0));
+        }
+        const rope = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.012, 4), this._mat(0xfacc15, 0.6));
+        const ropeG = new THREE.Group();
+        ropeG.add(rope);
+        ropeG.visible = false;
+        this.scene.add(ropeG);
+        this.heroProps = { rod: r.rod, tip: r.tip, bob, guitar, ropeG };
+        return this.heroProps;
+      }
+
+      _pass() {
+        if (this.t < (GameState.gymPassUntil || 0)) return true;
+        if (GameState.cash < 20000) {
+          showToast('Saldo tidak cukup untuk tiket Gym (Rp 20.000)', 'wallet');
+          return false;
+        }
+        GameState.cash -= 20000;
+        GameState.gymPassUntil = this.t + 420;
+        this.sound.playCoins();
+        showToast('Tiket Gym Rp 20.000 dibayar — berlaku 7 menit!', 'trophy');
+        this.app.updateHUD();
+        return true;
+      }
+
+      _begin(act) {
+        const hero = this.hero;
+        act.t = 0;
+        act.from = hero.pos.clone();
+        act.fromYaw = hero.yaw;
+        act.reps = 0;
+        this.heroAct = act;
+        hero.isCrouching = false;
+        hero.attackTimer = 0;
+        hero.pendingHit = null;
+        this._ensureHeroProps();
+        this._panelEl.style.display = 'block';
+      }
+
+      startSit(bench) {
+        const hero = this.hero;
+        let best = null;
+        let bd = 99;
+        bench.slots.forEach(s => {
+          if (s.taken) return;
+          const d = hero.pos.distanceTo(s.pos);
+          if (d < bd) { bd = d; best = s; }
+        });
+        if (!best) { showToast('Bangku sudah penuh, cari yang lain!', 'bolt'); return; }
+        best.taken = true;
+        this._begin({ type: 'sit', bench, slot: best, playing: false, pluckT: 0, tipT: 5, note: 3 });
+      }
+
+      startGym(kind, zone) {
+        if (!this._pass()) return;
+        const hero = this.hero;
+        const GX = this.gymPos.x;
+        const GZ = this.gymPos.z;
+        if (kind === 'bench') {
+          const st = zone.station;
+          this._begin({ type: 'bench', st, press: 0, anim: 0, cool: 0 });
+        } else if (kind === 'treadmill') {
+          this._begin({ type: 'treadmill', st: zone.station, pace: 0.25, pts: 0 });
+        } else {
+          this._begin({ type: 'rope', spot: this.ropeSpot, phase: 0, hopT: 9, lastBottom: false, streak: 0, trip: 0 });
+        }
+      }
+
+      startFish() {
+        if (!GameState.ownedItems.has('tool_joran')) {
+          showToast('Kamu butuh Joran Pancing! Beli di Lapak Alat Pantura.', 'store');
+          this.sound.playReelClick();
+          return;
+        }
+        this._begin({ type: 'fish', state: 'cast', st: 0, wait: 0, strikeT: 0, caught: 0 });
+        this.sound.playSplash(false);
+      }
+
+      endHeroActivity() {
+        const A = this.heroAct;
+        if (!A) return;
+        const hero = this.hero;
+        const props = this.heroProps;
+        if (A.slot) A.slot.taken = false;
+        let exit = null;
+        const f = new THREE.Vector3(Math.sin(hero.yaw), 0, Math.cos(hero.yaw));
+        switch (A.type) {
+          case 'sit': exit = hero.pos.clone().addScaledVector(A.bench.fwd, 1.1); break;
+          case 'bench': exit = new THREE.Vector3(A.st.worldX + 1.2, 0.22, A.st.worldZ + 0.9); break;
+          case 'treadmill': exit = new THREE.Vector3(A.st.worldX, 0.22, A.st.worldZ + 1.7); break;
+          case 'rope': exit = hero.pos.clone().add(new THREE.Vector3(0, 0, 1.2)); break;
+          case 'fish': exit = new THREE.Vector3(this.fishSpot.x, 0.36, this.fishSpot.z + 1.5); break;
+          default: exit = hero.pos.clone();
+        }
+        hero.pos.copy(exit);
+        hero.pos.y = this.world.getGroundHeight(exit.x, exit.z);
+        hero.velY = 0;
+        hero.isGrounded = true;
+        const rt = hero.rig.root;
+        rt.rotation.set(0, hero.yaw, 0);
+        LifePoses.apply(hero.rig, {});
+        if (props) {
+          props.rod.visible = false;
+          props.bob.m.visible = false;
+          props.bob.line.visible = false;
+          props.guitar.visible = false;
+          props.ropeG.visible = false;
+        }
+        if (A.type === 'bench') A.st.bar.position.y = 1.28;
+        this.heroAct = null;
+        this._panelEl.style.display = 'none';
+        if (A.type === 'fish' && A.caught) showToast(`Selesai memancing — ${A.caught} ikan tertangkap!`, 'trophy');
+        else if (A.reps > 0) showToast(`Latihan selesai — ${A.reps} repetisi. Mantap!`, 'trophy');
+      }
+
+      pressAction(kind) {
+        const A = this.heroAct;
+        if (!A) return;
+        if (kind === 'e') { if (A.t > 0.35) this.endHeroActivity(); return; }
+        // jump / attack / roll / crouch
+        switch (A.type) {
+          case 'bench':
+            if (A.anim <= 0) {
+              if (GameState.nitro < 4) { showToast('Tenaga habis! Istirahat dulu sebentar.', 'bolt'); return; }
+              A.anim = 1.1;
+              GameState.nitro -= 4;
+            }
+            break;
+          case 'treadmill':
+            A.pace = Math.min(1, A.pace + 0.17);
+            this.sound.playFootstep && this.sound.playFootstep();
+            break;
+          case 'rope':
+            if (A.trip <= 0) A.hopT = 0;
+            break;
+          case 'fish':
+            if (A.state === 'bite') this._reelIn(A);
+            else if (A.state === 'wait') { A.state = 'cast'; A.st = 0; showToast('Tarik terlalu cepat, ikan kabur!', 'bolt'); }
+            else if (A.state === 'idle') { A.state = 'cast'; A.st = 0; this.sound.playSplash(false); }
+            break;
+          case 'sit':
+            if (GameState.ownedItems.has('tool_gitar')) {
+              A.playing = !A.playing;
+              showToast(A.playing ? 'Mulai main gitar — penonton bisa kasih saweran!' : 'Gitar disimpan.', 'trophy');
+            } else showToast('Beli Gitar di Lapak Alat Pantura untuk ngamen!', 'store');
+            break;
+        }
+      }
+
+      _reelIn(A) {
+        const table = [
+          ['Ikan Mas', 12000, 0.3], ['Lele', 8000, 0.25], ['Nila', 15000, 0.2], ['Gabus', 20000, 0.12], ['Patin', 26000, 0.08], ['Arwana Mini', 120000, 0.05]
+        ];
+        let r = Math.random();
+        let fish = table[0];
+        for (const f of table) { r -= f[2]; if (r <= 0) { fish = f; break; } }
+        GameState.cash += fish[1];
+        GameState.fishCaught = (GameState.fishCaught || 0) + 1;
+        A.caught++;
+        A.reps++;
+        A.state = 'idle';
+        A.strikeT = 0;
+        this.sound.playSplash(true);
+        this.sound.playCoins();
+        this.ripple(this.fishSpot.x, this.fishSpot.z - 3);
+        this.fx.floatText(this.hero.pos.clone().setY(this.hero.pos.y + 2.6), `${fish[0]} +${formatRupiah(fish[1])}`, '#34d399', 1.1);
+        GameStats.add('dayaTahan', 0.4);
+        showToast(`Dapat ${fish[0]}! +${formatRupiah(fish[1])}`, 'trophy');
+        this.app.updateHUD();
+      }
+
+      tryHitBag(hero, combo) {
+        const fwd = new THREE.Vector3(Math.sin(hero.yaw), 0, Math.cos(hero.yaw));
+        for (let i = 0; i < this.bags.length; i++) {
+          const b = this.bags[i];
+          const dx = b.base.x - hero.pos.x;
+          const dz = b.base.z - hero.pos.z;
+          const d = Math.hypot(dx, dz);
+          if (d > 2.6 || Math.abs(hero.pos.y - 0.22) > 1) continue;
+          if ((dx * fwd.x + dz * fwd.z) / (d || 1) < 0.35) continue;
+          this._bagPush(b, fwd.x, fwd.z, 2.2 + combo * 0.55);
+          const hp = new THREE.Vector3(b.base.x, 1.5, b.base.z);
+          this.fx.impactBurst(hp, fwd, 0.5 + combo * 0.2);
+          this.fx.floatText(hp.clone().setY(2.1), `+KEKUATAN`, '#fbbf24', 0.7);
+          GameStats.add('kekuatan', 0.3 + combo * 0.05);
+          this.camCtrlShake(combo);
+          return true;
+        }
+        return false;
+      }
+
+      camCtrlShake(combo) {
+        if (this.app.camCtrl) this.app.camCtrl.addShake(0.05, 0.05 + combo * 0.02);
+      }
+
+      // returns true while a hero activity is controlling the hero
+      heroUpdate(dt, input) {
+        const A = this.heroAct;
+        if (!A) return false;
+        const hero = this.hero;
+        A.t += dt;
+        const rig = hero.rig;
+        rig.root.visible = true;
+        const props = this.heroProps;
+        const mag = Math.hypot(input.moveX || 0, input.moveY || 0);
+        if (A.t > 0.7 && mag > 0.55 && A.type !== 'rope') { this.endHeroActivity(); return false; }
+        if (A.t > 0.7 && mag > 0.8 && A.type === 'rope') { this.endHeroActivity(); return false; }
+        const blend = Math.min(1, A.t / 0.45);
+        const eb = blend * blend * (3 - 2 * blend);
+        const lerpTo = (tx, ty, tz) => hero.pos.set(
+          A.from.x + (tx - A.from.x) * eb, A.from.y + (ty - A.from.y) * eb, A.from.z + (tz - A.from.z) * eb
+        );
+        let pose = {};
+        let lying = false;
+        let rootY = null;
+        let yaw = hero.yaw;
+        const T = A.t + 3;
+
+        switch (A.type) {
+          case 'sit': {
+            const sl = A.slot;
+            lerpTo(sl.pos.x - A.bench.fwd.x * 0.06, sl.pos.y, sl.pos.z - A.bench.fwd.z * 0.06);
+            yaw = A.bench.yaw;
+            rootY = sl.pos.y + 0.02 + (1 - eb) * (A.from.y - sl.pos.y);
+            hero.yaw = yaw;
+            let kind = 'default';
+            if (A.playing) kind = 'guitar';
+            else if (A.t > 3) kind = Math.floor(A.t / 6) % 2 ? 'phone' : 'coffee';
+            pose = LifePoses.pose('sit', T, { sitKind: kind });
+            props.guitar.visible = A.playing;
+            GameState.health = Math.min(100, GameState.health + 2.5 * dt);
+            GameState.nitro = Math.min(100, GameState.nitro + 9 * dt);
+            if (A.playing) {
+              A.pluckT -= dt;
+              if (A.pluckT <= 0) {
+                A.pluckT = 0.38 + Math.random() * 0.12;
+                A.note = clamp(A.note + Math.floor(Math.random() * 5) - 2, 0, 7);
+                this.sound.playGuitarPluck(A.note);
+                if (Math.random() < 0.18) this.fx.floatText(hero.pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 2.2, 0)), '♪', '#fde68a', 0.9);
+              }
+              A.tipT -= dt;
+              if (A.tipT <= 0) {
+                A.tipT = 5 + Math.random() * 4;
+                const near = this.citizens.findNearest(hero.pos, 14);
+                if (near) {
+                  const tip = (1 + Math.floor(Math.random() * 4)) * 2500;
+                  GameState.cash += tip;
+                  this.sound.playCoins();
+                  this.say(near, ['Mantap suaranya!', 'Nih saweran, Bang!', 'Lagi dong lagunya!'][Math.floor(Math.random() * 3)], 2.6);
+                  showToast(`Saweran dari ${near.name}: +${formatRupiah(tip)}`, 'wallet');
+                  A.reps++;
+                  this.app.updateHUD();
+                }
+              }
+            }
+            break;
+          }
+          case 'bench': {
+            const st = A.st;
+            lerpTo(st.worldX, 0.22, st.worldZ + 1.65);
+            yaw = 0;
+            hero.yaw = 0;
+            lying = true;
+            rootY = (0.22 + 0.62) * eb + A.from.y * (1 - eb);
+            if (A.anim > 0) {
+              const prev = A.anim;
+              A.anim = Math.max(0, A.anim - dt);
+              const p = 1 - A.anim / 1.1;
+              A.press = p < 0.5 ? p * 2 : (1 - p) * 2;
+              if (prev > 0.55 && A.anim <= 0.55) {
+                this.sound.playGymClang(0.6);
+                A.reps++;
+                GameStats.add('kekuatan', 0.8);
+                this.fx.floatText(hero.pos.clone().setY(1.9), `REP ${A.reps}`, '#fbbf24', 0.8);
+              }
+            } else A.press = Math.max(0, A.press - dt * 3);
+            pose = LifePoses.pose('bench', T, { press: A.press });
+            st.bar.position.y = 0.98 + A.press * 0.42;
+            break;
+          }
+          case 'treadmill': {
+            const st = A.st;
+            lerpTo(st.worldX, 0.52, st.worldZ);
+            yaw = Math.PI;
+            hero.yaw = yaw;
+            rootY = 0.52 * eb + A.from.y * (1 - eb);
+            A.pace = Math.max(0.12, A.pace - dt * 0.13);
+            st.occupied = true;
+            st.pace = A.pace;
+            if (eb >= 1) {
+              GameState.nitro = Math.max(0, GameState.nitro - dt * 5 * A.pace);
+              A.pts += dt * A.pace;
+              if (A.pts >= 4) {
+                A.pts = 0;
+                A.reps++;
+                GameStats.add('dayaTahan', 0.7);
+                this.fx.floatText(hero.pos.clone().setY(2.5), '+DAYA TAHAN', '#22d3ee', 0.8);
+              }
+              A.stepT = (A.stepT || 0) - dt;
+              if (A.stepT <= 0) { A.stepT = 0.6 - A.pace * 0.35; this.sound.playFootstep && this.sound.playFootstep(); }
+              if (GameState.nitro < 2) { showToast('Napas habis! Istirahat dulu.', 'bolt'); this.endHeroActivity(); return false; }
+            }
+            pose = LifePoses.pose('treadmill', T, { pace: A.pace });
+            break;
+          }
+          case 'rope': {
+            const sp = this.ropeSpot;
+            lerpTo(sp.worldX, 0.22, sp.worldZ);
+            yaw = Math.PI;
+            hero.yaw = yaw;
+            A.phase = (A.phase + dt * 1.25) % 1;
+            A.hopT += dt;
+            if (A.trip > 0) A.trip -= dt;
+            const bottom = A.phase > 0.5 && A.phase < 0.56;
+            if (bottom && !A.lastBottom && eb >= 1) {
+              if (A.hopT < 0.5 && A.trip <= 0) {
+                A.reps++;
+                A.streak++;
+                this.sound.playRopeWhip();
+                GameStats.add('kelincahan', 0.3 + Math.min(0.4, A.streak * 0.03));
+                if (A.reps % 5 === 0) this.fx.floatText(hero.pos.clone().setY(2.7), `${A.reps} lompatan!`, '#facc15', 0.9);
+                GameState.nitro = Math.max(0, GameState.nitro - 1.2);
+              } else if (A.trip <= 0) {
+                A.trip = 0.9;
+                A.streak = 0;
+                this.sound.playBlock();
+                this.fx.floatText(hero.pos.clone().setY(2.4), 'KESANDUNG!', '#fb7185', 0.9);
+              }
+            }
+            A.lastBottom = bottom;
+            const hop = A.hopT < 0.45 ? A.hopT / 0.45 : 0;
+            pose = LifePoses.pose('rope', T, { hop, tripped: A.trip > 0 });
+            rootY = 0.22 + Math.sin(hop * Math.PI) * 0.22;
+            rootY = rootY * eb + A.from.y * (1 - eb);
+            props.ropeG.visible = true;
+            props.ropeG.position.set(hero.pos.x, 0.22 + 1.0 + Math.sin(hop * Math.PI) * 0.22, hero.pos.z);
+            props.ropeG.rotation.set(A.phase * Math.PI * 2 + (A.trip > 0 ? 0 : 0), yaw, 0, 'YXZ');
+            if (GameState.nitro < 2) { this.endHeroActivity(); return false; }
+            break;
+          }
+          case 'fish': {
+            const fs = this.fishSpot;
+            lerpTo(fs.x, 0.36, fs.z);
+            yaw = Math.PI;
+            hero.yaw = yaw;
+            rootY = 0.36 * eb + A.from.y * (1 - eb);
+            props.rod.visible = true;
+            props.bob.m.visible = true;
+            props.bob.line.visible = true;
+            const bx = fs.x + 0.3;
+            const bz = fs.z - 3.0;
+            if (A.state === 'cast') {
+              A.st += dt;
+              if (A.st > 1.0) {
+                A.state = 'wait';
+                A.wait = 2.5 + Math.random() * 5;
+                this.ripple(bx, bz);
+                this.sound.playSplash(false);
+              }
+            } else if (A.state === 'wait') {
+              A.wait -= dt;
+              if (A.wait <= 0) {
+                A.state = 'bite';
+                A.strikeT = 1.3;
+                this.sound.playReelClick();
+                this.ripple(bx, bz);
+                this.fx.floatText(new THREE.Vector3(bx, 1.3, bz), 'GIGIT!', '#fde047', 1.0);
+              }
+            } else if (A.state === 'bite') {
+              A.strikeT -= dt;
+              if (A.strikeT <= 0) { A.state = 'idle'; showToast('Ikan lepas... coba lagi!', 'bolt'); }
+            }
+            const bobY = A.state === 'bite' ? 0.05 + Math.sin(this.t * 25) * 0.04 : 0.08 + Math.sin(this.t * 1.6) * 0.012;
+            if (A.state === 'cast') props.bob.m.visible = A.st > 0.5;
+            props.bob.m.position.set(bx, bobY, bz + (A.state === 'cast' ? (1 - Math.min(1, A.st)) * 1.5 : 0));
+            this._updateLine(props.tip, props.bob);
+            pose = LifePoses.pose('fishstand', T, { strike: A.state === 'bite' || (A.state === 'cast' && A.st < 0.5) });
+            break;
+          }
+        }
+
+        rig.root.position.set(hero.pos.x, rootY !== null ? rootY : hero.pos.y, hero.pos.z);
+        rig.root.rotation.set(lying ? -Math.PI / 2 : 0, yaw, 0);
+        LifePoses.apply(rig, pose);
+        return true;
+      }
+
+      // ======================== ZONE HANDLER ========================
+      handleZone(z) {
+        switch (z.action) {
+          case 'bench_sit': this.startSit(z.bench); return true;
+          case 'stall': {
+            this.currentStall = z.stall;
+            const v = z.stall.vendorActor;
+            if (v) {
+              this.say(v, ['Mau pesan apa, Bang?', 'Silakan, silakan!', 'Pedas atau enggak nih?'][Math.floor(Math.random() * 3)], 2.6);
+              this.sound.playNpcVoice('greet', v.female);
+            }
+            this.sound.playSizzle(0.7);
+            this.app.shopCtrl.openShop('food', z.stall.menu);
+            return true;
+          }
+          case 'toko_alat':
+            this.currentStall = { vendorActor: this.tokoOwner };
+            this.say(this.tokoOwner, 'Selamat datang di Lapak Alat Pantura!', 2.6);
+            this.app.shopCtrl.openShop('tool', ['tool_joran', 'tool_dumbbell', 'tool_sepatu', 'tool_tali', 'tool_gitar', 'food_protein']);
+            return true;
+          case 'gym_bench': this.startGym('bench', z); return true;
+          case 'gym_treadmill': this.startGym('treadmill', z); return true;
+          case 'gym_rope': this.startGym('rope', z); return true;
+          case 'gym_bag_info':
+            showToast('Hadap samsak lalu tekan F (Pukul) untuk latihan Kekuatan — gratis!', 'punch');
+            return true;
+          case 'fishing': this.startFish(); return true;
+        }
+        return false;
+      }
+
+      onPurchase(item) {
+        this.sound.playCoins();
+        const cs = this.currentStall;
+        const v = cs && cs.vendorActor;
+        if (v) {
+          if (v.act) v.act.serveT = 1.2;
+          this.say(v, ['Terima kasih, Bang!', 'Silakan dinikmati!', 'Mantap, semoga cocok!'][Math.floor(Math.random() * 3)], 2.4);
+          if (cs.type === 'sate') this.sound.playSizzle(1.2);
+        }
+      }
+
+      // ======================== UI ========================
+      _buildUI() {
+        const panel = document.createElement('div');
+        panel.id = 'life-panel';
+        panel.style.cssText = 'position:fixed;left:50%;bottom:132px;transform:translateX(-50%);z-index:40;display:none;min-width:260px;max-width:92vw;padding:10px 14px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);color:#f8fafc;font-family:system-ui,sans-serif;text-align:center;backdrop-filter:blur(6px);pointer-events:none';
+        panel.innerHTML = '<div id="lp-title" style="font-weight:900;font-size:13px;letter-spacing:.04em;color:#facc15"></div><div id="lp-sub" style="font-size:11px;color:#cbd5e1;margin-top:2px"></div><div style="height:8px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:7px;overflow:hidden"><div id="lp-bar" style="height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#22d3ee);transition:width .1s"></div></div><div id="lp-info" style="font-size:11px;color:#94a3b8;margin-top:5px"></div>';
+        document.body.appendChild(panel);
+        this._panelEl = panel;
+
+        const pill = document.createElement('div');
+        pill.id = 'stats-pill';
+        pill.style.cssText = 'position:fixed;left:12px;top:150px;z-index:35;display:none;padding:6px 10px;border-radius:12px;background:rgba(2,6,23,.72);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font:700 10px system-ui,sans-serif;line-height:1.5;pointer-events:none';
+        document.body.appendChild(pill);
+        this._pillEl = pill;
+      }
+
+      _updatePanel() {
+        const A = this.heroAct;
+        if (!A) return;
+        const q = id => this._panelEl.querySelector(id);
+        let title = '';
+        let sub = '';
+        let bar = 0;
+        let info = '';
+        const stat = k => `${GameStats.names[k]} Lv${GameStats.level(k)}`;
+        switch (A.type) {
+          case 'sit':
+            title = 'SANTAI & NONGKRONG';
+            sub = GameState.ownedItems.has('tool_gitar') ? '[F] Main Gitar / ngamen • [E] atau gerak: berdiri' : 'Energi & stamina pulih perlahan • [E]/gerak: berdiri';
+            bar = GameState.health / 100;
+            info = `Energi ${Math.round(GameState.health)}%${A.reps ? ` • Saweran ${A.reps}x` : ''}`;
+            break;
+          case 'bench':
+            title = 'BENCH PRESS';
+            sub = 'Tekan [F] / tombol Pukul untuk angkat • [E] selesai';
+            bar = A.press;
+            info = `Repetisi ${A.reps} • ${stat('kekuatan')} • Stamina ${Math.round(GameState.nitro)}%`;
+            break;
+          case 'treadmill':
+            title = 'TREADMILL';
+            sub = 'Ketuk [F] berulang untuk jaga tempo lari • [E] selesai';
+            bar = A.pace;
+            info = `Set ${A.reps} • ${stat('dayaTahan')} • Stamina ${Math.round(GameState.nitro)}%`;
+            break;
+          case 'rope':
+            title = 'LOMPAT TALI';
+            sub = 'Tekan [F]/[Lompat] sebelum tali menyentuh lantai • [E] selesai';
+            bar = Math.min(1, A.streak / 20);
+            info = `Lompatan ${A.reps} • Beruntun ${A.streak} • ${stat('kelincahan')}`;
+            break;
+          case 'fish':
+            title = 'MANCING DI EMPANG';
+            sub = A.state === 'bite' ? 'IKAN GIGIT! Tekan [F] SEKARANG!' : (A.state === 'wait' ? 'Sabar... tunggu umpan bergerak' : (A.state === 'cast' ? 'Melempar kail...' : 'Tekan [F] untuk melempar lagi • [E] selesai'));
+            bar = A.state === 'bite' ? Math.max(0, A.strikeT / 1.3) : 0;
+            info = `Tertangkap ${A.caught} • Total ${GameState.fishCaught || 0} ikan`;
+            break;
+        }
+        q('#lp-title').textContent = title;
+        q('#lp-sub').textContent = sub;
+        q('#lp-bar').style.width = `${Math.round(clamp(bar, 0, 1) * 100)}%`;
+        q('#lp-info').textContent = info;
+      }
+
+      _updateStatsPill() {
+        if (!GameState.started || GameState.inVehicle) { this._pillEl.style.display = 'none'; return; }
+        this._pillEl.style.display = 'block';
+        const row = (k, c) => {
+          const lv = GameStats.level(k);
+          const pct = Math.round(GameStats.progress(k) * 100);
+          return `<div><span style="color:${c}">${GameStats.names[k]}</span> Lv ${lv}${lv < 10 ? ` <span style="color:#64748b">(${pct}%)</span>` : ' MAX'}</div>`;
+        };
+        const html = row('kekuatan', '#f87171') + row('dayaTahan', '#22d3ee') + row('kelincahan', '#a3e635');
+        if (html !== this._pillHtml) { this._pillHtml = html; this._pillEl.innerHTML = html; }
+      }
+    }
+
+
+    // ==========================================================================
     // 15. MAIN APPLICATION BOOTSTRAPPER
     // ==========================================================================
     class PanturaGameApp {
@@ -6192,15 +8439,22 @@
         this.shopCtrl = new ShopAndRanselController(this);
         this.eduCtrl = new EducationCenterController(this);
         this.mgCtrl = new MiniGamesHubController(this);
+        this.life = new LifeSystem(this);
+        this.hero.life = this.life;
+        this.citizens.life = this.life;
 
         this.input = new InputManager({
-          onJump: () => this.hero.triggerJump(),
+          onJump: () => {
+            if (this.life.busy) { this.life.pressAction('jump'); return; }
+            this.hero.triggerJump();
+          },
           onAttack: () => {
+            if (this.life.busy) { this.life.pressAction('attack'); return; }
             this.hero.triggerAttack(this.citizens);
             if (GameState.equipped.blaster) this.camCtrl.addShake(0.08);
           },
-          onRoll: () => this.hero.triggerRoll(this.input, this.camCtrl.yaw),
-          onCrouch: () => this.hero.toggleCrouch(),
+          onRoll: () => { if (this.life.busy) { this.life.pressAction('roll'); return; } this.hero.triggerRoll(this.input, this.camCtrl.yaw); },
+          onCrouch: () => { if (this.life.busy) { this.life.pressAction('crouch'); return; } this.hero.toggleCrouch(); },
           onContextOrEmote: () => this.handleContextOrEmote(),
           onVehicleToggle: () => this.handleVehicleToggle(),
           onHorn: () => {
@@ -6473,6 +8727,7 @@
       }
 
       handleVehicleToggle() {
+        if (this.life && this.life.busy) return;
         if (GameState.vehicleTransition || GameState.roomTransition) return;
         if (GameState.inVehicle && GameState.activeVehicle) {
           this.hero.startVehicleTransition(GameState.activeVehicle, false);
@@ -6485,6 +8740,7 @@
 
       handleContextOrEmote() {
         if (GameState.inVehicle) return;
+        if (this.life.busy) { this.life.pressAction('e'); return; }
         if (GameState.nearestVehicle) {
           this.hero.startVehicleTransition(GameState.nearestVehicle, true);
           return;
@@ -6494,6 +8750,7 @@
           return;
         }
         if (GameState.nearestServiceZone) {
+          if (this.life.handleZone(GameState.nearestServiceZone)) return;
           const act = GameState.nearestServiceZone.action;
           if (act === 'food_warteg' || act === 'food_minimarket') {
             this.shopCtrl.openShop('food');
@@ -6616,7 +8873,7 @@
         const promptIcon = document.getElementById('context-prompt-icon');
         const promptText = document.getElementById('context-prompt-text');
         if (promptEl && promptText) {
-          if (GameState.inVehicle) {
+          if (GameState.inVehicle || (this.life && this.life.busy)) {
             promptEl.classList.add('hidden');
           } else if (GameState.nearestVehicle) {
             promptEl.classList.remove('hidden');
@@ -6672,6 +8929,7 @@
             this.hero.update(dt, this.input, this.camCtrl.yaw, this.citizens);
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
+            this.life.update(dt);
             if (this.fx) this.fx.update(dt);
             this._updateProximityAndPickups();
           }
