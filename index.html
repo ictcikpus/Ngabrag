@@ -2154,7 +2154,17 @@
           [-55, -24], [55, -24], [-55, 24], [55, 24],
           [-26, 55], [26, 55], [-85, 0], [85, 0]
         ];
-        treeCoords.forEach(([tx, tz]) => {
+        // Pohon tidak boleh berada di badan jalan: geser ke bahu jalan terdekat
+        const offRoad = (v) => {
+          for (let i = 0; i < this.roadCoords.length; i++) {
+            const rc = this.roadCoords[i];
+            if (Math.abs(v - rc) < 9.5) return rc + (v >= rc ? 10.5 : -10.5);
+          }
+          return v;
+        };
+        treeCoords.forEach(([tx0, tz0]) => {
+          const tx = offRoad(tx0);
+          const tz = offRoad(tz0);
           const gy = this.getGroundHeight(tx, tz);
           const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.45, 3.2, 8), trunkMat);
           trunk.position.set(tx, gy + 1.6, tz);
@@ -6650,6 +6660,7 @@
         this._buildToolShop();
         this._buildPond();
         this._buildDecor();
+        this._buildEdges();
         this._spawnActors();
         this._buildUI();
       }
@@ -7254,6 +7265,236 @@
         }
       }
 
+      // ======================== TEPI PANTAI & GUNUNG (BATAS ARENA) ========================
+      _buildEdges() {
+        let seed = 20261124;
+        const rnd = () => {
+          seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+          let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+        const roads = this.world.roadCoords;
+        const nearRoad = (t, m = 10) => roads.some(r => Math.abs(t - r) < m);
+        const toW = (side, t, d) => (side === 'N' ? [t, -d] : side === 'S' ? [t, d] : side === 'E' ? [d, t] : [-d, t]);
+        const sideYaw = { N: 0, S: Math.PI, E: -Math.PI / 2, W: Math.PI / 2 };
+        const seaSecs = [['N', -142, 142], ['E', -142, 35], ['W', -142, -35]];
+        const mtnSecs = [['S', -320, 320], ['E', 35, 320], ['W', -35, 320]];
+        this.edgeAnim = { water: null, foam: [], boats: [] };
+
+        // hamparan hijau dasar agar tidak ada "kekosongan" di luar peta
+        const far = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), new THREE.MeshStandardMaterial({ color: 0x2f4a12, roughness: 1 }));
+        far.rotation.x = -Math.PI / 2;
+        far.position.y = -0.06;
+        this.scene.add(far);
+
+        const slab = (side, t0, t1, d0, d1, y, mat) => {
+          const [cx, cz] = toW(side, (t0 + t1) / 2, (d0 + d1) / 2);
+          const horiz = side === 'N' || side === 'S';
+          const w = horiz ? t1 - t0 : d1 - d0;
+          const h = horiz ? d1 - d0 : t1 - t0;
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+          m.rotation.x = -Math.PI / 2;
+          m.position.set(cx, y, cz);
+          m.receiveShadow = true;
+          this.scene.add(m);
+          return m;
+        };
+
+        // --- tekstur pasir & air ---
+        const mkTex = (draw, rep) => {
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 128;
+          draw(cv.getContext('2d'));
+          const t = new THREE.CanvasTexture(cv);
+          t.wrapS = t.wrapT = THREE.RepeatWrapping;
+          t.repeat.set(rep, rep);
+          return t;
+        };
+        const sandTex = mkTex(x => {
+          x.fillStyle = '#e4cf9c';
+          x.fillRect(0, 0, 128, 128);
+          for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${rnd() < 0.5 ? '120,90,40' : '255,248,220'},0.12)`; x.fillRect(rnd() * 128, rnd() * 128, 2, 2); }
+        }, 1);
+        const waterTex = mkTex(x => {
+          x.fillStyle = '#1d7f9c';
+          x.fillRect(0, 0, 128, 128);
+          for (let i = 0; i < 40; i++) {
+            x.strokeStyle = `rgba(190,235,250,${0.1 + rnd() * 0.18})`;
+            x.lineWidth = 1 + rnd() * 1.5;
+            const px = rnd() * 128; const py = rnd() * 128;
+            x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + 10, py - 4, px + 22, py); x.stroke();
+          }
+        }, 70);
+        const waterMat = new THREE.MeshStandardMaterial({ map: waterTex, roughness: 0.18, metalness: 0.25 });
+        this.edgeAnim.water = waterTex;
+
+        // --- LAUT (3 sisi) ---
+        slab('N', -600, 600, 142, 600, 0.05, waterMat);
+        const seaE = new THREE.Mesh(new THREE.PlaneGeometry(458, 635), waterMat);
+        seaE.rotation.x = -Math.PI / 2; seaE.position.set(142 + 229, 0.05, -600 + 317.5); this.scene.add(seaE);
+        const seaW = new THREE.Mesh(new THREE.PlaneGeometry(458, 565), waterMat);
+        seaW.rotation.x = -Math.PI / 2; seaW.position.set(-142 - 229, 0.05, -600 + 282.5); this.scene.add(seaW);
+
+        // --- pantai: pasir + pasir basah + buih ombak + penghalang tak kasat mata ---
+        seaSecs.forEach(([side, a, b]) => {
+          const sm = new THREE.MeshStandardMaterial({ map: sandTex.clone(), roughness: 1 });
+          sm.map.needsUpdate = true;
+          sm.map.repeat.set((b - a) / 10, 1.4);
+          slab(side, a, b, 127, 142, 0.006, sm);
+          slab(side, a, b, 138.5, 142, 0.009, new THREE.MeshStandardMaterial({ color: 0xb9a56f, roughness: 0.6 }));
+          for (let k = 0; k < 2; k++) {
+            const fm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false });
+            const f = slab(side, a, b, 141.2, 142.6, 0.055 + k * 0.001, fm);
+            this.edgeAnim.foam.push({ mesh: f, side, base: f.position.clone(), k });
+          }
+          const [cx, cz] = toW(side, (a + b) / 2, 146.5);
+          const horiz = side === 'N' || side === 'S';
+          this.world.addBoxCollider(cx, cz, horiz ? b - a + 20 : 11, horiz ? 11 : b - a + 20);
+        });
+
+        // --- GUNUNG (3 sisi) ---
+        const peaks = []; const caps = []; const hills = []; const pines = [];
+        mtnSecs.forEach(([side, a, b]) => {
+          [[170, 28, 44], [210, 36, 62], [255, 46, 86]].forEach(([d0, step, hBase]) => {
+            for (let t = a; t < b; t += step * (0.75 + rnd() * 0.5)) {
+              const h = hBase * (0.7 + rnd() * 0.6);
+              const r = h * (0.62 + rnd() * 0.35);
+              const [x, z] = toW(side, t, d0 + rnd() * 16);
+              peaks.push({ x, z, r, h, c: [0x3b5d2a, 0x466b33, 0x5b6b4a, 0x6b7280, 0x4a5a3a][Math.floor(rnd() * 5)] });
+              if (h > 58) caps.push({ x, z, r: r * 0.3, h: h * 0.3, top: h - 3 });
+            }
+          });
+          for (let t = a; t < b; t += 9 + rnd() * 6) {
+            const [x, z] = toW(side, t, 152 + rnd() * 10);
+            hills.push({ x, z, r: 9 + rnd() * 9, h: 6 + rnd() * 9, c: [0x2f5d1e, 0x3a6b26, 0x44702d][Math.floor(rnd() * 3)] });
+          }
+          for (let t = Math.max(a, -150); t < Math.min(b, 150); t += 3.2 + rnd() * 3) {
+            if (nearRoad(t, 10)) continue;
+            const [x, z] = toW(side, t + rnd() * 2, 139 + rnd() * 9);
+            pines.push({ x, z, s: 0.8 + rnd() * 0.9 });
+          }
+          const [cx, cz] = toW(side, Math.max(a, -160) / 2 + Math.min(b, 160) / 2, 146.5);
+          const horiz = side === 'N' || side === 'S';
+          const len = Math.min(b, 160) - Math.max(a, -160) + 20;
+          this.world.addBoxCollider(cx, cz, horiz ? len : 11, horiz ? 11 : len);
+        });
+        const dummy = new THREE.Object3D();
+        const inst = (geo, mat, list, place) => {
+          const im = new THREE.InstancedMesh(geo, mat, list.length);
+          const col = new THREE.Color();
+          list.forEach((o, i) => { place(dummy, o, col); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); if (o.c !== undefined) { col.setHex(o.c); im.setColorAt(i, col); } });
+          im.instanceMatrix.needsUpdate = true;
+          if (im.instanceColor) im.instanceColor.needsUpdate = true;
+          im.frustumCulled = false;
+          this.scene.add(im);
+          return im;
+        };
+        const cone7 = new THREE.ConeGeometry(1, 1, 7, 1);
+        const flat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true });
+        inst(cone7, flat, peaks, (d, o) => { d.position.set(o.x, o.h / 2 - 2, o.z); d.scale.set(o.r, o.h, o.r); d.rotation.set(0, o.x * 0.37, 0); });
+        inst(cone7, new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.8, flatShading: true }), caps, (d, o) => { d.position.set(o.x, o.top - o.h / 2 + 0.2, o.z); d.scale.set(o.r, o.h, o.r); d.rotation.set(0, o.x * 0.37, 0); });
+        inst(new THREE.ConeGeometry(1, 1, 6, 1), flat, hills, (d, o) => { d.position.set(o.x, o.h / 2 - 1, o.z); d.scale.set(o.r, o.h, o.r); d.rotation.set(0, o.z * 0.21, 0); });
+        inst(new THREE.CylinderGeometry(0.16, 0.22, 1.4, 5), new THREE.MeshStandardMaterial({ color: 0x5b3a1a, roughness: 1 }), pines, (d, o) => { d.position.set(o.x, 0.7 * o.s, o.z); d.scale.set(o.s, o.s, o.s); d.rotation.set(0, 0, 0); });
+        inst(new THREE.ConeGeometry(1.25, 3.6, 7), new THREE.MeshStandardMaterial({ color: 0x1f5a2b, roughness: 0.9, flatShading: true }), pines, (d, o) => { d.position.set(o.x, 3.0 * o.s, o.z); d.scale.set(o.s, o.s, o.s); d.rotation.set(0, 0, 0); });
+
+        // --- dekorasi pantai: kelapa, payung, batu ---
+        const palms = []; const umbrellas = []; const rocks = [];
+        seaSecs.forEach(([side, a, b]) => {
+          for (let t = a + 4; t < b; t += 7 + rnd() * 5) {
+            if (nearRoad(t, 10)) continue;
+            const [x, z] = toW(side, t, 130 + rnd() * 6);
+            palms.push({ x, z, s: 0.85 + rnd() * 0.5, lean: (rnd() - 0.5) * 0.25 });
+          }
+          for (let t = a + 10; t < b; t += 24 + rnd() * 20) {
+            if (nearRoad(t, 12)) continue;
+            const [x, z] = toW(side, t, 133 + rnd() * 3);
+            umbrellas.push({ x, z, c: [0xef4444, 0xfacc15, 0x38bdf8, 0xf97316][Math.floor(rnd() * 4)] });
+          }
+          for (let t = a; t < b; t += 5 + rnd() * 6) {
+            if (nearRoad(t, 8)) continue;
+            const [x, z] = toW(side, t, 139.5 + rnd() * 2);
+            rocks.push({ x, z, s: 0.4 + rnd() * 0.7 });
+          }
+        });
+        inst(new THREE.CylinderGeometry(0.2, 0.32, 6, 6), new THREE.MeshStandardMaterial({ color: 0x8b6b3d, roughness: 0.95 }), palms, (d, o) => { d.position.set(o.x, 3 * o.s, o.z); d.scale.set(o.s, o.s, o.s); d.rotation.set(o.lean, 0, o.lean); });
+        inst(new THREE.DodecahedronGeometry(2.0, 0), new THREE.MeshStandardMaterial({ color: 0x2f7d32, roughness: 0.8, flatShading: true }), palms, (d, o) => { d.position.set(o.x + o.lean * 3, 6.1 * o.s, o.z - o.lean * 3); d.scale.set(1.5 * o.s, 0.5 * o.s, 1.5 * o.s); d.rotation.set(0, o.x, 0); });
+        inst(new THREE.ConeGeometry(1.6, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 }), umbrellas, (d, o) => { d.position.set(o.x, 2.3, o.z); d.scale.set(1, 1, 1); d.rotation.set(0, 0, 0); });
+        inst(new THREE.CylinderGeometry(0.04, 0.04, 2.3, 5), new THREE.MeshStandardMaterial({ color: 0xe5e7eb, roughness: 0.5 }), umbrellas, (d, o) => { d.position.set(o.x, 1.15, o.z); d.scale.set(1, 1, 1); d.rotation.set(0, 0, 0); });
+        inst(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 1, flatShading: true }), rocks, (d, o) => { d.position.set(o.x, 0.2 * o.s, o.z); d.scale.set(o.s * 1.3, o.s * 0.6, o.s); d.rotation.set(o.x, o.z, 0); });
+
+        // --- perahu nelayan di laut ---
+        const hullMats = [0x1d4ed8, 0xdc2626, 0xf8fafc, 0x16a34a, 0xf59e0b];
+        for (let i = 0; i < 9; i++) {
+          const side = ['N', 'N', 'N', 'N', 'E', 'E', 'W', 'N', 'E'][i];
+          const [a, b] = side === 'N' ? [-120, 120] : (side === 'E' ? [-120, 20] : [-120, -50]);
+          const [x, z] = toW(side, a + rnd() * (b - a), 175 + rnd() * 70);
+          const g = new THREE.Group();
+          const hull = new THREE.Mesh(new THREE.BoxGeometry(7, 1.1, 2.4), new THREE.MeshStandardMaterial({ color: hullMats[i % 5], roughness: 0.7 }));
+          hull.position.y = 0.3;
+          g.add(hull);
+          const bow = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2, 4), hull.material);
+          bow.rotation.set(0, Math.PI / 4, -Math.PI / 2); bow.position.set(4.0, 0.3, 0); bow.scale.set(1, 1, 0.7);
+          g.add(bow);
+          const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.8), new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.8 }));
+          cab.position.set(-1.2, 1.4, 0);
+          g.add(cab);
+          const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 4, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+          mast.position.set(0.8, 2.8, 0);
+          g.add(mast);
+          const flag = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.6, 1.1), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+          flag.position.set(0.8, 4.4, 0.55);
+          g.add(flag);
+          g.position.set(x, 0.1, z);
+          g.rotation.y = rnd() * Math.PI * 2;
+          this.scene.add(g);
+          this.edgeAnim.boats.push({ g, ph: rnd() * 6, y: 0.1 });
+        }
+
+        // --- ujung jalan: palang + papan petunjuk (tidak ada jalan buntu tanpa penanda) ---
+        const ends = [];
+        seaSecs.forEach(([side, a, b]) => roads.forEach(r => { if (r > a && r < b) ends.push([side, r, 'sea']); }));
+        mtnSecs.forEach(([side, a, b]) => roads.forEach(r => { if (r > a && r < b) ends.push([side, r, 'mtn']); }));
+        ends.forEach(([side, r, kind]) => {
+          const g = new THREE.Group();
+          const [x, z] = toW(side, r, 139.2);
+          g.position.set(x, 0, z);
+          g.rotation.y = (side === 'E' || side === 'W') ? Math.PI / 2 : 0;
+          this.scene.add(g);
+          const red = this._mat(0xdc2626, 0.6);
+          const wht = this._mat(0xf8fafc, 0.6);
+          for (let i = 0; i < 6; i++) this._box(g, 2, 0.3, 0.25, i % 2 ? wht : red, -5 + i * 2 + 1, 1.0, 0);
+          [-6.4, 6.4].forEach(px => this._box(g, 0.35, 1.6, 0.35, this._mat(0x475569, 0.7), px, 0.8, 0));
+          // kerucut lalu lintas
+          [-3, 3].forEach(px => { const c = this._cyl(g, 0.04, 0.26, 0.7, this._mat(0xf97316, 0.6), px, 0.35, -1.2, 8); });
+          const sy = sideYaw[side];
+          const [sx, sz] = toW(side, r + 8.5, 138.5);
+          this._sign(this.scene, kind === 'sea' ? 'PANTAI PANTURA' : 'KAWASAN HUTAN LINDUNG', kind === 'sea' ? 'Ujung Jalan • Nikmati Debur Ombak' : 'Ujung Jalan • Putar Balik', kind === 'sea' ? '#38bdf8' : '#4ade80', 6, 1.3, sx, 3.3, sz, sy);
+          this._cyl(this.scene, 0.08, 0.08, 3.4, this._mat(0x475569, 0.6), sx, 1.7, sz, 6);
+        });
+      }
+
+      _updateEdges(dt) {
+        const E = this.edgeAnim;
+        if (!E) return;
+        const t = this.t;
+        if (E.water) { E.water.offset.x = (t * 0.004) % 1; E.water.offset.y = (t * 0.0025) % 1; }
+        E.foam.forEach(f => {
+          const ph = t * 0.8 + f.k * 1.7;
+          f.mesh.material.opacity = 0.22 + 0.28 * (0.5 + 0.5 * Math.sin(ph));
+          const off = Math.sin(ph) * 0.5;
+          const s = f.side;
+          if (s === 'N') f.mesh.position.z = f.base.z - off;
+          else if (s === 'E') f.mesh.position.x = f.base.x + off;
+          else f.mesh.position.x = f.base.x - off;
+        });
+        E.boats.forEach(b => {
+          b.g.position.y = b.y + Math.sin(t * 0.9 + b.ph) * 0.18;
+          b.g.rotation.z = Math.sin(t * 0.7 + b.ph) * 0.045;
+          b.g.rotation.x = Math.sin(t * 0.6 + b.ph * 1.3) * 0.03;
+        });
+      }
+
       _buildDecor() {
         // a few extra street details: power-line style banners & fruit crates near the food court
         const crate = this._mat(0xa16207, 0.9);
@@ -7816,6 +8057,7 @@
         // pass hud
         this._updatePanel();
         this._updateStatsPill();
+        this._updateEdges(dt);
       }
 
       _updateLine(tip, bob) {
