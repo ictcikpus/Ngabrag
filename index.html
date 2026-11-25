@@ -1429,6 +1429,23 @@
         this.playTone(60 + speed * 40, 0.14, 'sawtooth', 0.018, 62 + speed * 40);
       }
 
+      playGunshot() {
+        this.playNoiseBurst({ duration: 0.22, filterType: 'lowpass', startFreq: 3200, endFreq: 300, Q: 0.7, gainVal: 0.32, wet: 0.25 });
+        this.playTone(140, 0.2, 'sine', 0.22, 40, 0, 0.2);
+        this.playTone(2200, 0.04, 'square', 0.03, 900);
+      }
+
+      playReloadClick() {
+        this.playTone(1800, 0.03, 'square', 0.04, 1200);
+        this.playTone(900, 0.05, 'square', 0.04, 500, 0.08);
+        this.playNoiseBurst({ duration: 0.05, startFreq: 3000, endFreq: 1500, gainVal: 0.05, delay: 0.04 });
+      }
+
+      playWoodHit() {
+        this.playTone(320, 0.08, 'triangle', 0.12, 180);
+        this.playNoiseBurst({ duration: 0.07, startFreq: 1400, endFreq: 500, gainVal: 0.1 });
+      }
+
       playBlasterShot() {
         this.playTone(980, 0.14, 'sawtooth', 0.08, 220);
         this.playTone(640, 0.1, 'sine', 0.06, 160);
@@ -4098,16 +4115,20 @@
         const roster = [
           { name: 'Bang Udin', shirt: '#0284c7', pants: '#1e293b', female: false, x: -14, z: 8 },
           { name: 'Teh Sari', shirt: '#ec4899', pants: '#334155', female: true, x: 14, z: 10 },
-          { name: 'Kang Dedi', shirt: '#16a34a', pants: '#0f172a', female: false, x: -24, z: -28 },
+          { name: 'Kang Dedi', shirt: '#16a34a', pants: '#0f172a', female: false, x: -24, z: -28, tier: 'tangguh' },
           { name: 'Mbak Nisa', shirt: '#f97316', pants: '#1e293b', female: true, x: 10, z: -28 },
           { name: 'Pak Haji Somad', shirt: '#f8fafc', pants: '#334155', female: false, x: 28, z: -28 },
-          { name: 'Mas Agung', shirt: '#8b5cf6', pants: '#0f172a', female: false, x: -45, z: 15 },
+          { name: 'Mas Agung', shirt: '#8b5cf6', pants: '#0f172a', female: false, x: -45, z: 15, tier: 'tangguh' },
           { name: 'Teh Yanti', shirt: '#eab308', pants: '#1e293b', female: true, x: 45, z: 18 },
-          { name: 'Bang Jampang', shirt: '#dc2626', pants: '#111827', female: false, x: -16, z: 36 },
+          { name: 'Bang Jampang', shirt: '#dc2626', pants: '#111827', female: false, x: -16, z: 36, tier: 'jagoan' },
           { name: 'Neng Ayu', shirt: '#06b6d4', pants: '#1e293b', female: true, x: 18, z: 38 },
           { name: 'Kang Asep', shirt: '#65a30d', pants: '#1e293b', female: false, x: -64, z: -32 },
           { name: 'BuRT Tuti', shirt: '#db2777', pants: '#334155', female: true, x: 64, z: -32 },
-          { name: 'Bang Roni', shirt: '#4f46e5', pants: '#0f172a', female: false, x: -64, z: 32 }
+          { name: 'Bang Roni', shirt: '#4f46e5', pants: '#0f172a', female: false, x: -64, z: 32, tier: 'jagoan' },
+          { name: 'Preman Pasar Bonar', shirt: '#111827', pants: '#27272a', female: false, x: 52, z: -8, tier: 'preman', skin: '#8d5524' },
+          { name: 'Preman Terminal Jarot', shirt: '#7f1d1d', pants: '#18181b', female: false, x: -50, z: -8, tier: 'preman', skin: '#a0693a' },
+          { name: 'Jagoan Kampung Mat Kodir', shirt: '#065f46', pants: '#1c1917', female: false, x: 20, z: 46, tier: 'jagoan', skin: '#a0693a' },
+          { name: 'Bang Tato Heri', shirt: '#0f172a', pants: '#334155', female: false, x: -28, z: 52, tier: 'tangguh', skin: '#c68642' }
         ];
 
         roster.forEach((r, idx) => {
@@ -4118,14 +4139,14 @@
             shirtColor: r.shirt,
             pantsColor: r.pants,
             shoesColor: '#e2e8f0',
-            skinColor: '#c68642'
+            skinColor: r.skin || '#c68642'
           });
           const gy = this.world.getGroundHeight(r.x, r.z);
           const pos = new THREE.Vector3(r.x, gy, r.z);
           rig.root.position.copy(pos);
           this.scene.add(rig.root);
 
-          this.list.push({
+          const _cit = {
             name: r.name,
             female: r.female,
             rig,
@@ -4141,9 +4162,186 @@
             downTimer: 0,
             downBlend: 0,
             dustT: 0
-          });
+          };
+          this.list.push(_cit);
           rig.root.rotation.order = 'YXZ';
+          if (r.tier) this.assignTier(_cit, r.tier);
         });
+      }
+
+      // ---------- Tingkat kekuatan warga: biasa (lemah) / tangguh / jagoan / preman ----------
+      assignTier(c, tier) {
+        const T = CitizenManager.TIERS[tier];
+        c.tier = tier;
+        c.maxHp = T.hp;
+        c.hp = T.hp;
+        c.hostile = 0;
+        c.truce = 0;
+        c.atk = null;
+        c.atkCd = 1;
+        if (T.scale !== 1) c.rig.root.scale.set(T.scale * 1.04, T.scale, T.scale * 1.04);
+        if (T.label) this._drawTag(c);
+      }
+
+      _drawTag(c) {
+        const T = CitizenManager.TIERS[c.tier];
+        if (!T || !T.label) return;
+        if (!c.tag) {
+          const cv = document.createElement('canvas');
+          cv.width = 256;
+          cv.height = 96;
+          const tex = new THREE.CanvasTexture(cv);
+          const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+          sp.scale.set(2.5, 0.94, 1);
+          sp.renderOrder = 25;
+          this.scene.add(sp);
+          c.tag = { cv, tex, sp };
+        }
+        const x = c.tag.cv.getContext('2d');
+        x.clearRect(0, 0, 256, 96);
+        x.fillStyle = 'rgba(2,6,23,0.8)';
+        x.beginPath();
+        x.roundRect ? x.roundRect(6, 8, 244, 74, 14) : x.rect(6, 8, 244, 74);
+        x.fill();
+        x.lineWidth = 3;
+        x.strokeStyle = T.col;
+        x.stroke();
+        x.fillStyle = T.col;
+        x.font = '900 20px sans-serif';
+        x.textAlign = 'left';
+        x.fillText(T.label, 16, 33);
+        x.fillStyle = '#f8fafc';
+        x.font = 'bold 16px sans-serif';
+        x.textAlign = 'right';
+        let nm = c.name;
+        while (x.measureText(nm).width > 140 && nm.length > 4) nm = nm.slice(0, -2);
+        x.fillText(nm, 240, 33);
+        x.fillStyle = 'rgba(255,255,255,0.15)';
+        x.fillRect(16, 50, 224, 18);
+        const pct = Math.max(0, c.hp / c.maxHp);
+        x.fillStyle = pct > 0.5 ? '#22c55e' : (pct > 0.25 ? '#f59e0b' : '#ef4444');
+        x.fillRect(16, 50, 224 * pct, 18);
+        if (c.hostile > 0) {
+          x.fillStyle = '#fff';
+          x.font = '900 14px sans-serif';
+          x.textAlign = 'center';
+          x.fillText('MARAH!', 128, 64);
+        }
+        c.tag.tex.needsUpdate = true;
+        c._tagKey = `${Math.ceil(c.hp)}|${c.hostile > 0 ? 1 : 0}`;
+      }
+
+      _hurtHero(c, dmg) {
+        const app = this.life.app;
+        const hero = app.hero;
+        const up = hero.pos.clone();
+        up.y += 2.2;
+        if (hero.rollTimer > 0) {
+          if (this.fx) this.fx.floatText(up, 'DIHINDARI!', '#67e8f9', 1.0);
+          return;
+        }
+        const dir = new THREE.Vector3(hero.pos.x - c.pos.x, 0, hero.pos.z - c.pos.z).normalize();
+        let d = dmg;
+        if (hero.guardTimer > 0) {
+          d *= 0.3;
+          this.sound.playBlock();
+          if (this.fx) this.fx.floatText(up, 'TANGKIS!', '#7dd3fc', 0.9);
+        } else {
+          this.sound.playHitImpact(c.tier === 'preman', false);
+          if (this.fx) this.fx.screenFlash('239,68,68', 0.32, 260);
+        }
+        d = Math.round(d);
+        GameState.health = Math.max(0, GameState.health - d);
+        if (this.fx) {
+          this.fx.impactBurst(hero.pos.clone().setY(hero.pos.y + 1.4), dir, 0.55);
+          this.fx.floatText(up.clone().setY(up.y - 0.4), `-${d}`, '#fb7185', 0.85);
+        }
+        if (app.camCtrl) app.camCtrl.addShake(0.12, 0.22);
+        hero.pos.addScaledVector(dir, 0.45);
+        if (GameState.health <= 0) this._heroKO(c);
+      }
+
+      _heroKO(by) {
+        const app = this.life.app;
+        const hero = app.hero;
+        if (this.life.busy) this.life.endHeroActivity();
+        const cost = Math.min(GameState.cash, 50000);
+        GameState.cash -= cost;
+        GameState.health = 45;
+        this.list.forEach(c => { c.hostile = 0; c.atk = null; c.truce = 25; });
+        if (this.fx) this.fx.screenFlash('0,0,0', 0.95, 1100);
+        this.sound.playKnockdown();
+        hero.pos.set(0, this.world.getGroundHeight(0, 16), 16);
+        hero.velY = 0;
+        showToast(`KO dihajar ${by ? by.name : 'jagoan'}! Dibawa warga ke Puskesmas — biaya ${formatRupiah(cost)}.`, 'alert');
+        app.updateHUD();
+      }
+
+      _fightPose(c, dt) {
+        const r = c.rig;
+        const moving = !c.atk;
+        const sw = Math.sin(c.walkCycle) * (moving ? 0.45 : 0.05);
+        r.leftHipPivot.rotation.set(-0.2 + sw, 0, 0.12);
+        r.rightHipPivot.rotation.set(0.2 - sw, 0, -0.12);
+        r.leftKneePivot.rotation.set(0.35 + Math.max(0, -sw) * 0.5, 0, 0);
+        r.rightKneePivot.rotation.set(0.45 + Math.max(0, sw) * 0.5, 0, 0);
+        r.leftShoulderPivot.rotation.set(-0.95, 0.25, 0.15);
+        r.leftElbowPivot.rotation.set(-1.85, 0, 0);
+        r.rightShoulderPivot.rotation.set(-0.95, -0.25, -0.15);
+        r.rightElbowPivot.rotation.set(-1.85, 0, 0);
+        r.torso.rotation.set(0.12, 0, 0);
+        if (c.atk) {
+          const a = c.atk;
+          const sh = a.hand ? r.leftShoulderPivot : r.rightShoulderPivot;
+          const el = a.hand ? r.leftElbowPivot : r.rightElbowPivot;
+          const side = a.hand ? 1 : -1;
+          if (a.t < a.windup) {
+            const k = a.t / a.windup;
+            sh.rotation.set(-0.4 - k * 0.3, side * 0.5, side * 0.45);
+            el.rotation.set(-2.4, 0, 0);
+            r.torso.rotation.set(0.1, -side * 0.55 * k, 0);
+          } else {
+            sh.rotation.set(-1.6, side * 0.05, side * 0.1);
+            el.rotation.set(-0.04, 0, 0);
+            r.torso.rotation.set(0.2, side * 0.45, 0);
+          }
+        }
+      }
+
+      _fight(c, dt, hero) {
+        const T = CitizenManager.TIERS[c.tier];
+        const dx = hero.pos.x - c.pos.x;
+        const dz = hero.pos.z - c.pos.z;
+        const d = Math.hypot(dx, dz) || 0.001;
+        const want = Math.atan2(dx, dz);
+        let dy = want - c.yaw;
+        while (dy > Math.PI) dy -= Math.PI * 2;
+        while (dy < -Math.PI) dy += Math.PI * 2;
+        c.yaw += dy * Math.min(1, dt * 9);
+        c.hostile -= dt * (d > 16 || GameState.inVehicle ? 2.5 : 0.25);
+        if (c.hostile <= 0) { c.hostile = 0; c.atk = null; c._tagKey = null; return; }
+        const hBusy = hero.life && hero.life.busy;
+        if (c.atk) {
+          c.atk.t += dt;
+          if (!c.atk.hit && c.atk.t >= c.atk.windup) {
+            c.atk.hit = true;
+            this.sound.playPunchSwing(0.8);
+            if (d < 2.25 && !GameState.inVehicle && !hBusy) this._hurtHero(c, T.dmg * (0.85 + Math.random() * 0.4));
+          }
+          if (c.atk.t >= c.atk.windup + 0.32) { c.atk = null; c.atkCd = T.cd * (0.7 + Math.random() * 0.8); }
+          return;
+        }
+        c.atkCd -= dt;
+        if (d > 1.75) {
+          const sp = T.speed * (GameState.inVehicle ? 0.4 : 1);
+          let ang = want;
+          if (d < 3.5) ang += Math.sin(this.life ? this.life.t * 1.7 + (c.idx || 0) : 0) * 0.6; // mengitari
+          c.pos.x += Math.sin(ang) * sp * dt;
+          c.pos.z += Math.cos(ang) * sp * dt;
+          c.walkCycle += dt * 11;
+        } else if (c.atkCd <= 0 && !GameState.inVehicle && !hBusy) {
+          c.atk = { t: 0, windup: T.windup, hit: false, hand: Math.random() < 0.5 ? 0 : 1 };
+        }
       }
 
       findNearest(pos, maxDist = 3.2) {
@@ -4204,23 +4402,90 @@
       }
 
       onHitCitizen(c, dmg, pushDir, fromVehicle = false, combo = 0) {
-        c.angryTimer = 2.5;
+        if (!c.tier) { c.tier = 'biasa'; c.maxHp = CitizenManager.TIERS.biasa.hp; c.hp = c.maxHp; }
+        const T = CitizenManager.TIERS[c.tier];
+        const tough = c.tier !== 'biasa';
+        const up = c.pos.clone();
+        up.y += 2.4;
+        // Warga kuat bisa menangkis pukulan
+        if (tough && !fromVehicle && !c.atk && Math.random() < T.block && c.hp > 0) {
+          dmg = Math.round(dmg * 0.3);
+          this.sound.playBlock();
+          if (this.fx) this.fx.floatText(up, 'DITANGKIS!', '#7dd3fc', 0.85);
+          combo = Math.min(combo, 1);
+        }
+        c.hp -= dmg;
         c.greetTimer = 0;
+        c.truce = 0;
+        const ko = c.hp <= 0;
         const heavy = combo >= 3 || fromVehicle;
-        const knockdown = combo === 4 || fromVehicle;
-        c.knockbackVel.copy(pushDir).multiplyScalar(fromVehicle ? 11 : (heavy ? 8.5 : 5.2));
+        const knockdown = ko || (c.tier === 'biasa' && (combo === 4 || fromVehicle)) || (c.tier === 'tangguh' && combo === 4 && Math.random() < 0.4);
+        const kb = tough ? T.kb : 1;
+        c.knockbackVel.copy(pushDir).multiplyScalar((fromVehicle ? 11 : (heavy ? 8.5 : 5.2)) * kb);
         c.flashTimer = 0.24;
-        c.staggerTimer = heavy ? 0.7 : 0.4;
-        if (!fromVehicle) c.yaw = Math.atan2(-pushDir.x, -pushDir.z); // turn to face the attacker
+        c.staggerTimer = (heavy ? 0.7 : 0.4) * (tough ? (c.tier === 'tangguh' ? 0.6 : 0.35) : 1);
+        if (!fromVehicle && !c.atk) c.yaw = Math.atan2(-pushDir.x, -pushDir.z);
+        if (c.atk && c.staggerTimer > 0.15) c.atk = null;
         if (knockdown && c.downTimer <= 0) {
-          c.downTimer = 2.0;
+          c.downTimer = ko ? (tough ? 6.5 : 3.5) : 2.0;
           this.sound.playKnockdown();
           if (this.fx) this.fx.landRing(c.pos, 1.0);
         }
         this.sound.playNpcVoice('angry', c.female);
-        if (!fromVehicle) {
-          showToast(`${c.name}: "Waduh! Ajak duel di Sasana Tinju aja sini!"`, 'punch');
+
+        if (ko) {
+          c.hostile = 0;
+          c.atk = null;
+          if (tough) {
+            GameState.cash += T.reward;
+            if (this.fx) this.fx.floatText(up, `KO! +${formatRupiah(T.reward)}`, '#fde047', 1.3);
+            showToast(`${c.name} (${T.label}) berhasil kamu kalahkan! Hadiah +${formatRupiah(T.reward)}`, 'trophy');
+            this.sound.playMissionComplete && this.sound.playMissionComplete();
+            if (this.life) this.life.app.updateHUD();
+            GameStats.add('kekuatan', c.tier === 'preman' ? 2 : 1);
+          }
+        } else if (tough) {
+          c.hostile = 24;
+          c.angryTimer = 0;
+          if (!c._taunt || c._taunt <= 0) {
+            const taunts = ['Berani ya lo sama gue!', 'Sini maju, jangan kabur!', 'Gue bales nih!', 'Lo salah pilih lawan!', 'Hajar terus, jangan ampun!'];
+            if (this.life) this.life.say(c, taunts[Math.floor(Math.random() * taunts.length)], 2.4);
+            c._taunt = 5;
+          }
+          // Warga kuat lain ikut membela
+          for (let k = 0; k < this.list.length; k++) {
+            const o = this.list[k];
+            if (o === c || !o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
+            if (o.pos.distanceTo(c.pos) < 11) {
+              o.hostile = 20;
+              if (this.life) this.life.say(o, 'Hei! Jangan main pukul warga sini!', 2.4);
+            }
+          }
+        } else {
+          c.angryTimer = 2.5;
+          c.flee = 4.5;
+          if (!fromVehicle) showToast(`${c.name}: "Waduh! Jangan pukul saya, Bang!"`, 'punch');
+          // jagoan terdekat membela warga lemah
+          for (let k = 0; k < this.list.length; k++) {
+            const o = this.list[k];
+            if (!o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
+            if (o.pos.distanceTo(c.pos) < 12 && !fromVehicle) {
+              o.hostile = 20;
+              if (this.life) this.life.say(o, 'Heh! Berani pukul warga? Hadapi gue!', 2.6);
+              showToast(`${o.name} marah — dia membela warga!`, 'alert');
+            }
+          }
         }
+        if (tough) this._drawTag(c);
+      }
+
+      static get TIERS() {
+        return {
+          biasa: { hp: 45, kb: 1, scale: 1, label: null },
+          tangguh: { hp: 120, kb: 0.55, scale: 1.04, label: 'TANGGUH', col: '#fbbf24', dmg: 7, speed: 3.5, cd: 1.5, windup: 0.42, block: 0.2, reward: 30000 },
+          jagoan: { hp: 210, kb: 0.3, scale: 1.09, label: 'JAGOAN', col: '#fb923c', dmg: 12, speed: 4.1, cd: 1.15, windup: 0.34, block: 0.35, reward: 90000 },
+          preman: { hp: 340, kb: 0.15, scale: 1.18, label: 'PREMAN', col: '#ef4444', dmg: 19, speed: 4.5, cd: 0.95, windup: 0.3, block: 0.45, reward: 220000 }
+        };
       }
 
       update(dt, hero) {
@@ -4282,6 +4547,17 @@
             }
           }
           if (mobile(a)) this.world.resolveCircleCollision(a.pos, 0.55);
+          // tag nama/HP warga kuat
+          if (a.tag) {
+            const dd = hero ? Math.hypot(hero.pos.x - a.pos.x, hero.pos.z - a.pos.z) : 99;
+            const show = dd < 24 && a.rig.root.visible && a.downBlend < 0.6;
+            a.tag.sp.visible = show;
+            if (show) {
+              a.tag.sp.position.set(a.pos.x, a.pos.y + 2.55 * (a.rig.root.scale.y || 1), a.pos.z);
+              const key = `${Math.ceil(a.hp)}|${a.hostile > 0 ? 1 : 0}`;
+              if (key !== a._tagKey) this._drawTag(a);
+            }
+          }
         }
       }
 
@@ -4291,10 +4567,21 @@
           c._busy = false;
           if (c.flashTimer > 0) c.flashTimer -= dt;
           if (c.staggerTimer > 0) c.staggerTimer -= dt;
+          if (c.truce > 0) c.truce -= dt;
+          if (c._taunt > 0) c._taunt -= dt;
+          if (c.flee > 0) c.flee -= dt;
+          // Preman memalak: menantang Hero yang lewat dekat
+          if (c.tier === 'preman' && !(c.hostile > 0) && !(c.truce > 0) && c.downTimer <= 0 && !GameState.inVehicle && !(hero.life && hero.life.busy)
+              && Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 8) {
+            c.hostile = 22;
+            if (this.life) this.life.say(c, ['Heh! Lewat sini bayar dulu!', 'Mau ke mana lo, Bro?', 'Wilayah gue nih, minggir!'][Math.floor(Math.random() * 3)], 2.6);
+            this.sound.playNpcVoice('angry', false);
+            showToast(`${c.name} menantangmu! Siap-siap: gulung (roll) untuk menghindar, tangkis untuk mengurangi damage.`, 'alert');
+          }
 
           // Warga beraktivitas (ngobrol, olahraga, jualan, dll.) dikendalikan LifeSystem
           if (c.act && this.life && c.downTimer <= 0 && c.staggerTimer <= 0 && c.knockbackVel.lengthSq() <= 0.05
-              && (c.fixed || (c.angryTimer <= 0 && c.greetTimer <= 0))) {
+              && !(c.hostile > 0) && (c.fixed || (c.angryTimer <= 0 && c.greetTimer <= 0))) {
             if (c.fixed) { c.greetTimer = 0; c.angryTimer = 0; }
             c._busy = true;
             this.life.updateActor(c, dt, hero);
@@ -4311,6 +4598,18 @@
             }
           } else if (c.downTimer > 0) {
             c.downTimer -= dt;
+            if (c.downTimer <= 0 && c.hp <= 0) {
+              c.hp = c.maxHp * 0.5;
+              c.truce = 40;
+              c.hostile = 0;
+              if (c.tag) this._drawTag(c);
+            }
+          } else if (c.hostile > 0 && c.tier && c.tier !== 'biasa' && c.staggerTimer <= 0) {
+            this._fight(c, dt, hero);
+          } else if (c.flee > 0) {
+            c.yaw = Math.atan2(c.pos.x - hero.pos.x, c.pos.z - hero.pos.z);
+            c.pos.x += Math.sin(c.yaw) * 4.6 * dt;
+            c.pos.z += Math.cos(c.yaw) * 4.6 * dt;
           } else if (c.greetTimer > 0) {
             c.greetTimer -= dt;
             c.yaw = Math.atan2(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
@@ -4376,6 +4675,8 @@
             c.rig.rightShoulderPivot.rotation.set(-0.9 - st * 0.7, 0, -0.55);
             c.rig.leftElbowPivot.rotation.set(-0.6, 0, 0);
             c.rig.rightElbowPivot.rotation.set(-0.6, 0, 0);
+          } else if (c.hostile > 0 && c.tier && c.tier !== 'biasa') {
+            this._fightPose(c, dt);
           } else if (c.greetTimer > 0) {
             c.walkCycle += dt * 9;
             c.rig.leftHipPivot.rotation.set(0, 0, 0);
@@ -4399,8 +4700,8 @@
           } else if (c.idleKind && this.life) {
             LifePoses.apply(c.rig, LifePoses.pose(c.idleKind, this.life.t + c.walkCycle, {}));
           } else {
-            c.walkCycle += dt * 5.2;
-            const sw = Math.sin(c.walkCycle) * 0.42;
+            c.walkCycle += dt * (c.flee > 0 ? 10 : 5.2);
+            const sw = Math.sin(c.walkCycle) * (c.flee > 0 ? 0.6 : 0.42);
             c.rig.leftHipPivot.rotation.set(sw, 0, 0);
             c.rig.rightHipPivot.rotation.set(-sw, 0, 0);
             c.rig.leftKneePivot.rotation.set(Math.max(0, -sw) * 0.65, 0, 0);
@@ -5599,6 +5900,134 @@
     // ==========================================================================
     // 14. MINI-GAMES HUB & TURNAMEN BOXING PANTURA CONTROLLER
     // ==========================================================================
+    // ==========================================================================
+    // 13B. MINI GAME ENGINE — adegan canvas realistis (karakter, fisika, timing)
+    // ==========================================================================
+    const MG = {
+      // Forward-kinematics humanoid: returns joint points. Angle 0 = straight down, + = forward (toward face dir)
+      fk(o) {
+        const s = o.s || 1;
+        const f = o.face || 1;
+        const T = 26 * s; const Sh = 24 * s; const Tor = 36 * s; const UA = 18 * s; const FA = 17 * s;
+        const hl = o.hl || 0; const hr = o.hr || 0; const kl = o.kl || 0; const kr = o.kr || 0;
+        const lh = (a, k) => T * Math.cos(a) + Sh * Math.cos(a - k);
+        const hipY = o.hipY !== undefined ? o.hipY : o.y - Math.max(lh(hl, kl), lh(hr, kr));
+        const lean = o.lean || 0;
+        const hip = { x: o.x, y: hipY };
+        const sho = { x: hip.x + Math.sin(lean) * (Tor - 3 * s) * f, y: hip.y - Math.cos(lean) * (Tor - 3 * s) };
+        const neck = { x: hip.x + Math.sin(lean) * Tor * f, y: hip.y - Math.cos(lean) * Tor };
+        const hd = (o.head || 0) + lean;
+        const head = { x: neck.x + Math.sin(hd) * 9 * s * f, y: neck.y - Math.cos(hd) * 9 * s };
+        const arm = (a, e) => {
+          const el = { x: sho.x + Math.sin(a) * UA * f, y: sho.y + Math.cos(a) * UA };
+          const ha = { x: el.x + Math.sin(a + e) * FA * f, y: el.y + Math.cos(a + e) * FA };
+          return [el, ha];
+        };
+        const [elL, haL] = arm(o.al || 0, o.el || 0);
+        const [elR, haR] = arm(o.ar || 0, o.er || 0);
+        const leg = (h, k) => {
+          const kn = { x: hip.x + Math.sin(h) * T * f, y: hip.y + Math.cos(h) * T };
+          const ft = { x: kn.x + Math.sin(h - k) * Sh * f, y: kn.y + Math.cos(h - k) * Sh };
+          return [kn, ft];
+        };
+        const [knL, ftL] = leg(hl, kl);
+        const [knR, ftR] = leg(hr, kr);
+        return { hip, sho, neck, head, elL, haL, elR, haR, knL, ftL, knR, ftR, s, f, hd };
+      },
+      line(ctx, a, b, w, col) {
+        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      },
+      // Draw a blocky person from joints J. c: {skin, shirt, pants, hair, shoe, glove, fat, sack, flush}
+      draw(ctx, J, c) {
+        const s = J.s; const f = J.f; const fat = c.fat || 1;
+        const skin = c.flush ? c.flush : c.skin;
+        const dark = (col) => col; // (sengaja sederhana)
+        ctx.save();
+        // far arm & leg (R)
+        MG.line(ctx, J.sho, J.elR, 7 * s * fat, c.shirtD || c.shirt);
+        MG.line(ctx, J.elR, J.haR, 6 * s * fat, skin);
+        ctx.fillStyle = c.glove || skin; ctx.beginPath(); ctx.arc(J.haR.x, J.haR.y, (c.glove ? 5.5 : 3.6) * s, 0, 7); ctx.fill();
+        if (!c.sack) {
+          MG.line(ctx, J.hip, J.knR, 8.5 * s * fat, c.pantsD || c.pants);
+          MG.line(ctx, J.knR, J.ftR, 7.5 * s * fat, c.pantsD || c.pants);
+          ctx.fillStyle = c.shoe || '#e2e8f0'; ctx.fillRect(J.ftR.x - (f > 0 ? 3 : 8) * s, J.ftR.y - 2 * s, 11 * s, 5 * s);
+        }
+        // torso
+        MG.line(ctx, J.hip, J.neck, 17 * s * fat, c.shirt);
+        if (c.belt) { MG.line(ctx, { x: J.hip.x, y: J.hip.y - 1 * s }, { x: J.hip.x + (J.neck.x - J.hip.x) * 0.2, y: J.hip.y + (J.neck.y - J.hip.y) * 0.2 }, 18 * s * fat, c.belt); }
+        if (c.pantsTop) MG.line(ctx, J.hip, { x: J.hip.x + (J.neck.x - J.hip.x) * 0.28, y: J.hip.y + (J.neck.y - J.hip.y) * 0.28 }, 17.5 * s * fat, c.pantsTop);
+        // near leg (L) or sack
+        if (c.sack) {
+          const gy = Math.max(J.ftL.y, J.ftR.y) + 2 * s;
+          ctx.fillStyle = '#a16207';
+          ctx.beginPath();
+          ctx.moveTo(J.hip.x - 10 * s, J.hip.y - 2 * s); ctx.lineTo(J.hip.x + 10 * s, J.hip.y - 2 * s);
+          ctx.lineTo(J.hip.x + 13 * s, gy); ctx.lineTo(J.hip.x - 13 * s, gy); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(69,26,3,0.55)'; ctx.lineWidth = 1;
+          for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(J.hip.x + i * 4 * s, J.hip.y); ctx.lineTo(J.hip.x + i * 5 * s, gy); ctx.stroke(); }
+          ctx.fillStyle = '#78350f'; ctx.fillRect(J.hip.x - 11 * s, J.hip.y - 3 * s, 22 * s, 4 * s);
+          ctx.fillStyle = '#ca8a04'; ctx.fillRect(J.hip.x - 5 * s, gy - 3 * s, 10 * s, 3 * s);
+        } else {
+          MG.line(ctx, J.hip, J.knL, 8.5 * s * fat, c.pants);
+          MG.line(ctx, J.knL, J.ftL, 7.5 * s * fat, c.pants);
+          ctx.fillStyle = c.shoe || '#f8fafc'; ctx.fillRect(J.ftL.x - (f > 0 ? 3 : 8) * s, J.ftL.y - 2 * s, 11 * s, 5 * s);
+        }
+        // head
+        ctx.save();
+        ctx.translate(J.head.x, J.head.y); ctx.rotate(J.hd * f);
+        ctx.fillStyle = skin; ctx.fillRect(-7.5 * s * fat, -8.5 * s, 15 * s * fat, 17 * s);
+        ctx.fillStyle = c.hair || '#111827'; ctx.fillRect(-8.5 * s * fat, -10.5 * s, 17 * s * fat, 6 * s);
+        if (c.band) { ctx.fillStyle = c.band; ctx.fillRect(-8.5 * s * fat, -5 * s, 17 * s * fat, 3 * s); }
+        if (c.helmet) { ctx.fillStyle = c.helmet; ctx.beginPath(); ctx.arc(0, -2 * s, 10.5 * s, Math.PI, 0); ctx.lineTo(10.5 * s, 4 * s); ctx.lineTo(-10.5 * s, 4 * s); ctx.fill(); ctx.fillStyle = '#0ea5e9'; ctx.fillRect(f > 0 ? 1 * s : -10 * s, -3 * s, 9 * s, 5 * s); }
+        else {
+          ctx.fillStyle = '#fff'; ctx.fillRect((f > 0 ? 2 : -6) * s, -2.5 * s, 4 * s, 4 * s);
+          ctx.fillStyle = '#111'; ctx.fillRect((f > 0 ? 3.5 : -5) * s, -1.5 * s, 2.2 * s, 3 * s);
+          ctx.fillStyle = c.mouth || '#7c2d12'; ctx.fillRect((f > 0 ? 1 : -6) * s, 4 * s, 6 * s, 1.6 * s);
+        }
+        ctx.restore();
+        // near arm (L)
+        MG.line(ctx, J.sho, J.elL, 7 * s * fat, c.shirt);
+        MG.line(ctx, J.elL, J.haL, 6 * s * fat, skin);
+        ctx.fillStyle = c.glove || skin; ctx.beginPath(); ctx.arc(J.haL.x, J.haL.y, (c.glove ? 5.5 : 3.6) * s, 0, 7); ctx.fill();
+        ctx.restore();
+      },
+      // 2-bone IK -> elbow/knee position
+      ik(ax, ay, bx, by, l1, l2, dir) {
+        const dx = bx - ax; const dy = by - ay;
+        let d = Math.hypot(dx, dy) || 0.001;
+        d = Math.min(d, l1 + l2 - 0.5);
+        const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+        const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+        const ux = dx / (Math.hypot(dx, dy) || 1); const uy = dy / (Math.hypot(dx, dy) || 1);
+        return { x: ax + ux * a - uy * h * dir, y: ay + uy * a + ux * h * dir };
+      },
+      text(ctx, t, x, y, size, col, align = 'center', stroke = 'rgba(2,6,23,0.9)') {
+        ctx.font = `900 ${size}px Inter, sans-serif`; ctx.textAlign = align; ctx.lineWidth = Math.max(3, size / 5); ctx.strokeStyle = stroke; ctx.lineJoin = 'round';
+        ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y);
+      },
+      rnd(seed) {
+        let s = seed | 0;
+        return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      },
+      crowd(ctx, y, t, W, o = {}) {
+        // penonton: baris kepala/bahu bergoyang
+        const R = MG.rnd(77);
+        const cols = ['#7c2d12', '#1e3a8a', '#14532d', '#581c87', '#854d0e', '#9f1239', '#0f766e'];
+        const n = o.n || 36;
+        for (let i = 0; i < n; i++) {
+          const x = (i + 0.5) * (W / n) + (R() - 0.5) * 8;
+          const bob = Math.sin(t * (2 + R() * 2) + i) * (o.cheer || 2);
+          const yy = y + (i % 2) * 7 + bob;
+          ctx.fillStyle = cols[i % 7]; ctx.fillRect(x - 8, yy, 16, 22);
+          ctx.fillStyle = ['#c68642', '#a0693a', '#e0ac69', '#8d5524'][i % 4]; ctx.fillRect(x - 6, yy - 13, 12, 13);
+          ctx.fillStyle = '#111827'; ctx.fillRect(x - 6.5, yy - 15, 13, 5);
+          if (o.cheer > 3 && i % 3 === 0) { ctx.fillStyle = '#c68642'; ctx.fillRect(x - 11, yy - 12 - Math.abs(Math.sin(t * 6 + i)) * 8, 4, 12); }
+        }
+      }
+    };
+
+
     class MiniGamesHubController {
       constructor(app) {
         this.app = app;
@@ -5630,6 +6059,7 @@
       }
 
       close() {
+        this._mgStop && this._mgStop();
         clearInterval(this.activeTimer);
         this.activeTimer = null;
         document.getElementById('modal-minigames')?.classList.add('hidden');
@@ -5637,6 +6067,7 @@
       }
 
       showHub() {
+        this._mgStop && this._mgStop();
         clearInterval(this.activeTimer);
         this.activeTimer = null;
         document.getElementById('mg-hub-view')?.classList.remove('hidden');
@@ -5644,17 +6075,18 @@
       }
 
       launchGame(type) {
+        this._mgStop && this._mgStop();
         clearInterval(this.activeTimer);
         this.activeTimer = null;
         document.getElementById('mg-hub-view')?.classList.add('hidden');
         document.getElementById('mg-stage-view')?.classList.remove('hidden');
 
         if (type === 'boxing') this._startBoxingTournament();
-        else if (type === 'motor') this._startTapRace('Balap Motor 3D Pantura', 'Geber Gas Motor 250RR!', 1000000, 'bike');
-        else if (type === 'panco') this._startTugGame('Adu Panco Cikarang', 'Tahan & Dorong Lengan Jawara!', 350000, 'muscle');
-        else if (type === 'sumo') this._startTugGame('Arena Sumo Pantura', 'Dorong Lawan Keluar Dohyo!', 500000, 'shield');
-        else if (type === 'shooting') this._startTargetShooting();
-        else this._startTapRace('Balap Karung 17-an', 'Lompat Cepat Menuju Finis!', 300000, 'sprint');
+        else if (type === 'motor') this._startMotorRace();
+        else if (type === 'panco') this._startArmWrestle();
+        else if (type === 'sumo') this._startSumo();
+        else if (type === 'shooting') this._startShootingRange();
+        else this._startSackRace();
       }
 
       _startBoxingTournament() {
@@ -6287,6 +6719,911 @@
 
           syncBars();
         }, 120);
+      }
+
+      // ---------- kerangka umum mini game realistis ----------
+      _mgStop() {
+        if (this._mgRaf) cancelAnimationFrame(this._mgRaf);
+        this._mgRaf = 0;
+        (this._mgCleanups || []).forEach(fn => { try { fn(); } catch (e) { /* abaikan */ } });
+        this._mgCleanups = [];
+      }
+
+      _mgBegin({ title, icon, hint, buttons, H = 300 }) {
+        this._mgStop();
+        clearInterval(this.activeTimer);
+        this.activeTimer = null;
+        const titleEl = document.getElementById('mg-stage-title');
+        if (titleEl) titleEl.innerHTML = `${GameIcons.svg(icon, 'w-4 h-4')}<span>${title}</span>`;
+        const body = document.getElementById('mg-stage-body');
+        body.innerHTML = `
+          <div class="space-y-2">
+            <div id="mg-hint" class="text-[11px] sm:text-xs font-bold text-slate-300 leading-snug">${hint}</div>
+            <canvas id="mg-canvas" width="640" height="${H}" class="w-full rounded-2xl border border-white/10 bg-slate-950" style="touch-action:none;user-select:none;aspect-ratio:640/${H}"></canvas>
+            <div id="mg-controls" style="display:grid;gap:8px;grid-template-columns:repeat(${buttons.length},minmax(0,1fr))">
+              ${buttons.map(b => `<button type="button" id="${b.id}" style="touch-action:none;user-select:none" class="py-3.5 rounded-xl font-black text-xs sm:text-sm active:scale-95 transition ${b.cls}">${b.label}${b.key ? ` <span class="opacity-60 text-[10px]">[${b.key}]</span>` : ''}</button>`).join('')}
+            </div>
+            <div id="mg-result"></div>
+          </div>`;
+        const canvas = document.getElementById('mg-canvas');
+        return { canvas, ctx: canvas.getContext('2d'), W: 640, H };
+      }
+
+      _mgLoop(frame) {
+        let last = performance.now();
+        const tick = (now) => {
+          const canvas = document.getElementById('mg-canvas');
+          if (!canvas) return;
+          this._mgRaf = requestAnimationFrame(tick);
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          if (canvas.offsetParent === null) return;
+          frame(dt);
+        };
+        this._mgRaf = requestAnimationFrame(tick);
+      }
+
+      // keys: { 'key': { down(e), up(e) } } ; key names lower-case, ' ' for space
+      _mgKeys(map) {
+        const kd = (e) => {
+          const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+          const h = map[k];
+          if (!h) return;
+          const c = document.getElementById('mg-canvas');
+          if (!c || c.offsetParent === null) return;
+          e.preventDefault();
+          if (!e.repeat && h.down) h.down(e);
+        };
+        const ku = (e) => {
+          const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+          const h = map[k];
+          if (h && h.up) h.up(e);
+        };
+        window.addEventListener('keydown', kd);
+        window.addEventListener('keyup', ku);
+        this._mgCleanups.push(() => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); });
+      }
+
+      _mgBtn(id, down, up) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('pointerdown', (e) => { e.preventDefault(); if (down) down(e); });
+        const u = (e) => { if (up) up(e); };
+        el.addEventListener('pointerup', u);
+        el.addEventListener('pointerleave', u);
+        el.addEventListener('pointercancel', u);
+      }
+
+      _mgWins(key) { GameState.mgWins = GameState.mgWins || {}; return GameState.mgWins[key] || 0; }
+
+      _mgFinish({ won, key, title, lines = [], prize = 0, retry }) {
+        this._mgStop();
+        if (won) {
+          GameState.cash += prize;
+          GameState.mgWins = GameState.mgWins || {};
+          GameState.mgWins[key] = (GameState.mgWins[key] || 0) + 1;
+          this.app.sound.playMissionComplete();
+          this.app.sound.playCrowdCheer(0.8);
+          this.app.updateHUD();
+        } else {
+          this.app.sound.playKnockdown && this.app.sound.playBlock();
+        }
+        const res = document.getElementById('mg-result');
+        if (res) {
+          res.innerHTML = `
+            <div class="text-center py-3 space-y-1.5 rounded-2xl bg-slate-950/70 border ${won ? 'border-emerald-400/40' : 'border-rose-400/40'}">
+              <div class="text-base sm:text-lg font-black ${won ? 'text-emerald-400' : 'text-rose-400'}">${title}</div>
+              ${lines.map(l => `<div class="text-[11px] text-slate-300">${l}</div>`).join('')}
+              ${won ? `<div class="text-sm font-black text-amber-300">Hadiah: +${formatRupiah(prize)}</div>` : ''}
+              <button type="button" id="mg-retry" class="mt-1 px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">${won ? 'Main Lagi (lawan lebih kuat)' : 'Coba Lagi'}</button>
+            </div>`;
+          document.getElementById('mg-retry')?.addEventListener('click', retry);
+        }
+      }
+
+      // ======================= BALAP MOTOR (drag race pindah gigi) =======================
+      _startMotorRace() {
+        const { canvas, ctx, W, H } = this._mgBegin({
+          title: 'Balap Motor Pantura — Drag 600 m', icon: 'bike',
+          hint: 'Tahan GAS (Spasi/↑). Saat jarum RPM masuk zona HIJAU, pindah GIGI (Enter/→). Shift sempurna mengisi NITRO (N/↓). Jangan geber sebelum lampu hijau!',
+          buttons: [
+            { id: 'mt-gas', label: 'GAS (tahan)', key: 'Spasi', cls: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' },
+            { id: 'mt-shift', label: 'GIGI ▲', key: 'Enter', cls: 'bg-amber-500 hover:bg-amber-400 text-slate-950' },
+            { id: 'mt-nos', label: 'NITRO', key: 'N', cls: 'bg-sky-500 hover:bg-sky-400 text-slate-950' }
+          ]
+        });
+        const snd = this.app.sound;
+        const lvl = this._mgWins('motor');
+        const TRACK = 600;
+        const VMAX = [17, 29, 41, 53, 66];
+        const A0 = [15, 11.5, 9, 7.5, 6.6];
+        const agi = 1 + 0.012 * (GameStats.level('kelincahan') - 1);
+        const mk = (isPlayer) => ({ d: 0, v: 0, g: 0, rpm: 0, wheel: 0, shiftT: 0, nitroT: 0, charge: 0, stall: 0, pitch: 0, smokeT: 0, fin: 0, top: 0, nextShift: 0.84 + Math.random() * 0.08, isPlayer });
+        const me = mk(true);
+        const rv = mk(false);
+        const rivalSkill = 1.08 + Math.min(0.14, lvl * 0.03);
+        let gas = false;
+        let phase = 'ready'; // ready -> race -> done
+        let lights = 0;
+        let lightT = 0.9;
+        let goDelay = 0.7 + Math.random() * 0.9;
+        let goTime = 0;
+        let falseStart = false;
+        let t = 0;
+        let msg = { text: '', t: 0, col: '#fff' };
+        let particles = [];
+        let shake = 0;
+        let humT = 0;
+        let raceT = 0;
+        const R = MG.rnd(31);
+        const trees = Array.from({ length: 80 }, (_, i) => ({ x: i * 55 + R() * 40, s: 0.7 + R() * 0.7, k: Math.floor(R() * 3) }));
+        const boards = Array.from({ length: 14 }, (_, i) => ({ x: 90 + i * 240 + R() * 80, txt: ['WARTEG BAHARI', 'SERVIS MOTOR 24 JAM', 'ES KELAPA MUDA', 'PANTURA FM 98.7', 'BENGKEL JOSS', 'SATE TAICHAN'][i % 6], col: ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#7c3aed', '#0891b2'][i % 6] }));
+        const say = (text, col = '#fde047') => { msg = { text, t: 1.2, col }; };
+
+        const press = () => { gas = true; };
+        const release = () => { gas = false; };
+        const shift = () => {
+          if (phase !== 'race' || me.g >= 4 || me.shiftT > 0) return;
+          const r = me.rpm;
+          me.shiftT = 0.11;
+          me.g++;
+          snd.playTone(260 + me.g * 40, 0.08, 'square', 0.04, 180);
+          if (r >= 0.8 && r <= 0.985) { me.v *= 1.02; me.charge = Math.min(1, me.charge + 0.34); say('SHIFT SEMPURNA!', '#4ade80'); this._mgFlash = 1; }
+          else if (r < 0.6) { me.v *= 0.965; say('TERLALU CEPAT!', '#fb7185'); }
+          else if (r > 0.985) { me.v *= 0.985; say('TELAT!', '#fb923c'); }
+          else { say('Lumayan', '#fde68a'); me.charge = Math.min(1, me.charge + 0.1); }
+          for (let i = 0; i < 6; i++) particles.push({ x: 230, y: 232, vx: -60 - Math.random() * 60, vy: -Math.random() * 40, life: 0.5, max: 0.5, r: 3, c: '255,200,80' });
+        };
+        const nitro = () => {
+          if (phase !== 'race' || me.nitroT > 0 || me.charge < 0.3) { if (phase === 'race' && me.charge < 0.3) say('NITRO BELUM PENUH', '#94a3b8'); return; }
+          me.nitroT = 2.6 * me.charge; me.charge = 0; shake = 0.35;
+          snd.playTone(200, 0.5, 'sawtooth', 0.05, 900);
+          say('NITRO!!', '#38bdf8');
+        };
+        this._mgKeys({ ' ': { down: press, up: release }, ArrowUp: { down: press, up: release }, Enter: { down: shift }, ArrowRight: { down: shift }, n: { down: nitro }, ArrowDown: { down: nitro } });
+        this._mgBtn('mt-gas', press, release);
+        this._mgBtn('mt-shift', shift);
+        this._mgBtn('mt-nos', nitro);
+
+        const physics = (b, dt, wantGas, fast) => {
+          b.rpm = Math.min(1.08, b.v / VMAX[b.g]);
+          if (b.shiftT > 0) b.shiftT -= dt;
+          if (b.stall > 0) b.stall -= dt;
+          let a;
+          if (wantGas && b.shiftT <= 0 && b.stall <= 0) {
+            const lowf = b.rpm < 0.4 ? 0.45 + b.rpm * 1.375 : 1;
+            a = A0[b.g] * Math.max(0, 1 - Math.pow(Math.min(1.05, b.rpm), 4)) * lowf * (fast || 1);
+            if (b.rpm > 1.0) a = -5;
+            if (b.nitroT > 0) a = a * 1.75 + 4;
+          } else a = -2.2 - b.v * 0.03;
+          b.v = Math.max(0, b.v + a * dt);
+          if (b.nitroT > 0) { b.nitroT -= dt; b.v = Math.min(b.v, VMAX[b.g] * 1.12); } else b.v = Math.min(b.v, VMAX[b.g] * 1.04);
+          b.d += b.v * dt;
+          b.wheel += (b.v / 0.45) * dt;
+          b.top = Math.max(b.top, b.v);
+          b.pitch += ((wantGas && b.g === 0 && b.v < 14 && b.stall <= 0 ? Math.min(0.32, a * 0.026) : 0) - b.pitch) * Math.min(1, dt * 6);
+        };
+
+        const drawBike = (x, y, s, b, col, rider) => {
+          const wr = 15 * s;
+          const wb = 58 * s;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-b.pitch);
+          // shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(wb / 2, 1, wb * 0.75, 4 * s, 0, 0, 7); ctx.fill();
+          // wheels
+          [0, wb].forEach(wx => {
+            ctx.fillStyle = '#0b1220'; ctx.beginPath(); ctx.arc(wx, -wr, wr, 0, 7); ctx.fill();
+            ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(wx, -wr, wr * 0.62, 0, 7); ctx.fill();
+            ctx.fillStyle = '#0b1220'; ctx.beginPath(); ctx.arc(wx, -wr, wr * 0.5, 0, 7); ctx.fill();
+            ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5 * s;
+            for (let i = 0; i < 5; i++) { const a = b.wheel + (i * Math.PI * 2) / 5; ctx.beginPath(); ctx.moveTo(wx, -wr); ctx.lineTo(wx + Math.cos(a) * wr * 0.6, -wr + Math.sin(a) * wr * 0.6); ctx.stroke(); }
+          });
+          // swingarm + engine + frame
+          ctx.fillStyle = '#1e293b'; ctx.fillRect(2 * s, -wr - 4 * s, wb * 0.55, 6 * s);
+          ctx.fillStyle = '#475569'; ctx.fillRect(wb * 0.28, -wr - 15 * s, 18 * s, 16 * s);
+          ctx.fillStyle = '#64748b'; ctx.fillRect(wb * 0.3, -wr - 18 * s, 14 * s, 4 * s);
+          // exhaust
+          ctx.fillStyle = '#9ca3af'; ctx.beginPath(); ctx.moveTo(wb * 0.2, -wr + 3 * s); ctx.lineTo(-10 * s, -wr - 6 * s); ctx.lineTo(-10 * s, -wr - 1 * s); ctx.lineTo(wb * 0.3, -wr + 8 * s); ctx.fill();
+          // body (fairing + tank + seat)
+          ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(wb * 0.18, -wr - 18 * s); ctx.lineTo(wb * 0.55, -wr - 30 * s); ctx.lineTo(wb * 0.85, -wr - 24 * s); ctx.lineTo(wb * 0.98, -wr - 10 * s); ctx.lineTo(wb * 0.62, -wr - 6 * s); ctx.lineTo(wb * 0.3, -wr - 10 * s); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#111827'; ctx.fillRect(wb * 0.02, -wr - 24 * s, wb * 0.34, 7 * s);
+          ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(wb * 0.58, -wr - 26 * s, 18 * s, 3 * s);
+          // front fork + handle
+          ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(wb * 0.86, -wr - 22 * s); ctx.lineTo(wb, -wr); ctx.stroke();
+          ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(wb * 0.78, -wr - 29 * s); ctx.lineTo(wb * 0.88, -wr - 32 * s); ctx.stroke();
+          // headlight
+          ctx.fillStyle = '#fef9c3'; ctx.beginPath(); ctx.arc(wb * 0.99, -wr - 17 * s, 3 * s, 0, 7); ctx.fill();
+          // rider (merunduk)
+          const lean = 0.95 + Math.min(0.2, b.v / 300);
+          const J = MG.fk({
+            x: wb * 0.22, y: 0, s: s * 0.9, face: 1, hipY: -wr - 27 * s, lean, head: -0.45,
+            hl: 1.35, kl: 1.3, hr: 1.35, kr: 1.3, al: 1.95, el: 0.35, ar: 1.95, er: 0.35
+          });
+          MG.draw(ctx, J, { skin: rider.skin, shirt: rider.shirt, shirtD: rider.shirtD, pants: '#0f172a', helmet: rider.helmet, glove: '#111827', shoe: '#111827' });
+          ctx.restore();
+        };
+
+        const drawScene = (cam, spd) => {
+          // sky
+          const g = ctx.createLinearGradient(0, 0, 0, 170);
+          g.addColorStop(0, '#312e81'); g.addColorStop(0.5, '#ea580c'); g.addColorStop(1, '#fde68a');
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, 170);
+          ctx.fillStyle = 'rgba(254,243,199,0.95)'; ctx.beginPath(); ctx.arc(470, 118, 34, 0, 7); ctx.fill();
+          ctx.fillStyle = 'rgba(254,243,199,0.2)'; ctx.beginPath(); ctx.arc(470, 118, 58, 0, 7); ctx.fill();
+          // mountains (far)
+          for (let layer = 0; layer < 2; layer++) {
+            const par = layer ? 0.12 : 0.05;
+            ctx.fillStyle = layer ? '#7c2d12' : '#9a3412';
+            ctx.beginPath(); ctx.moveTo(0, 170);
+            for (let x = 0; x <= W; x += 20) {
+              const wx = x + cam * par * 6;
+              ctx.lineTo(x, 170 - (layer ? 26 : 44) - Math.abs(Math.sin(wx * (layer ? 0.017 : 0.011)) * (layer ? 24 : 36)) - Math.sin(wx * 0.05) * 5);
+            }
+            ctx.lineTo(W, 170); ctx.fill();
+          }
+          // ground
+          ctx.fillStyle = '#3f6212'; ctx.fillRect(0, 160, W, 20);
+          ctx.fillStyle = '#4d7c0f'; ctx.fillRect(0, 160, W, 6);
+          // billboards + trees (parallax 0.55 / 0.8)
+          boards.forEach(b => {
+            const x = ((b.x - cam * 6 * 0.55) % 3400 + 3400) % 3400 - 200;
+            if (x < -150 || x > W + 50) return;
+            ctx.fillStyle = '#374151'; ctx.fillRect(x + 12, 118, 4, 48); ctx.fillRect(x + 84, 118, 4, 48);
+            ctx.fillStyle = b.col; ctx.fillRect(x, 96, 100, 30);
+            ctx.fillStyle = '#fff'; ctx.font = '900 10px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(b.txt, x + 50, 115);
+          });
+          trees.forEach(tr => {
+            const x = ((tr.x - cam * 6 * 0.8) % 4400 + 4400) % 4400 - 100;
+            if (x < -60 || x > W + 60) return;
+            const h = 62 * tr.s;
+            ctx.fillStyle = '#5b3a1a'; ctx.fillRect(x - 2, 170 - h, 4, h);
+            if (tr.k === 0) { ctx.fillStyle = '#15803d'; for (let i = 0; i < 5; i++) { ctx.save(); ctx.translate(x, 170 - h); ctx.rotate(-1.2 + i * 0.6); ctx.fillRect(0, -2, 26 * tr.s, 4); ctx.restore(); } }
+            else { ctx.fillStyle = '#166534'; ctx.beginPath(); ctx.arc(x, 170 - h, 17 * tr.s, 0, 7); ctx.fill(); }
+          });
+          // road
+          ctx.fillStyle = '#1f2937'; ctx.fillRect(0, 178, W, H - 178);
+          ctx.fillStyle = '#334155'; ctx.fillRect(0, 178, W, 6);
+          ctx.fillStyle = '#facc15'; ctx.fillRect(0, 186, W, 3);
+          ctx.fillStyle = '#e5e7eb'; ctx.fillRect(0, H - 10, W, 3);
+          // lane dashes
+          const off = (cam * 14) % 60;
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          for (let x = -60; x < W + 60; x += 60) { ctx.fillRect(x - off, 236, 32, 3); }
+          // finish / start lines
+          const fx = 210 + (TRACK - cam) * 6; // finish position relative
+          if (fx < W + 40 && fx > -40) {
+            for (let i = 0; i < 10; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#111'; ctx.fillRect(fx, 186 + i * 11, 8, 11); }
+            ctx.fillStyle = '#facc15'; ctx.fillRect(fx - 2, 96, 4, 90); ctx.fillStyle = '#111'; ctx.fillRect(fx - 2, 96, 80, 16);
+            ctx.fillStyle = '#fff'; ctx.font = '900 11px Inter'; ctx.textAlign = 'left'; ctx.fillText('FINIS', fx + 10, 108);
+          }
+          if (cam < 40) { const sx = 210 - cam * 6; ctx.fillStyle = '#fff'; ctx.fillRect(sx, 186, 4, H - 196); }
+          // speed lines
+          if (spd > 25) {
+            ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.28, (spd - 25) / 120)})`; ctx.lineWidth = 1;
+            for (let i = 0; i < 14; i++) { const yy = 190 + ((i * 53 + t * 700) % 100); const xx = (i * 97 + t * 1300) % W; ctx.beginPath(); ctx.moveTo(W - xx, yy); ctx.lineTo(W - xx + 40 + spd, yy); ctx.stroke(); }
+          }
+        };
+
+        const drawHUD = () => {
+          // takometer
+          const cx = 88; const cy = H - 52; const r = 44;
+          ctx.fillStyle = 'rgba(2,6,23,0.75)'; ctx.beginPath(); ctx.arc(cx, cy, r + 8, 0, 7); ctx.fill();
+          const a0 = Math.PI * 0.75; const a1 = Math.PI * 2.25;
+          const arc = (f0, f1, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(cx, cy, r - 5, a0 + (a1 - a0) * f0, a0 + (a1 - a0) * f1); ctx.stroke(); };
+          arc(0, 0.8, '#475569', 7); arc(0.8, 0.985, '#22c55e', 7); arc(0.985, 1, '#ef4444', 7);
+          const rp = Math.min(1, me.rpm);
+          const na = a0 + (a1 - a0) * rp;
+          ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(na) * (r - 8), cy + Math.sin(na) * (r - 8)); ctx.stroke();
+          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 7); ctx.fill();
+          MG.text(ctx, String(me.g + 1), cx, cy + 22, 26, '#fff');
+          MG.text(ctx, `${Math.round(me.v * 3.6)} km/j`, cx, cy - 14, 11, '#e2e8f0');
+          // nitro
+          ctx.fillStyle = 'rgba(2,6,23,0.75)'; ctx.fillRect(W - 150, H - 26, 120, 14);
+          ctx.fillStyle = me.nitroT > 0 ? '#f97316' : '#38bdf8'; ctx.fillRect(W - 149, H - 25, 118 * (me.nitroT > 0 ? me.nitroT / 2.6 : me.charge), 12);
+          MG.text(ctx, 'NITRO', W - 90, H - 29, 9, '#bae6fd');
+          // progress track
+          const px0 = 150; const pw = W - 300;
+          ctx.fillStyle = 'rgba(2,6,23,0.7)'; ctx.fillRect(px0 - 8, 10, pw + 16, 22);
+          ctx.fillStyle = '#334155'; ctx.fillRect(px0, 19, pw, 4);
+          const dot = (d, col, lab) => { const x = px0 + pw * Math.min(1, d / TRACK); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, 21, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '900 7px Inter'; ctx.textAlign = 'center'; ctx.fillText(lab, x, 24); };
+          dot(rv.d, '#ef4444', 'R'); dot(me.d, '#22c55e', 'K');
+          MG.text(ctx, `${Math.max(0, Math.round(TRACK - me.d))} m`, W - 60, 28, 13, '#fde047');
+          if (phase === 'race') MG.text(ctx, `${raceT.toFixed(2)}d`, 58, 28, 13, '#e2e8f0');
+        };
+
+        const finishRace = (won, reason) => {
+          phase = 'done';
+          this._mgFinish({
+            won, key: 'motor', prize: 1000000,
+            title: won ? 'JUARA 1! KAMU MENANG BALAPAN!' : (reason || 'KALAH! Rival lebih dulu sampai finis'),
+            lines: [`Waktu: ${raceT.toFixed(2)} detik • Kecepatan tertinggi: ${Math.round(me.top * 3.6)} km/j`, `Selisih: ${Math.abs(Math.round(me.d - rv.d))} m`],
+            retry: () => this._startMotorRace()
+          });
+        };
+
+        this._mgLoop((dt) => {
+          t += dt;
+          if (msg.t > 0) msg.t -= dt;
+          // ---- fase lampu start
+          if (phase === 'ready') {
+            lightT -= dt;
+            if (lights < 3 && lightT <= 0) { lights++; lightT = 0.8; snd.playTone(520, 0.12, 'square', 0.05); }
+            else if (lights === 3 && lightT <= 0) {
+              goDelay -= dt;
+              if (goDelay <= 0) { phase = 'race'; goTime = t; lights = 4; snd.playTone(880, 0.35, 'square', 0.06); snd.playBellRing && snd.playBellRing(); }
+            }
+            if (gas && lights < 4 && !falseStart) { falseStart = true; me.stall = 0.9; say('START TERLALU CEPAT!', '#fb7185'); snd.playBlock(); }
+            if (!gas) me.rpm = 0;
+            else { me.rpm = 0.5 + Math.sin(t * 40) * 0.05; }
+          } else if (phase === 'race') {
+            raceT += dt;
+            // holeshot: gas ditekan tepat setelah hijau
+            if (raceT < 0.05 && gas && !falseStart) { me.v += 3; say('START MANTAP!', '#4ade80'); }
+            // rubber band lembut
+            const gap = me.d - rv.d;
+            const fast = (rivalSkill * (gap > 70 ? 1.05 : gap < -70 ? 0.96 : 1)) * 1;
+            // AI rival: pindah gigi saat rpm di zona
+            if (rv.g < 4 && rv.rpm > rv.nextShift && rv.shiftT <= 0) { rv.g++; rv.shiftT = 0.12 + Math.random() * 0.05; rv.nextShift = 0.8 + Math.random() * 0.14; rv.v *= 0.99 + (rv.nextShift < 0.97 && rv.nextShift > 0.8 ? 0.01 : -0.02); }
+            physics(rv, dt, true, fast * (1 + (agi - 1) * 0));
+            physics(me, dt, gas, agi);
+            if (me.d >= TRACK || rv.d >= TRACK) finishRace(me.d >= rv.d && me.d >= TRACK, null);
+            humT -= dt;
+            if (humT <= 0) { humT = 0.14; snd.playMotorHum && snd.playMotorHum(me.v / 66); }
+          } else if (phase === 'done') {
+            me.v *= 0.97; rv.v *= 0.97; me.d += me.v * dt; rv.d += rv.v * dt; me.wheel += me.v / 0.45 * dt; rv.wheel += rv.v / 0.45 * dt; me.rpm = 0;
+          }
+          if (shake > 0) shake -= dt;
+
+          // ---- render
+          ctx.save();
+          if (shake > 0) ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+          drawScene(me.d, me.v);
+          const bx = (b) => 210 + (b.d - me.d) * 6;
+          const rx = Math.max(-80, Math.min(W + 40, bx(rv)));
+          drawBike(rx, 224, 0.82, rv, '#dc2626', { skin: '#a0693a', shirt: '#7f1d1d', shirtD: '#450a0a', helmet: '#111827' });
+          drawBike(210, 266, 1.0, me, '#f97316', { skin: '#c68642', shirt: '#f97316', shirtD: '#c2410c', helmet: '#facc15' });
+          // asap knalpot / api nitro
+          if (((gas && phase === 'race') || me.nitroT > 0) && Math.random() < 0.7) particles.push({ x: 198, y: 255, vx: -40 - me.v * 2, vy: -5 - Math.random() * 20, life: 0.6, max: 0.6, r: 3 + Math.random() * 3, c: me.nitroT > 0 ? '255,140,40' : '200,200,200' });
+          if (me.pitch > 0.15 || me.stall > 0.5) particles.push({ x: 230, y: 266, vx: -30, vy: -10, life: 0.5, max: 0.5, r: 4, c: '180,170,150' });
+          if (rv.v > 5 && Math.random() < 0.5) particles.push({ x: rx - 12, y: 215, vx: -40 - rv.v * 2, vy: -8, life: 0.45, max: 0.45, r: 2.5, c: '190,190,190' });
+          particles = particles.filter(p => (p.life -= dt) > 0);
+          particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; const k = p.life / p.max; ctx.fillStyle = `rgba(${p.c},${k * 0.6})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (2 - k), 0, 7); ctx.fill(); });
+          if (me.nitroT > 0) { ctx.fillStyle = 'rgba(56,189,248,0.07)'; ctx.fillRect(0, 0, W, H); }
+          // lampu start
+          if (phase === 'ready' || (phase === 'race' && raceT < 0.9)) {
+            ctx.fillStyle = 'rgba(2,6,23,0.85)'; ctx.fillRect(W / 2 - 62, 40, 124, 38);
+            for (let i = 0; i < 3; i++) { ctx.fillStyle = lights >= 4 ? '#22c55e' : (i < lights ? '#ef4444' : '#3f1d1d'); ctx.beginPath(); ctx.arc(W / 2 - 38 + i * 38, 59, 12, 0, 7); ctx.fill(); }
+          }
+          drawHUD();
+          if (msg.t > 0) MG.text(ctx, msg.text, W / 2, 118, 22 + Math.min(6, msg.t * 8), msg.col);
+          ctx.restore();
+        });
+        snd.playBellRing();
+      }
+
+      // ======================= BALAP KARUNG (ritme lompat + keseimbangan) =======================
+      _startSackRace() {
+        const { canvas, ctx, W, H } = this._mgBegin({
+          title: 'Balap Karung 17-an', icon: 'sprint', H: 320,
+          hint: 'Tekan LOMPAT (Spasi) tepat saat penanda ritme ada di zona hijau. Badan akan oleng — imbangi dengan ← / → (atau tombol) agar tidak jatuh!',
+          buttons: [
+            { id: 'sk-l', label: '◀ IMBANGI', key: '←', cls: 'bg-slate-700 hover:bg-slate-600 text-white' },
+            { id: 'sk-j', label: 'LOMPAT!', key: 'Spasi', cls: 'bg-amber-500 hover:bg-amber-400 text-slate-950' },
+            { id: 'sk-r', label: 'IMBANGI ▶', key: '→', cls: 'bg-slate-700 hover:bg-slate-600 text-white' }
+          ]
+        });
+        const snd = this.app.sound;
+        const lvl = this._mgWins('sack');
+        const TRACK = 100;
+        const LANES = 4;
+        const R = MG.rnd(Date.now() & 0xffff);
+        const skins = ['#c68642', '#a0693a', '#e0ac69', '#8d5524'];
+        const shirts = ['#f97316', '#ef4444', '#3b82f6', '#22c55e'];
+        const names = ['KAMU', 'Asep', 'Joko', 'Ujang'];
+        const racers = Array.from({ length: LANES }, (_, i) => ({
+          i, d: 0, air: 0, hopT: 0, tilt: 0, tiltV: 0, fall: 0, human: i === 0, nextHop: 0.5 + R() * 0.5,
+          skill: 0.82 + Math.min(0.12, lvl * 0.03) + R() * 0.1, boost: 0, fin: -1, wob: 0
+        }));
+        const me = racers[0];
+        let beat = 0; // 0..1 fase ritme
+        const BEAT = 0.62;
+        let phase = 'count'; let cnt = 3.2; let t = 0; let raceT = 0; let msg = { t: 0, text: '', col: '#fff' };
+        let held = 0; let place = 0; let dust = [];
+        const say = (text, col) => { msg = { t: 0.8, text, col }; };
+        const hop = () => {
+          if (phase !== 'race' || me.fall > 0 || me.air > 0) return;
+          const err = Math.abs(beat - 0.5) * 2; // 0 tepat tengah
+          let q;
+          if (err < 0.22) { q = 1.25; say('PAS!', '#4ade80'); me.boost = 0.35; }
+          else if (err < 0.5) { q = 0.9; say('Bagus', '#fde68a'); }
+          else { q = 0.45; say(beat < 0.5 ? 'KECEPATAN!' : 'TELAT', '#fb7185'); me.tiltV += (Math.random() - 0.5) * 2.2; }
+          me.air = 0.001; me.hopT = 0; me.q = q;
+          snd.playTone(220, 0.05, 'triangle', 0.05, 330);
+        };
+        const lean = (dir) => { held = dir; };
+        this._mgKeys({ ' ': { down: hop }, ArrowLeft: { down: () => lean(-1), up: () => { if (held < 0) held = 0; } }, ArrowRight: { down: () => lean(1), up: () => { if (held > 0) held = 0; } }, a: { down: () => lean(-1), up: () => { if (held < 0) held = 0; } }, d: { down: () => lean(1), up: () => { if (held > 0) held = 0; } } });
+        this._mgBtn('sk-j', hop);
+        this._mgBtn('sk-l', () => lean(-1), () => { if (held < 0) held = 0; });
+        this._mgBtn('sk-r', () => lean(1), () => { if (held > 0) held = 0; });
+
+        const laneY = (i) => 168 + i * 38;
+        const px = (d) => 40 + (d / TRACK) * (W - 130);
+
+        const drawRacer = (r) => {
+          const y = laneY(r.i); const x = px(r.d);
+          const hopH = r.air > 0 ? Math.sin(Math.min(1, r.hopT / 0.32) * Math.PI) * 18 : 0;
+          const s = 0.62;
+          const crouch = r.air > 0 ? 0.1 : 0.5 + Math.sin(t * 8 + r.i) * 0.02;
+          let tilt = r.tilt;
+          if (r.fall > 0) tilt = Math.min(1.5, 0.6 + (1 - Math.min(1, r.fall)) * 1.2);
+          const J = MG.fk({ x, y: y - hopH, s, face: 1, hl: 0.12, hr: 0.12, kl: 0.1, kr: 0.1, lean: tilt * 0.55 + 0.12, head: -0.1, al: r.air > 0 ? 2.3 : 1.6, el: 0.5, ar: r.air > 0 ? 2.0 : 1.4, er: 0.5, hipY: y - hopH - 22 * s });
+          ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x, y + 2, 16 - hopH * 0.2, 4, 0, 0, 7); ctx.fill();
+          MG.draw(ctx, J, { skin: skins[r.i], shirt: shirts[r.i], shirtD: shirts[r.i], pants: '#1e293b', sack: true, hair: '#111827', band: r.human ? '#facc15' : null });
+          ctx.save(); ctx.translate(x, y - 56); ctx.restore();
+          MG.text(ctx, names[r.i], x, y - 64 - hopH, 9, r.human ? '#fde047' : '#e2e8f0');
+        };
+
+        const fin = (won) => {
+          phase = 'done';
+          const pl = me.fin >= 0 ? me.fin + 1 : 4;
+          this._mgFinish({
+            won: pl === 1, key: 'sack', prize: 300000 + (pl === 1 ? 0 : 0),
+            title: pl === 1 ? 'JUARA 1! Lompatan paling jago!' : `Finis ke-${pl} dari 4`,
+            lines: [`Waktu: ${raceT.toFixed(1)} detik`, pl === 1 ? 'Ritmemu terjaga sampai garis finis.' : 'Coba lompat tepat di zona hijau & jaga keseimbangan.'],
+            retry: () => this._startSackRace()
+          });
+        };
+
+        this._mgLoop((dt) => {
+          t += dt;
+          if (msg.t > 0) msg.t -= dt;
+          if (phase === 'count') { cnt -= dt; if (cnt <= 0) { phase = 'race'; snd.playBellRing(); say('MULAI!', '#4ade80'); } else if (Math.ceil(cnt) !== Math.ceil(cnt + dt)) snd.playTone(520, 0.1, 'square', 0.05); }
+          if (phase === 'race' || phase === 'done') {
+            if (phase === 'race') { raceT += dt; beat = (beat + dt / BEAT) % 1; }
+            racers.forEach(r => {
+              if (r.fin >= 0) return;
+              // fisika oleng
+              if (r.fall <= 0) {
+                                r.tiltV += (Math.sin(t * 1.7 + r.i * 2) * 0.9 + Math.sin(t * 3.1 + r.i) * 0.5 + r.tilt * 2.4) * dt * (1 + lvl * 0.04) * (r.human ? 1.15 : 0);
+                if (r.human) r.tiltV += held * 6.5 * dt;
+                r.tiltV *= 1 - dt * 1.2;
+                r.tilt += r.tiltV * dt * 1.0;
+                if (Math.abs(r.tilt) > 1) { r.fall = 1.2; r.tiltV = 0; r.air = 0; if (r.human) { say('JATUH!', '#fb7185'); snd.playLand(1); } }
+              } else { r.fall -= dt; if (r.fall <= 0) { r.tilt = 0; r.tiltV = 0; } }
+              if (r.air > 0) {
+                r.hopT += dt; r.air = r.hopT;
+                const q = r.q || 1;
+                r.d += (q * 5.2 * (1 + r.boost) * dt) / 0.32;
+                if (r.hopT >= 0.32) { r.air = 0; r.boost = Math.max(0, r.boost - 0.1); for (let k = 0; k < 4; k++) dust.push({ x: px(r.d), y: laneY(r.i), vx: -20 - Math.random() * 30, vy: -Math.random() * 20, l: 0.4 }); if (r.human) snd.playFootstep(); }
+              }
+              if (!r.human && phase === 'race' && r.fall <= 0) {
+                r.nextHop -= dt;
+                if (r.air <= 0 && r.nextHop <= 0) { r.air = 0.001; r.hopT = 0; r.q = 0.75 + r.skill * 0.5 + (R() - 0.5) * 0.25; r.nextHop = BEAT * (0.92 + R() * 0.2) * (1.1 - r.skill * 0.12) + 0.02; }
+                if (R() < dt * 0.15 * (1.05 - r.skill)) { r.fall = 1.2; r.tilt = 0.9; }
+              }
+              if (r.d >= TRACK) { r.fin = place++; if (r.human) { phase = 'done'; setTimeout(() => fin(), 400); } }
+            });
+            if (phase === 'race' && place >= LANES - 1 && me.fin < 0) { phase = 'done'; fin(); }
+          }
+          // ---- render
+          const g = ctx.createLinearGradient(0, 0, 0, 130); g.addColorStop(0, '#38bdf8'); g.addColorStop(1, '#e0f2fe');
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, 130);
+          for (let i = 0; i < 4; i++) { ctx.fillStyle = 'rgba(255,255,255,0.8)'; const cx = ((i * 190 + t * 6) % (W + 120)) - 60; ctx.beginPath(); ctx.arc(cx, 34 + (i % 2) * 20, 16, 0, 7); ctx.arc(cx + 18, 38 + (i % 2) * 20, 13, 0, 7); ctx.arc(cx - 16, 40 + (i % 2) * 20, 11, 0, 7); ctx.fill(); }
+          ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.moveTo(0, 130); for (let x = 0; x <= W; x += 24) ctx.lineTo(x, 108 - Math.abs(Math.sin(x * 0.02)) * 22); ctx.lineTo(W, 130); ctx.fill();
+          // bendera segitiga 17-an
+          ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 56); ctx.quadraticCurveTo(W / 2, 90, W, 56); ctx.stroke();
+          for (let i = 0; i < 16; i++) { const x = 20 + i * 38; const y = 56 + Math.sin((i / 15) * Math.PI) * 24; ctx.fillStyle = i % 2 ? '#dc2626' : '#f8fafc'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 18, y + 2); ctx.lineTo(x + 9, y + 20); ctx.fill(); }
+          MG.crowd(ctx, 108, t, W, { n: 30, cheer: phase === 'race' ? 4 : 2 });
+          ctx.fillStyle = '#65a30d'; ctx.fillRect(0, 140, W, H - 140);
+          for (let i = 0; i < LANES; i++) { ctx.fillStyle = i % 2 ? '#84cc16' : '#65a30d'; ctx.fillRect(0, laneY(i) - 28, W, 36); ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillRect(0, laneY(i) + 7, W, 2); }
+          ctx.fillStyle = '#fff'; ctx.fillRect(px(0) - 6, 140, 3, H - 140);
+          for (let i = 0; i < 14; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#111'; ctx.fillRect(px(TRACK) + 22, 140 + i * 10, 8, 10); }
+          racers.slice().sort((a, b) => a.i - b.i).forEach(drawRacer);
+          dust = dust.filter(d => (d.l -= dt) > 0); dust.forEach(d => { d.x += d.vx * dt; d.y += d.vy * dt; ctx.fillStyle = `rgba(210,190,150,${d.l * 1.5})`; ctx.beginPath(); ctx.arc(d.x, d.y, 3 + (0.4 - d.l) * 6, 0, 7); ctx.fill(); });
+          // meter ritme
+          ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(W / 2 - 120, 6, 240, 22);
+          ctx.fillStyle = '#334155'; ctx.fillRect(W / 2 - 112, 13, 224, 8);
+          ctx.fillStyle = '#16a34a'; ctx.fillRect(W / 2 - 112 + 224 * 0.39, 13, 224 * 0.22, 8);
+          ctx.fillStyle = '#facc15'; ctx.fillRect(W / 2 - 112 + 224 * 0.25, 13, 224 * 0.14, 8); ctx.fillRect(W / 2 - 112 + 224 * 0.61, 13, 224 * 0.14, 8);
+          ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 - 114 + 224 * beat, 8, 4, 18);
+          // meter keseimbangan
+          ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(W - 126, 34, 116, 18);
+          ctx.fillStyle = '#334155'; ctx.fillRect(W - 120, 41, 104, 4);
+          ctx.fillStyle = Math.abs(me.tilt) > 0.7 ? '#ef4444' : '#22c55e'; ctx.beginPath(); ctx.arc(W - 68 + me.tilt * 48, 43, 6, 0, 7); ctx.fill();
+          MG.text(ctx, 'KESEIMBANGAN', W - 68, 31, 8, '#cbd5e1');
+          if (phase === 'count') MG.text(ctx, String(Math.max(1, Math.ceil(cnt))), W / 2, 110, 54, '#fde047');
+          if (msg.t > 0) MG.text(ctx, msg.text, W / 2, 80, 22, msg.col);
+        });
+      }
+
+      // ======================= ADU PANCO (tenaga, stamina, lonjakan lawan) =======================
+      _startArmWrestle() {
+        const { canvas, ctx, W, H } = this._mgBegin({
+          title: 'Adu Panco Cikarang', icon: 'muscle', H: 320,
+          hint: 'Ketuk DORONG (Spasi) bertubi-tubi untuk menekan lengan lawan. Saat lawan MELONJAK (merah), tekan & tahan TAHAN (Shift) agar tidak ditekan — tapi menguras tenaga!',
+          buttons: [
+            { id: 'pc-push', label: 'DORONG!', key: 'Spasi', cls: 'bg-rose-500 hover:bg-rose-400 text-white' },
+            { id: 'pc-hold', label: 'TAHAN (tahan)', key: 'Shift', cls: 'bg-sky-500 hover:bg-sky-400 text-slate-950' }
+          ]
+        });
+        const snd = this.app.sound;
+        const lvl = this._mgWins('panco');
+        const kek = GameStats.level('kekuatan');
+        const oppNames = ['Pak Haji Maman', 'Kang Rudi Kuli', 'Bang Togar', 'Jawara Karawang', 'Raja Panco Pantura'];
+        const oppName = oppNames[Math.min(lvl, oppNames.length - 1)];
+        const oppPow = 1 + lvl * 0.16;
+        let phi = 0; // -1 kalah ... +1 menang
+        let vel = 0; let stam = 100; let oStam = 100;
+        let holding = false; let surge = 0; let surgeWarn = 0; let nextSurge = 2.2 + Math.random() * 1.5;
+        let t = 0; let phase = 'count'; let cnt = 2.4; let tapRate = 0; let taps = []; let sweat = []; let shake = 0; let msg = { t: 0, text: '', col: '#fff' };
+        const say = (text, col) => { msg = { t: 0.9, text, col }; };
+        const push = () => {
+          if (phase !== 'go') return;
+          const eff = stam > 15 ? 1 : 0.4;
+          taps.push(t);
+          vel += (0.075 + 0.003 * kek) * eff * (holding ? 0.4 : 1);
+          stam = Math.max(0, stam - 1.6);
+          snd.playTone(110 + Math.random() * 20, 0.05, 'triangle', 0.06, 70);
+        };
+        const hold = (v) => () => { holding = v; };
+        this._mgKeys({ ' ': { down: push }, Shift: { down: hold(true), up: hold(false) }, ArrowDown: { down: hold(true), up: hold(false) } });
+        this._mgBtn('pc-push', push);
+        this._mgBtn('pc-hold', hold(true), hold(false));
+
+        const finish = (won) => {
+          phase = 'done';
+          this._mgFinish({
+            won, key: 'panco', prize: 350000 + lvl * 50000,
+            title: won ? `LENGAN ${oppName.toUpperCase()} TERTEKAN!` : 'LENGANMU TERTEKAN MEJA!',
+            lines: [won ? 'Tenagamu lebih awet — bagus mengatur lonjakan.' : 'Hemat tenaga: jangan ketuk terus, tahan saat lawan melonjak.'],
+            retry: () => this._startArmWrestle()
+          });
+        };
+
+        this._mgLoop((dt) => {
+          t += dt; if (msg.t > 0) msg.t -= dt;
+          taps = taps.filter(x => t - x < 1); tapRate = taps.length;
+          if (phase === 'count') { cnt -= dt; if (cnt <= 0) { phase = 'go'; say('PANCO!', '#fde047'); snd.playBellRing(); } }
+          if (phase === 'go') {
+            // lawan
+            nextSurge -= dt;
+            if (nextSurge <= 0 && surge <= 0 && surgeWarn <= 0) { surgeWarn = 0.55; snd.playTone(300, 0.2, 'sawtooth', 0.05, 200); }
+            if (surgeWarn > 0) { surgeWarn -= dt; if (surgeWarn <= 0) { surge = 1.1 + Math.random() * 0.5; nextSurge = 2.4 + Math.random() * 2 - lvl * 0.2; } }
+            if (surge > 0) surge -= dt;
+            const base = 0.34 * oppPow;
+            const oppForce = base * (surge > 0 ? 2.6 : 1) * (oStam > 20 ? 1 : 0.6);
+            oStam = Math.max(0, Math.min(100, oStam + (surge > 0 ? -14 : 6) * dt));
+            const block = holding && stam > 0 ? 0.28 : 1;
+            vel += -oppForce * block * dt;
+            if (holding) stam = Math.max(0, stam - (surge > 0 ? 9 : 14) * dt); else stam = Math.min(100, stam + 9 * dt);
+            vel *= 1 - dt * 3.2;
+            phi = Math.max(-1, Math.min(1, phi + vel * dt * 3));
+            if (Math.random() < dt * (surge > 0 ? 18 : 3)) sweat.push({ x: 300 + Math.random() * 40, y: 120, vy: 20, l: 0.6 });
+            if (surge > 0) shake = 0.05;
+            if (phi >= 1) finish(true); else if (phi <= -1) finish(false);
+          }
+          // ---- render
+          ctx.save(); if (shake > 0) { shake -= dt; ctx.translate((Math.random() - .5) * 3, (Math.random() - .5) * 3); }
+          ctx.fillStyle = '#451a03'; ctx.fillRect(0, 0, W, H);
+          // warung ruangan
+          ctx.fillStyle = '#78350f'; ctx.fillRect(0, 0, W, 170);
+          for (let i = 0; i < 12; i++) { ctx.fillStyle = i % 2 ? '#713f12' : '#854d0e'; ctx.fillRect(i * 54, 0, 52, 170); }
+          ctx.fillStyle = '#fde68a'; ctx.fillRect(250, 24, 140, 40); ctx.fillStyle = '#7c2d12'; ctx.font = '900 14px Inter'; ctx.textAlign = 'center'; ctx.fillText('WARUNG KOPI PANTURA', 320, 49);
+          MG.crowd(ctx, 80, t, W, { n: 16, cheer: surge > 0 ? 5 : 2 });
+          // meja
+          ctx.fillStyle = '#92400e'; ctx.fillRect(100, 224, 440, 18); ctx.fillStyle = '#b45309'; ctx.fillRect(100, 224, 440, 5);
+          ctx.fillStyle = '#451a03'; ctx.fillRect(130, 242, 18, 78); ctx.fillRect(492, 242, 18, 78);
+          // gelas kopi
+          ctx.fillStyle = '#f8fafc'; ctx.fillRect(298, 206, 18, 18); ctx.fillStyle = '#292524'; ctx.fillRect(299, 208, 16, 5);
+          // pemain: kiri (kita), lawan: kanan. Siku di y=224, tangan bertemu di tengah
+          const ang = phi * 0.9; // + = lengan kita menekan ke kanan
+          const el1 = { x: 262, y: 222 }; const el2 = { x: 378, y: 222 };
+          const mid = { x: 320, y: 222 };
+          const hand = { x: 320 + phi * 40, y: 222 - Math.cos(phi * 1.5) * 50 + 40 * Math.abs(phi) };
+          const mkP = (x, face, col, scale, flush, pow) => {
+            const s = scale;
+            const J = MG.fk({ x, y: 224, s, face, hipY: 202, lean: 0.35 + pow * 0.12, head: 0.2 });
+            return J;
+          };
+          const lean = (surge > 0 ? 0.28 : 0.12) + (1 - phi) * 0.08;
+          // kita
+          let J1 = MG.fk({ x: 196, y: 330, s: 1.15, face: 1, hipY: 232, lean: 0.35 + Math.max(0, phi) * 0.18 - Math.min(0, phi) * 0.1, head: 0.15, al: 1.9, el: 0, ar: 1.9, er: 0 });
+          J1.elL = { x: 252 + Math.max(0, phi) * 10, y: 222 }; J1.haL = { x: hand.x - 6, y: hand.y + 6 };
+          J1.elR = { x: 240, y: 232 }; J1.haR = { x: 250, y: 226 };
+          let J2 = MG.fk({ x: 444, y: 330, s: 1.25, face: -1, hipY: 232, lean: 0.35 + (surge > 0 ? 0.25 : 0) + Math.max(0, -phi) * 0.16, head: 0.1, al: 1.9, el: 0, ar: 1.9, er: 0 });
+          J2.elL = { x: 388 - Math.max(0, -phi) * 10, y: 222 }; J2.haL = { x: hand.x + 6, y: hand.y + 6 };
+          J2.elR = { x: 400, y: 232 }; J2.haR = { x: 390, y: 226 };
+          MG.draw(ctx, J2, { skin: '#8d5524', shirt: '#7f1d1d', shirtD: '#450a0a', pants: '#1c1917', fat: 1.18, hair: '#0f0f0f', flush: surge > 0 ? '#b45309' : null, mouth: '#451a03' });
+          MG.draw(ctx, J1, { skin: '#c68642', shirt: '#f97316', shirtD: '#c2410c', pants: '#1e293b', fat: 1.05, band: '#facc15', flush: stam < 20 ? '#d97706' : null });
+          // genggaman
+          ctx.fillStyle = '#c68642'; ctx.beginPath(); ctx.arc(hand.x - 3, hand.y + 6, 9, 0, 7); ctx.fill();
+          ctx.fillStyle = '#8d5524'; ctx.beginPath(); ctx.arc(hand.x + 5, hand.y + 6, 9, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#c68642'; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(J1.elL.x, J1.elL.y); ctx.lineTo(hand.x - 3, hand.y + 6); ctx.stroke();
+          ctx.strokeStyle = '#8d5524'; ctx.beginPath(); ctx.moveTo(J2.elL.x, J2.elL.y); ctx.lineTo(hand.x + 5, hand.y + 6); ctx.stroke();
+          sweat = sweat.filter(p => (p.l -= dt) > 0); sweat.forEach(p => { p.y += p.vy * dt; p.vy += 120 * dt; ctx.fillStyle = 'rgba(186,230,253,0.8)'; ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, 7); ctx.fill(); });
+          if (surge > 0 || surgeWarn > 0) { ctx.fillStyle = `rgba(239,68,68,${surgeWarn > 0 ? 0.12 + 0.1 * Math.sin(t * 30) : 0.1})`; ctx.fillRect(0, 0, W, H); }
+          ctx.restore();
+          // HUD
+          ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(20, 12, W - 40, 20);
+          const gx = 26; const gw = W - 52;
+          ctx.fillStyle = '#7f1d1d'; ctx.fillRect(gx, 17, gw / 2, 10); ctx.fillStyle = '#14532d'; ctx.fillRect(gx + gw / 2, 17, gw / 2, 10);
+          ctx.fillStyle = '#fff'; ctx.fillRect(gx + gw / 2 + phi * gw / 2 - 3, 12, 6, 20);
+          MG.text(ctx, oppName, W - 120, 52, 11, '#fca5a5'); MG.text(ctx, 'KAMU', 60, 52, 11, '#fde047');
+          const bar = (x, y, v, col, lab) => { ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(x, y, 140, 14); ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, 138 * v / 100, 12); MG.text(ctx, lab, x + 70, y + 11, 9, '#fff'); };
+          bar(20, H - 22, stam, stam > 25 ? '#22c55e' : '#ef4444', 'TENAGA');
+          bar(W - 160, H - 22, oStam, '#f97316', 'TENAGA LAWAN');
+          if (surgeWarn > 0) MG.text(ctx, 'LAWAN MELONJAK! TAHAN!', W / 2, 100, 20, '#f87171');
+          else if (surge > 0) MG.text(ctx, 'TAHAN!', W / 2, 100, 20, '#f87171');
+          if (phase === 'count') MG.text(ctx, 'Siap...', W / 2, 120, 32, '#fde047');
+          if (msg.t > 0) MG.text(ctx, msg.text, W / 2, 130, 28, msg.col);
+        });
+      }
+
+      // ======================= SUMO PANTURA (tachiai, dorong, tahan, elak) =======================
+      _startSumo() {
+        const { canvas, ctx, W, H } = this._mgBegin({
+          title: 'Arena Sumo Pantura', icon: 'shield', H: 320,
+          hint: 'Saat aba-aba "HAKKE-YOI!" langsung DORONG. Ketuk DORONG untuk mendesak lawan keluar ring. Lawan menyiapkan tubrukan (badan menunduk) → tekan ELAK tepat waktu, atau TAHAN untuk menahan.',
+          buttons: [
+            { id: 'sm-push', label: 'DORONG', key: 'Spasi', cls: 'bg-rose-500 hover:bg-rose-400 text-white' },
+            { id: 'sm-hold', label: 'TAHAN', key: 'Shift', cls: 'bg-sky-500 hover:bg-sky-400 text-slate-950' },
+            { id: 'sm-dodge', label: 'ELAK', key: 'E', cls: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' }
+          ]
+        });
+        const snd = this.app.sound;
+        const lvl = this._mgWins('sumo');
+        const kek = GameStats.level('kekuatan');
+        const agi = GameStats.level('kelincahan');
+        const RING = 200; // setengah lebar ring (px)
+        const CX = W / 2;
+        let pos = 0; // posisi garis kontak relatif pusat; + = ke arah lawan (lawan terdorong keluar kanan)
+        let vel = 0; let stam = 100; let holding = false;
+        let phase = 'count'; let cnt = 2.6; let t = 0; let tachi = 0; let tachiDone = false; let goT = 0;
+        let ai = { s: 'idle', t: 1.2, dir: 1 }; let dodgeT = 0; let dodgeCd = 0; let stun = 0; let oppStun = 0;
+        let particles = []; let msg = { t: 0, text: '', col: '#fff' }; let shake = 0; let oppStam = 100;
+        const say = (text, col) => { msg = { t: 0.9, text, col }; };
+        const oppPow = 1 + lvl * 0.14;
+        const push = () => {
+          if (phase === 'count' && cnt < 0.9) { stun = 0.8; say('CURANG!', '#fb7185'); return; }
+          if (phase !== 'go' || stun > 0) return;
+          if (!tachiDone) { tachiDone = true; const rt = t - goT; if (rt < 0.45) { vel += 0.9 + kek * 0.02; say('TACHIAI SEMPURNA!', '#4ade80'); shake = 0.25; snd.playHitImpact(true); } else { say('Telat mulai', '#fde68a'); } }
+          vel += (0.28 + 0.01 * kek) * (holding ? 0.3 : 1) * (stam > 10 ? 1 : 0.5);
+          stam = Math.max(0, stam - 2.2);
+          snd.playBagThud && snd.playTone(90 + Math.random() * 20, 0.06, 'sine', 0.08, 50);
+        };
+        const hold = (v) => () => { holding = v; };
+        const dodge = () => {
+          if (phase !== 'go' || dodgeCd > 0 || stun > 0) return;
+          dodgeT = 0.28; dodgeCd = 0.9;
+          snd.playTone(500, 0.12, 'triangle', 0.05, 250);
+        };
+        this._mgKeys({ ' ': { down: push }, Shift: { down: hold(true), up: hold(false) }, e: { down: dodge }, ArrowUp: { down: push }, ArrowDown: { down: hold(true), up: hold(false) } });
+        this._mgBtn('sm-push', push); this._mgBtn('sm-hold', hold(true), hold(false)); this._mgBtn('sm-dodge', dodge);
+
+        const finish = (won, how) => {
+          phase = 'done';
+          this._mgFinish({
+            won, key: 'sumo', prize: 500000 + lvl * 100000,
+            title: won ? 'YOKOZUNA PANTURA! Lawan keluar ring!' : 'KAMU TERDORONG KELUAR RING!',
+            lines: [how, won ? 'Elak di saat yang tepat memberi serangan balik besar.' : 'Gunakan ELAK saat lawan menunduk, dan hemat tenaga.'],
+            retry: () => this._startSumo()
+          });
+        };
+
+        this._mgLoop((dt) => {
+          t += dt; if (msg.t > 0) msg.t -= dt; if (dodgeCd > 0) dodgeCd -= dt; if (dodgeT > 0) dodgeT -= dt; if (stun > 0) stun -= dt; if (oppStun > 0) oppStun -= dt;
+          if (shake > 0) shake -= dt;
+          if (phase === 'count') { cnt -= dt; if (cnt <= 0) { phase = 'go'; goT = t; say('HAKKE-YOI!', '#fde047'); snd.playBellRing(); } }
+          if (phase === 'go') {
+            // AI
+            ai.t -= dt;
+            if (ai.s === 'idle' && ai.t <= 0) { ai.s = 'wind'; ai.t = Math.max(0.38, 0.62 - lvl * 0.04 - agi * 0.004 * 0); }
+            else if (ai.s === 'wind' && ai.t <= 0) { ai.s = 'charge'; ai.t = 0.45; }
+            else if (ai.s === 'charge' && ai.t <= 0) { ai.s = 'idle'; ai.t = 0.9 + Math.random() * 1.3 - lvl * 0.08; }
+            if (ai.s === 'charge') {
+              if (dodgeT > 0) { if (!ai.dodged) { ai.dodged = true; oppStun = 1.1; vel += 1.4; say('ELAKAN MANTAP!', '#4ade80'); shake = 0.3; snd.playHitImpact(true); } }
+              else if (oppStun <= 0) {
+                const f = (holding && stam > 0 ? 0.9 : 3.4) * oppPow;
+                vel -= f * dt; oppStam = Math.max(0, oppStam - 12 * dt); if (!ai.hit) { ai.hit = true; snd.playHitImpact(holding); shake = 0.2; if (!holding) say('TERTABRAK!', '#fb7185'); else say('Tertahan', '#7dd3fc'); }
+              }
+            } else { ai.dodged = false; ai.hit = false; }
+            // tekanan lawan saat idle (otot)
+            if (oppStun <= 0) vel -= (0.28 + 0.1 * lvl * 0.5) * oppPow * dt * (ai.s === 'wind' ? 0 : 1) * (stun > 0 ? 3 : 1);
+            if (holding) stam = Math.max(0, stam - 10 * dt); else stam = Math.min(100, stam + 14 * dt);
+            vel *= 1 - dt * 2.6;
+            pos += vel * dt * 55;
+            oppStam = Math.min(100, oppStam + 5 * dt);
+            if (pos >= RING) finish(true, 'Lawan terdorong melewati tepi dohyo.');
+            else if (pos <= -RING) finish(false, 'Kakimu melewati tepi dohyo.');
+            if (Math.abs(vel) > 0.4 && Math.random() < 0.5) particles.push({ x: CX + pos, y: 252, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 40, l: 0.5 });
+          }
+          // ---- render
+          ctx.save(); if (shake > 0) ctx.translate((Math.random() - .5) * 5, (Math.random() - .5) * 5);
+          const g = ctx.createLinearGradient(0, 0, 0, 160); g.addColorStop(0, '#1e1b4b'); g.addColorStop(1, '#4c1d95'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, 160);
+          // lampion
+          for (let i = 0; i < 9; i++) { const x = 30 + i * 75; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 22); ctx.stroke(); ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.ellipse(x, 34, 11, 14, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(254,240,138,0.3)'; ctx.beginPath(); ctx.arc(x, 34, 22, 0, 7); ctx.fill(); }
+          MG.crowd(ctx, 92, t, W, { n: 34, cheer: ai.s === 'charge' ? 5 : 2 });
+          ctx.fillStyle = '#292524'; ctx.fillRect(0, 160, W, H - 160);
+          // dohyo
+          ctx.fillStyle = '#a16207'; ctx.beginPath(); ctx.ellipse(CX, 262, RING + 30, 34, 0, 0, 7); ctx.fill();
+          ctx.fillStyle = '#d6a65a'; ctx.beginPath(); ctx.ellipse(CX, 258, RING + 18, 28, 0, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(CX, 258, RING + 4, 24, 0, 0, 7); ctx.stroke();
+          ctx.fillStyle = '#f8fafc'; ctx.fillRect(CX - 40, 256, 80, 3);
+          // pemain: jarak antar badan
+          const gap = 34;
+          const cxp = CX + pos;
+          const lean1 = 0.45 + (ai.s === 'charge' ? 0 : 0) + Math.min(0.25, Math.max(0, vel) * 0.2);
+          const dodgeOff = dodgeT > 0 ? -26 * Math.sin((dodgeT / 0.28) * Math.PI) : 0;
+          const fallBack = stun > 0 ? 0.3 : 0;
+          const J1 = MG.fk({ x: cxp - gap + dodgeOff, y: 264, s: 1.4, face: 1, hl: 0.55, kl: 0.5, hr: -0.35, kr: 0.2, lean: lean1 - fallBack, head: -0.1, al: 2.2, el: 0.1, ar: 2.1, er: 0.1 });
+          const windLean = ai.s === 'wind' ? 0.95 : ai.s === 'charge' ? 0.7 : 0.45;
+          const oppFall = oppStun > 0 ? -0.25 : 0;
+          const J2 = MG.fk({ x: cxp + gap + (ai.s === 'wind' ? 12 : ai.s === 'charge' ? -8 : 0) + (oppStun > 0 ? 18 : 0), y: 264, s: 1.5, face: -1, hl: 0.6, kl: 0.55, hr: -0.4, kr: 0.2, lean: windLean + oppFall, head: -0.15, al: 2.2, el: 0.1, ar: 2.1, er: 0.1 });
+          // mawashi
+          MG.draw(ctx, J2, { skin: '#a0693a', shirt: '#a0693a', shirtD: '#8a5a30', pants: '#a0693a', pantsD: '#8a5a30', pantsTop: '#1d4ed8', fat: 1.55, hair: '#0a0a0a', shoe: '#a0693a', flush: ai.s === 'wind' ? '#c2410c' : null });
+          MG.draw(ctx, J1, { skin: '#c68642', shirt: '#c68642', shirtD: '#a8702f', pants: '#c68642', pantsD: '#a8702f', pantsTop: '#dc2626', fat: 1.4, hair: '#111827', shoe: '#c68642', band: '#facc15', flush: stam < 20 ? '#d97706' : null });
+          particles = particles.filter(p => (p.l -= dt) > 0); particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; ctx.fillStyle = `rgba(230,200,150,${p.l * 1.6})`; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, 7); ctx.fill(); });
+          ctx.restore();
+          // HUD: posisi di ring
+          ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(40, 10, W - 80, 20);
+          ctx.fillStyle = '#7f1d1d'; ctx.fillRect(44, 15, (W - 88) / 2, 10); ctx.fillStyle = '#14532d'; ctx.fillRect(44 + (W - 88) / 2, 15, (W - 88) / 2, 10);
+          ctx.fillStyle = '#fff'; ctx.fillRect(44 + (W - 88) / 2 + (pos / RING) * (W - 88) / 2 - 3, 10, 6, 20);
+          MG.text(ctx, 'KAMU', 20, 26, 9, '#fde047'); MG.text(ctx, 'LAWAN', W - 22, 26, 9, '#fca5a5');
+          ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(20, H - 22, 140, 14); ctx.fillStyle = stam > 25 ? '#22c55e' : '#ef4444'; ctx.fillRect(21, H - 21, 138 * stam / 100, 12); MG.text(ctx, 'TENAGA', 90, H - 11, 9, '#fff');
+          if (ai.s === 'wind' && phase === 'go') MG.text(ctx, '!! LAWAN MENUNDUK — SIAP ELAK !!', W / 2, 136, 17, '#fbbf24');
+          if (phase === 'count') MG.text(ctx, cnt > 0.9 ? 'Mi-ma-shite...' : 'Tahan...', W / 2, 130, 28, '#fde047');
+          if (msg.t > 0) MG.text(ctx, msg.text, W / 2, 160, 26, msg.col);
+        });
+      }
+
+      // ======================= LOMBA TEMBAK (bidik, goyang napas, peluru, isi ulang) =======================
+      _startShootingRange() {
+        const { canvas, ctx, W, H } = this._mgBegin({
+          title: 'Lomba Tembak Target', icon: 'target', H: 360,
+          hint: 'Arahkan bidikan dengan mouse/jari, klik/ketuk untuk menembak. Bidikan bergoyang — TAHAN NAFAS (Shift) agar stabil sesaat. Peluru 6 butir, ISI ULANG (R). Jangan tembak WARGA!',
+          buttons: [
+            { id: 'sh-breath', label: 'TAHAN NAFAS (tahan)', key: 'Shift', cls: 'bg-sky-500 hover:bg-sky-400 text-slate-950' },
+            { id: 'sh-reload', label: 'ISI ULANG', key: 'R', cls: 'bg-amber-500 hover:bg-amber-400 text-slate-950' }
+          ]
+        });
+        const snd = this.app.sound;
+        const lvl = this._mgWins('shooting');
+        const R = MG.rnd(Date.now() & 0xffff);
+        const GOAL = 600 + lvl * 150;
+        const DUR = 45;
+        const HZ = 150;
+        let aim = { x: W / 2, y: 190 }; let sway = { x: 0, y: 0 }; let breath = 100; let holding = false;
+        let ammo = 6; let reloadT = 0; let score = 0; let timeLeft = DUR; let combo = 0; let hits = 0; let shots = 0; let civ = 0;
+        let targets = []; let spawnT = 0.4; let t = 0; let recoil = 0; let flash = 0; let holes = []; let floats = []; let phase = 'play'; let shake = 0;
+        const say = (x, y, text, col) => floats.push({ x, y, text, col, l: 1 });
+        const spawn = () => {
+          const lane = Math.floor(R() * 3); // jauh, sedang, dekat
+          const sc = [0.55, 0.8, 1.1][lane];
+          const civilian = R() < 0.22;
+          const dir = R() < 0.5 ? 1 : -1;
+          targets.push({
+            kind: civilian ? 'warga' : (R() < 0.18 ? 'emas' : 'papan'), lane, sc, x: dir > 0 ? -40 : W + 40, y: HZ + 20 + lane * 38, vx: dir * (45 + R() * 60 + lvl * 8) * (0.7 + sc * 0.4), dir,
+            pop: 0, life: 4 + R() * 2, down: 0, hitAt: 0, wob: R() * 6
+          });
+        };
+        const shoot = () => {
+          if (phase !== 'play') return;
+          if (reloadT > 0) return;
+          if (ammo <= 0) { snd.playTone(1200, 0.02, 'square', 0.03); say(aim.x, aim.y - 20, 'ISI ULANG!', '#fbbf24'); return; }
+          ammo--; shots++; recoil = 1; flash = 0.08; shake = 0.1;
+          snd.playGunshot();
+          const ax = aim.x + sway.x; const ay = aim.y + sway.y;
+          let hit = null;
+          targets.slice().sort((a, b) => b.sc - a.sc).forEach(tg => {
+            if (hit || tg.down > 0) return;
+            const bw = (tg.kind === 'warga' ? 18 : 26) * tg.sc; const bh = (tg.kind === 'warga' ? 54 : 46) * tg.sc;
+            const dx = ax - tg.x; const dy = ay - (tg.y - bh * 0.55);
+            if (Math.abs(dx) < bw && Math.abs(dy) < bh * 0.6) hit = { tg, head: dy < -bh * 0.3 && Math.abs(dx) < bw * 0.55, center: Math.hypot(dx, dy) < 9 * tg.sc };
+          });
+          if (hit) {
+            const tg = hit.tg; tg.down = 0.01; tg.hitAt = t; hits++;
+            if (tg.kind === 'warga') { civ++; combo = 0; score -= 120; say(ax, ay - 14, 'WARGA! -120', '#fb7185'); snd.playHeroHurt(); }
+            else {
+              combo++; let pts = tg.kind === 'emas' ? 150 : 60; if (hit.center) pts += 40; if (hit.head) pts += 20;
+              pts = Math.round(pts * (0.8 + (1 - tg.sc) * 0.9) * (1 + Math.min(combo, 6) * 0.08));
+              score += pts; say(ax, ay - 14, `+${pts}${hit.center ? ' TEPAT!' : ''}`, tg.kind === 'emas' ? '#fde047' : '#4ade80'); snd.playWoodHit();
+            }
+          } else { combo = 0; holes.push({ x: ax, y: ay, l: 2 }); }
+          if (ammo === 0) say(W / 2, 70, 'PELURU HABIS — tekan R', '#fbbf24');
+        };
+        const reload = () => { if (phase !== 'play' || reloadT > 0 || ammo >= 6) return; reloadT = 1.3; snd.playReloadClick(); };
+        const hold = (v) => () => { holding = v; };
+        const move = (e) => { const r = canvas.getBoundingClientRect(); aim.x = Math.max(0, Math.min(W, (e.clientX - r.left) * W / r.width)); aim.y = Math.max(0, Math.min(H, (e.clientY - r.top) * H / r.height)); };
+        canvas.addEventListener('pointermove', move);
+        canvas.addEventListener('pointerdown', (e) => { move(e); shoot(); });
+        canvas.style.cursor = 'none';
+        this._mgKeys({ Shift: { down: hold(true), up: hold(false) }, r: { down: reload }, ' ': { down: shoot } });
+        this._mgBtn('sh-breath', hold(true), hold(false)); this._mgBtn('sh-reload', reload);
+        this._mgAim = aim; this._mgShoot = shoot;
+
+        const drawTarget = (tg) => {
+          const s = tg.sc; const x = tg.x; let y = tg.y;
+          const fall = tg.down > 0 ? Math.min(1, tg.down / 0.25) : 0;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(fall * 1.45 * tg.dir);
+          ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0, 0, 16 * s, 4 * s, 0, 0, 7); ctx.fill();
+          if (tg.kind === 'warga') {
+            const step = Math.sin(t * 9 + tg.wob) * 0.5;
+            const J = MG.fk({ x: 0, y: 0, s: s * 0.95, face: tg.dir, hl: step, hr: -step, kl: 0.1, kr: 0.1, al: -step * 0.8, ar: step * 0.8, el: 0.1, er: 0.1, lean: 0.05 });
+            MG.draw(ctx, J, { skin: '#c68642', shirt: '#38bdf8', shirtD: '#0284c7', pants: '#475569', hair: '#111827' });
+            MG.text(ctx, 'WARGA', 0, -62 * s, 9 * Math.max(0.9, s), '#7dd3fc');
+          } else {
+            ctx.fillStyle = '#78350f'; ctx.fillRect(-2 * s, -30 * s, 4 * s, 30 * s);
+            ctx.fillStyle = '#ca8a04'; ctx.fillRect(-18 * s, -62 * s, 36 * s, 34 * s);
+            const col = tg.kind === 'emas' ? ['#fde047', '#f59e0b', '#fef3c7'] : ['#f8fafc', '#dc2626', '#f8fafc'];
+            ctx.fillStyle = col[0]; ctx.beginPath(); ctx.arc(0, -45 * s, 15 * s, 0, 7); ctx.fill();
+            ctx.fillStyle = col[1]; ctx.beginPath(); ctx.arc(0, -45 * s, 10 * s, 0, 7); ctx.fill();
+            ctx.fillStyle = col[2]; ctx.beginPath(); ctx.arc(0, -45 * s, 5 * s, 0, 7); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, -45 * s, 1.8 * s, 0, 7); ctx.fill();
+          }
+          ctx.restore();
+        };
+
+        const finish = () => {
+          phase = 'done';
+          const won = score >= GOAL;
+          this._mgFinish({
+            won, key: 'shooting', prize: 400000 + lvl * 80000,
+            title: won ? 'PENEMBAK JITU PANTURA!' : 'SKOR BELUM CUKUP',
+            lines: [`Skor ${score} / target ${GOAL} • Akurasi ${shots ? Math.round(hits / shots * 100) : 0}% • Warga tertembak: ${civ}`],
+            retry: () => this._startShootingRange()
+          });
+        };
+
+        this._mgLoop((dt) => {
+          t += dt;
+          if (phase === 'play') {
+            timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; finish(); }
+            spawnT -= dt; if (spawnT <= 0 && targets.length < 6 + lvl) { spawn(); spawnT = 0.7 + R() * 0.8 - Math.min(0.3, lvl * 0.05); }
+            if (reloadT > 0) { reloadT -= dt; if (reloadT <= 0) { ammo = 6; snd.playReloadClick(); } }
+            const calm = holding && breath > 0;
+            breath = calm ? Math.max(0, breath - 22 * dt) : Math.min(100, breath + 14 * dt);
+            if (holding && breath <= 0) holding = false;
+            const amp = (calm ? 2 : 11 + lvl * 1.5) * (1 - Math.min(0.4, GameStats.level('kelincahan') * 0.01)) + recoil * 14;
+            sway.x = Math.sin(t * 1.9) * amp + Math.sin(t * 4.3) * amp * 0.3;
+            sway.y = Math.cos(t * 1.4) * amp * 0.8 + Math.sin(t * 3.7) * amp * 0.25 - recoil * 16;
+            recoil = Math.max(0, recoil - dt * 4);
+            targets.forEach(tg => { if (tg.down > 0) tg.down += dt; else { tg.x += tg.vx * dt; tg.life -= dt; } });
+            targets = targets.filter(tg => tg.down < 0.8 && tg.x > -60 && tg.x < W + 60 && (tg.life > 0 || tg.down > 0 || (tg.x > 0 && tg.x < W)));
+          }
+          if (flash > 0) flash -= dt; if (shake > 0) shake -= dt;
+          // ---- render
+          ctx.save(); if (shake > 0) ctx.translate((Math.random() - .5) * 3, (Math.random() - .5) * 3);
+          const g = ctx.createLinearGradient(0, 0, 0, HZ); g.addColorStop(0, '#0ea5e9'); g.addColorStop(1, '#bae6fd'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, HZ);
+          ctx.fillStyle = '#4d7c0f'; ctx.beginPath(); ctx.moveTo(0, HZ); for (let x = 0; x <= W; x += 20) ctx.lineTo(x, HZ - 20 - Math.abs(Math.sin(x * 0.013)) * 34); ctx.lineTo(W, HZ); ctx.fill();
+          for (let i = 0; i < 8; i++) { const x = 30 + i * 85; ctx.fillStyle = '#5b3a1a'; ctx.fillRect(x, HZ - 58, 4, 60); ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(x + 2, HZ - 62, 18, 0, 7); ctx.fill(); }
+          const gg = ctx.createLinearGradient(0, HZ, 0, H); gg.addColorStop(0, '#65a30d'); gg.addColorStop(1, '#3f6212'); ctx.fillStyle = gg; ctx.fillRect(0, HZ, W, H - HZ);
+          for (let i = 0; i < 3; i++) { ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.moveTo(0, HZ + 20 + i * 38); ctx.lineTo(W, HZ + 20 + i * 38); ctx.stroke(); }
+          targets.slice().sort((a, b) => a.sc - b.sc).forEach(drawTarget);
+          holes = holes.filter(h => (h.l -= dt) > 0); holes.forEach(h => { ctx.fillStyle = `rgba(30,20,10,${Math.min(1, h.l)})`; ctx.beginPath(); ctx.arc(h.x, h.y, 2.5, 0, 7); ctx.fill(); });
+          floats = floats.filter(f => (f.l -= dt) > 0); floats.forEach(f => { f.y -= 28 * dt; ctx.globalAlpha = Math.min(1, f.l * 1.5); MG.text(ctx, f.text, f.x, f.y, 14, f.col); ctx.globalAlpha = 1; });
+          // bidikan
+          const ax = aim.x + sway.x; const ay = aim.y + sway.y;
+          ctx.strokeStyle = holding && breath > 0 ? '#4ade80' : '#ef4444'; ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.arc(ax, ay, 16, 0, 7); ctx.moveTo(ax - 26, ay); ctx.lineTo(ax - 6, ay); ctx.moveTo(ax + 6, ay); ctx.lineTo(ax + 26, ay); ctx.moveTo(ax, ay - 26); ctx.lineTo(ax, ay - 6); ctx.moveTo(ax, ay + 6); ctx.lineTo(ax, ay + 26); ctx.stroke();
+          ctx.fillStyle = '#ef4444'; ctx.fillRect(ax - 1, ay - 1, 2, 2);
+          if (holding && breath > 0) { ctx.fillStyle = 'rgba(2,6,23,0.35)'; ctx.fillRect(0, 0, W, H); ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.restore(); }
+          if (flash > 0) { ctx.fillStyle = `rgba(255,230,160,${flash * 6})`; ctx.fillRect(0, 0, W, H); }
+          // senapan
+          const gx = W / 2 + (aim.x - W / 2) * 0.35 + 110; const gy = H - 10 + recoil * 14;
+          ctx.save(); ctx.translate(gx, gy); ctx.rotate(-0.25 + (aim.x - W / 2) * 0.0003 - recoil * 0.12);
+          ctx.fillStyle = '#1f2937'; ctx.fillRect(-14, -70, 28, 80); ctx.fillStyle = '#6b7280'; ctx.fillRect(-5, -108, 10, 42); ctx.fillStyle = '#92400e'; ctx.fillRect(-12, -30, 24, 44); ctx.fillStyle = '#374151'; ctx.fillRect(-3, -116, 6, 10);
+          if (flash > 0) { ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.arc(0, -120, 14, 0, 7); ctx.fill(); }
+          ctx.restore();
+          ctx.restore();
+          // HUD
+          ctx.fillStyle = 'rgba(2,6,23,0.75)'; ctx.fillRect(0, 0, W, 26);
+          MG.text(ctx, `SKOR ${score} / ${GOAL}`, 80, 18, 13, '#fde047'); MG.text(ctx, `${Math.ceil(timeLeft)} dtk`, W / 2, 18, 13, timeLeft < 10 ? '#fb7185' : '#e2e8f0'); MG.text(ctx, combo > 1 ? `KOMBO x${combo}` : '', W - 70, 18, 12, '#4ade80');
+          for (let i = 0; i < 6; i++) { ctx.fillStyle = i < ammo ? '#facc15' : '#475569'; ctx.fillRect(14 + i * 14, H - 28, 8, 18); ctx.fillStyle = i < ammo ? '#b45309' : '#334155'; ctx.fillRect(14 + i * 14, H - 14, 8, 4); }
+          if (reloadT > 0) { ctx.fillStyle = 'rgba(2,6,23,0.8)'; ctx.fillRect(14, H - 40, 84, 8); ctx.fillStyle = '#38bdf8'; ctx.fillRect(15, H - 39, 82 * (1 - reloadT / 1.3), 6); }
+          ctx.fillStyle = 'rgba(2,6,23,0.75)'; ctx.fillRect(W - 120, H - 24, 108, 12); ctx.fillStyle = '#38bdf8'; ctx.fillRect(W - 119, H - 23, 106 * breath / 100, 10); MG.text(ctx, 'NAFAS', W - 66, H - 28, 8, '#bae6fd');
+        });
       }
 
       _startTapRace(title, subtitle, prize, icon) {
@@ -7641,6 +8978,7 @@
           };
           this.citizens.list.push(c);
           this.actors.push(c);
+          if (o.tier) this.citizens.assignTier(c, o.tier);
           return c;
         };
         this._mkActor = mk;
@@ -7676,14 +9014,14 @@
         const tr = this.treadStations[1];
         mk(false, tr.worldX, tr.worldZ, { type: 'treadmill', st: tr, pace: 0.6 }, { yaw: Math.PI, shirt: '#ef4444', lines: ['Hhh... tinggal 5 menit lagi!'] });
         const bs = this.benchStations[1];
-        mk(false, bs.worldX, bs.worldZ + 1.65, { type: 'bench', st: bs }, { yaw: 0, shirt: '#2563eb', fixed: true, lines: ['Jangan ganggu, lagi set terakhir!'] });
-        mk(false, GX - 2.2, GZ - 4.6, { type: 'curl' }, { yaw: Math.atan2(0, -1) + 0.3, shirt: '#f59e0b', lines: ['Biar lengan kayak Bang Jago!'] });
+        mk(false, bs.worldX, bs.worldZ + 1.65, { type: 'bench', st: bs }, { yaw: 0, shirt: '#2563eb', fixed: true, tier: 'tangguh', lines: ['Jangan ganggu, lagi set terakhir!'] });
+        mk(false, GX - 2.2, GZ - 4.6, { type: 'curl' }, { yaw: Math.atan2(0, -1) + 0.3, shirt: '#f59e0b', tier: 'tangguh', lines: ['Biar lengan kayak Bang Jago!'] });
         mk(true, GX + 4.2, GZ - 4.6, { type: 'squat' }, { yaw: Math.PI, shirt: '#ec4899', lines: ['Squat dulu biar kuat!'] });
         mk(false, GX - 8.8, GZ - 5.3, { type: 'stretch' }, { yaw: 0.4, shirt: '#16a34a' });
         mk(true, GX + 10.4, GZ + 2.2, { type: 'rope' }, { yaw: 0, shirt: '#06b6d4', lines: ['Lompat tali bikin lincah!'] });
         const bag1 = this.bags[1];
-        mk(false, bag1.base.x, bag1.base.z + 0.95, { type: 'bagpunch', bag: bag1 }, { yaw: Math.PI, shirt: '#dc2626', cap: true, lines: ['Samsak ini keras banget!'] });
-        mk(false, GX + 0.5, GZ - 6.5, { type: 'owner' }, { yaw: 0, shirt: '#0f172a', pants: '#111827', name: 'Coach Bambang', lines: ['Tiket harian cuma Rp 20.000, Bro!', 'Latihan yang rajin, hasilnya kelihatan!'] });
+        mk(false, bag1.base.x, bag1.base.z + 0.95, { type: 'bagpunch', bag: bag1 }, { yaw: Math.PI, shirt: '#dc2626', cap: true, tier: 'jagoan', lines: ['Samsak ini keras banget!'] });
+        mk(false, GX + 0.5, GZ - 6.5, { type: 'owner' }, { yaw: 0, shirt: '#0f172a', pants: '#111827', name: 'Coach Bambang', tier: 'jagoan', lines: ['Tiket harian cuma Rp 20.000, Bro!', 'Latihan yang rajin, hasilnya kelihatan!'] });
 
         // 4) Food court vendors & diners
         this.stalls.forEach((s, i) => {
@@ -7730,7 +9068,7 @@
         kA.act.kickT = 0.5;
 
         // 9) Joggers around the pond
-        mk(false, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 12.5, ang: 0, sp: 0.42 }, { name: 'Mas Joging', shirt: '#22d3ee', fixed: true, lines: ['Hhh... jangan ganggu, lagi lari!'] });
+        mk(false, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 12.5, ang: 0, sp: 0.42 }, { name: 'Mas Joging', shirt: '#22d3ee', fixed: true, tier: 'tangguh', lines: ['Hhh... jangan ganggu, lagi lari!'] });
         mk(true, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 13.4, ang: 3.2, sp: -0.38 }, { name: 'Mbak Lari', shirt: '#f43f5e', fixed: true, lines: ['Pagi-pagi udah olahraga!'] });
 
         // all actors start hidden-safe
@@ -8153,6 +9491,8 @@
         this._updatePanel();
         this._updateStatsPill();
         this._updateEdges(dt);
+        // pemulihan perlahan jika tidak sedang berkelahi
+        if (GameState.health < 100 && !this.citizens.list.some(c => c.hostile > 0)) GameState.health = Math.min(100, GameState.health + 0.6 * dt);
       }
 
       _updateLine(tip, bob) {
