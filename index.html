@@ -2917,6 +2917,12 @@
       get isCrouching() { return (this.stance || 0) >= 1; }
       set isCrouching(v) { if (!v) this.stance = 0; else if (!this.stance) this.stance = 1; }
 
+      // Tinggi pinggul agar telapak kaki tepat menapak tanah (pinggul 0.08 + paha 0.42 + betis 0.38 + sepatu 0.07)
+      _footClearY(hL, kL, hR, kR) {
+        const drop = (h, k) => 0.15 + 0.42 * Math.cos(h) + 0.38 * Math.cos(h + k);
+        return Math.max(drop(hL, kL), drop(hR, kR)) + 0.01;
+      }
+
       toggleCrouch() {
         if (GameState.inVehicle || GameState.vehicleTransition || GameState.roomTransition) return;
         this.stance = ((this.stance || 0) + 1) % 3;
@@ -3603,7 +3609,7 @@
         }
 
         // Pelvis height: stance, walking bob, idle bounce, landing squash
-        let targetPelvisY = this.stance === 2 ? 0.27 : (this.stance === 1 ? 0.62 : THREE.MathUtils.lerp(0.95, 0.85, cb));
+        let targetPelvisY = this.stance === 2 ? 0.27 : (this.stance === 1 ? this._footClearY(hipL, kneeL, hipR, kneeR) : THREE.MathUtils.lerp(0.95, 0.85, cb));
         if (moving) targetPelvisY -= Math.abs(cosNow) * 0.05 * inputMag * (isSprinting ? 1.5 : 1);
         if (inCombat && !moving) targetPelvisY += bounce * 0.028;
         targetPelvisY -= landEnv * 0.16 + pelvisDrop;
