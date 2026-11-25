@@ -420,6 +420,12 @@
           <button id="btn-hud-audio" type="button" title="Suara On/Off" class="glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-emerald-300">
             <span id="hud-audio-icon" data-icon="volumeOn" data-icon-class="w-4 h-4 sm:w-5 sm:h-5"></span>
           </button>
+          <button id="btn-hud-fs" type="button" title="Layar Penuh" class="glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sky-300">
+            <span id="hud-fs-icon" data-icon="fullscreen" data-icon-class="w-4 h-4 sm:w-5 sm:h-5"></span>
+          </button>
+          <button id="btn-hud-vib" type="button" title="Getar HP On/Off" class="glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-rose-300">
+            <span id="hud-vib-icon" data-icon="vibrate" data-icon-class="w-4 h-4 sm:w-5 sm:h-5"></span>
+          </button>
           <button id="btn-hud-touch" type="button" title="Tampilkan/Sembunyikan Kontrol Layar" class="glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-amber-300">
             <span data-icon="gamepad" data-icon-class="w-4 h-4 sm:w-5 sm:h-5"></span>
           </button>
@@ -891,6 +897,9 @@
         crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
         roll: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
         crouch: '<path d="m6 9 6 6 6-6"/><path d="M6 19h12"/>',
+        fullscreen: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+        fullscreenExit: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
+        vibrate: '<path d="m2 8 2 4-2 4"/><path d="m22 8-2 4 2 4"/><rect width="8" height="14" x="8" y="5" rx="1"/>',
         wave: '<path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
         punch: '<path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/><path d="M14 10V5a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 9.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v7a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-2a2 2 0 0 0-2-2Z"/>',
         jump: '<path d="m18 15-6-6-6 6"/><path d="M6 5h12"/>',
@@ -1028,6 +1037,23 @@
     // ==========================================================================
     // 2. WEB AUDIO SYNTHESIZER ENGINE (VEHICLES, BOXING, HUMAN VOICES, CULINARY)
     // ==========================================================================
+    // Getar HP (Vibration API). Tidak butuh dialog izin; hanya butuh sentuhan pemain & browser yang mendukung.
+    const Haptics = {
+      supported: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
+      enabled: true,
+      last: 0,
+      init() { try { this.enabled = localStorage.getItem('ngabrag_haptics') !== '0'; } catch (e) { /* abaikan */ } },
+      set(on) { this.enabled = on; try { localStorage.setItem('ngabrag_haptics', on ? '1' : '0'); } catch (e) { /* abaikan */ } },
+      buzz(pattern) {
+        if (!this.supported || !this.enabled) return;
+        const n = performance.now();
+        if (n - this.last < 45) return;
+        this.last = n;
+        try { navigator.vibrate(pattern); } catch (e) { /* abaikan */ }
+      }
+    };
+    Haptics.init();
+
     class SoundEngine {
       constructor() {
         this.ctx = null;
@@ -1291,6 +1317,7 @@
       }
 
       playHitImpact(heavy = false, crit = false) {
+        Haptics.buzz(crit ? [38, 20, 38] : (heavy ? 32 : 18));
         const g = crit ? 1.25 : 1;
         // Deep body thump
         this.playTone(heavy ? 150 : 185, heavy ? 0.26 : 0.17, 'sine', (heavy ? 0.28 : 0.2) * g, heavy ? 38 : 52, 0, 0.18);
@@ -1323,6 +1350,7 @@
       }
 
       playBlock() {
+        Haptics.buzz(16);
         this.playTone(240, 0.12, 'triangle', 0.13, 120, 0, 0.1);
         this.playNoiseBurst({ duration: 0.07, filterType: 'bandpass', startFreq: 1300, endFreq: 500, Q: 2.2, gainVal: 0.1 });
         this.playTone(1450, 0.1, 'square', 0.025, 1100, 0.01);
@@ -1343,11 +1371,13 @@
       }
 
       playLand(power = 1) {
+        if (power > 0.9) Haptics.buzz(24);
         this.playTone(120, 0.16, 'sine', 0.13 * power, 42);
         this.playNoiseBurst({ duration: 0.1, filterType: 'lowpass', startFreq: 1200, endFreq: 200, Q: 0.8, gainVal: 0.1 * power });
       }
 
       playKnockdown() {
+        Haptics.buzz([90, 40, 140]);
         this.playTone(110, 0.32, 'sine', 0.24, 30, 0, 0.3);
         this.playNoiseBurst({ duration: 0.22, filterType: 'lowpass', startFreq: 1500, endFreq: 120, Q: 0.7, gainVal: 0.2, wet: 0.25 });
         this.playTone(60, 0.5, 'triangle', 0.15, 26, 0.06, 0.3);
@@ -1430,6 +1460,7 @@
       }
 
       playGunshot() {
+        Haptics.buzz(34);
         this.playNoiseBurst({ duration: 0.22, filterType: 'lowpass', startFreq: 3200, endFreq: 300, Q: 0.7, gainVal: 0.32, wet: 0.25 });
         this.playTone(140, 0.2, 'sine', 0.22, 40, 0, 0.2);
         this.playTone(2200, 0.04, 'square', 0.03, 900);
@@ -1525,6 +1556,7 @@
       }
 
       playHeroHurt() {
+        Haptics.buzz([70, 35, 90]);
         this.playVocalFormant({
           pitchStart: 175,
           pitchEnd: 115,
@@ -1568,6 +1600,7 @@
       }
 
       playBump() {
+        Haptics.buzz(26);
         this.playTone(115, 0.12, 'triangle', 0.09, 55);
       }
 
@@ -2702,7 +2735,8 @@
         this.isGrounded = true;
         this.jumpCount = 0;
 
-        this.isCrouching = false;
+        this.stance = 0;
+        this.proneBlend = 0;
         this.walkCycle = 0;
         this.attackTimer = 0;
         this.attackDuration = 0.34;
@@ -2878,11 +2912,17 @@
         this.sound.playPunchSwing(1);
       }
 
+      // Posisi badan: 0 berdiri, 1 jongkok, 2 tiarap. isCrouching = "tidak berdiri" (tetap kompatibel dengan kode lama);
+      // mengisi isCrouching = false dari mana pun otomatis berdiri tegak lagi.
+      get isCrouching() { return (this.stance || 0) >= 1; }
+      set isCrouching(v) { if (!v) this.stance = 0; else if (!this.stance) this.stance = 1; }
+
       toggleCrouch() {
         if (GameState.inVehicle || GameState.vehicleTransition || GameState.roomTransition) return;
-        this.isCrouching = !this.isCrouching;
+        this.stance = ((this.stance || 0) + 1) % 3;
         this.emoteTimer = 0;
-        showToast(this.isCrouching ? 'Mode Jongkok Aktif' : 'Berdiri Tegak', 'crouch');
+        GameState.heroStance = this.stance;
+        showToast(['Berdiri Tegak', 'Jongkok — jalan pelan & rendah', 'Tiarap — merayap, paling senyap'][this.stance], 'crouch');
       }
 
       triggerEmote() {
@@ -3232,7 +3272,7 @@
           GameState.nitro = Math.max(0, GameState.nitro - 20 * dt);
         }
 
-        const moveSpeed = (this.isCrouching ? 3.2 : (isSprinting ? 10.6 : 6.2)) * (this.attackTimer > 0 ? 0.5 : 1) * GameStats.speedMult();
+        const moveSpeed = (this.stance === 2 ? 1.7 : this.stance === 1 ? 3.2 : (isSprinting ? 10.6 : 6.2)) * (this.attackTimer > 0 ? 0.5 : 1) * GameStats.speedMult();
         if (this.rollTimer > 0) {
           this.rollTimer = Math.max(0, this.rollTimer - dt);
           const dur = this.rollDuration || 0.56;
@@ -3316,7 +3356,10 @@
         this.rig.head.rotation.set(0, 0, 0);
 
         // 7. Articulated Walking, Boxing Footwork, Landing & Emote Pose
-        const crouchBlend = this.isCrouching ? 1 : 0;
+        const crouchBlend = this.stance === 1 ? 1 : 0;
+        this.proneBlend += ((this.stance === 2 ? 1 : 0) - this.proneBlend) * Math.min(1, dt * 7);
+        const pb = this.proneBlend;
+        GameState.heroStance = this.stance;
         const moving = inputMag > 0.08 && this.isGrounded;
         const inCombat = (this.attackTimer > 0 || this.guardTimer > 0) && this.consumeTimer <= 0 && !this.isCrouching;
         this.combatBlend += ((inCombat ? 1 : 0) - this.combatBlend) * Math.min(1, dt * 11);
@@ -3360,7 +3403,7 @@
         this.stepSign = stepSign;
 
         const strideAmp = moving
-          ? (this.isCrouching ? 0.42 : (isSprinting ? 0.95 : 0.62)) * inputMag * (1 - cb * 0.45)
+          ? (this.stance === 2 ? 0.34 : this.stance === 1 ? 0.42 : (isSprinting ? 0.95 : 0.62)) * inputMag * (1 - cb * 0.45)
           : 0.03;
         const swing = Math.sin(this.walkCycle) * strideAmp;
         const bounce = Math.abs(Math.sin(this.walkCycle * 1.0));
@@ -3394,6 +3437,11 @@
         kneeR += crouchBlend * 1.38;
         zL += crouchBlend * 0.08;
         zR -= crouchBlend * 0.08;
+
+        // Tiarap: kaki menjulur di belakang, merayap bergantian
+        kneeL += pb * (0.18 + Math.max(0, -swing) * 1.2);
+        kneeR += pb * (0.18 + Math.max(0, swing) * 1.2);
+        hipL += pb * 0.1; hipR += pb * 0.1;
 
         // Boxing stance: staggered feet, bent knees, bouncing on toes
         const shuffle = Math.sin(this.walkCycle * 1.0) * (moving ? 0.18 : 0.05);
@@ -3537,6 +3585,14 @@
           rsY = 0; rsZ = -0.1 - air * 0.5;
           reX = -0.22 - Math.max(0, -swing) * 0.45 - crouchBlend * 0.4 - (isSprinting ? 0.6 : 0);
           torsoYaw = -swing * 0.14;
+          if (pb > 0.01) {
+            lsX = lsX * (1 - pb) + (-2.6 + swing * 1.1) * pb;
+            rsX = rsX * (1 - pb) + (-2.6 - swing * 1.1) * pb;
+            leX = leX * (1 - pb) + (-0.45 - Math.max(0, -swing) * 0.8) * pb;
+            reX = reX * (1 - pb) + (-0.45 - Math.max(0, swing) * 0.8) * pb;
+            lsZ += pb * 0.22; rsZ -= pb * 0.22;
+            torsoYaw *= (1 - pb);
+          }
         }
 
         if (!armsHandled) {
@@ -3547,7 +3603,7 @@
         }
 
         // Pelvis height: stance, walking bob, idle bounce, landing squash
-        let targetPelvisY = this.isCrouching ? 0.62 : THREE.MathUtils.lerp(0.95, 0.85, cb);
+        let targetPelvisY = this.stance === 2 ? 0.27 : (this.stance === 1 ? 0.62 : THREE.MathUtils.lerp(0.95, 0.85, cb));
         if (moving) targetPelvisY -= Math.abs(cosNow) * 0.05 * inputMag * (isSprinting ? 1.5 : 1);
         if (inCombat && !moving) targetPelvisY += bounce * 0.028;
         targetPelvisY -= landEnv * 0.16 + pelvisDrop;
@@ -3556,6 +3612,7 @@
         // Hip twist separate from shoulders (legs counter-rotate so feet stay planted)
         const pelvisYaw = torsoYaw * 0.38;
         this.rig.pelvis.rotation.y = pelvisYaw;
+        this.rig.pelvis.rotation.x = pb * 1.43;
         this.rig.leftHipPivot.rotation.set(hipL, -pelvisYaw * 0.85, zL);
         this.rig.rightHipPivot.rotation.set(hipR, -pelvisYaw * 0.85, zR);
         this.rig.leftKneePivot.rotation.set(kneeL, 0, 0);
@@ -3571,6 +3628,7 @@
         }
 
         this.rig.torso.rotation.set(torsoPitch, torsoYaw - pelvisYaw, 0);
+        this.rig.head.rotation.x -= pb * 1.2;
 
       }
     }
@@ -4797,7 +4855,7 @@
           { dist: isDriving ? 8.2 : 5.6, height: isDriving ? 3.2 : 2.3 },
           { dist: isDriving ? 11.5 : 8.4, height: isDriving ? 4.4 : 3.4 },
           { dist: isDriving ? 5.8 : 3.6, height: isDriving ? 2.4 : 1.75 },
-          { dist: 0.25, height: isDriving ? 1.35 : (isCrouching ? 1.15 : 1.62) }
+          { dist: 0.25, height: isDriving ? 1.35 : (isCrouching >= 2 ? 0.55 : (isCrouching ? 1.15 : 1.62)) }
         ];
         const preset = modePresets[GameState.cameraMode % modePresets.length];
 
@@ -4856,7 +4914,7 @@
         }
 
         this.camera.position.lerp(desiredPos, Math.min(1, dt * 12));
-        const lookGoal = new THREE.Vector3(targetPos.x, targetPos.y + (isCrouching ? 0.95 : 1.45), targetPos.z);
+        const lookGoal = new THREE.Vector3(targetPos.x, targetPos.y + (isCrouching >= 2 ? 0.5 : (isCrouching ? 0.95 : 1.45)), targetPos.z);
         this.currentLookAt.lerp(lookGoal, Math.min(1, dt * 14));
         this.camera.lookAt(this.currentLookAt);
       }
@@ -5165,7 +5223,7 @@
           const nearDoor = Boolean(GameState.nearestDoor);
           const nearZone = Boolean(GameState.nearestServiceZone);
           setSlot('top1', 'Q', 'roll', 'GULING');
-          setSlot('top2', 'Z', 'crouch', 'JONGKOK');
+          setSlot('top2', 'Z', 'crouch', ['JONGKOK', 'TIARAP', 'BERDIRI'][GameState.heroStance || 0]);
           if (nearVeh) {
             setSlot('top3', 'E', 'key', 'NAIK', 'ready');
           } else if (nearDoor) {
@@ -10307,6 +10365,44 @@
           showToast(GameState.audioEnabled ? 'Suara & Mesin Aktif' : 'Suara Dimatikan', GameState.audioEnabled ? 'volumeOn' : 'volumeOff');
         });
 
+        const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+        const syncFs = () => {
+          const ic = document.getElementById('hud-fs-icon');
+          if (ic) ic.innerHTML = GameIcons.svg(fsEl() ? 'fullscreenExit' : 'fullscreen', 'w-4 h-4 sm:w-5 sm:h-5');
+        };
+        document.addEventListener('fullscreenchange', syncFs);
+        document.addEventListener('webkitfullscreenchange', syncFs);
+        document.getElementById('btn-hud-fs')?.addEventListener('click', async () => {
+          const root = document.documentElement;
+          try {
+            if (fsEl()) {
+              await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+              try { screen.orientation?.unlock?.(); } catch (e) { /* abaikan */ }
+            } else if (root.requestFullscreen || root.webkitRequestFullscreen) {
+              await (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+              try { await screen.orientation?.lock?.('landscape'); } catch (e) { /* tidak semua perangkat */ }
+              showToast('Layar Penuh Aktif', 'fullscreen');
+            } else {
+              showToast('Browser ini tak mendukung layar penuh. Di iPhone: Bagikan → Tambah ke Layar Utama', 'fullscreen');
+            }
+          } catch (e) {
+            showToast('Layar penuh ditolak browser', 'fullscreen');
+          }
+        });
+
+        const syncVib = () => {
+          const b = document.getElementById('btn-hud-vib');
+          if (b) b.style.opacity = (Haptics.supported && Haptics.enabled) ? '1' : '0.45';
+        };
+        syncVib();
+        document.getElementById('btn-hud-vib')?.addEventListener('click', () => {
+          if (!Haptics.supported) { showToast('HP/browser ini tidak mendukung getar (iPhone Safari tidak bisa)', 'vibrate'); return; }
+          Haptics.set(!Haptics.enabled);
+          syncVib();
+          if (Haptics.enabled) Haptics.buzz([60, 40, 60]);
+          showToast(Haptics.enabled ? 'Getar HP Aktif (tabrakan, pukulan, luka)' : 'Getar HP Dimatikan', 'vibrate');
+        });
+
         document.getElementById('btn-hud-touch')?.addEventListener('click', () => {
           GameState.touchUIEnabled = !GameState.touchUIEnabled;
           this._syncTouchVisibility();
@@ -10623,7 +10719,7 @@
             focusPos,
             focusYaw,
             GameState.inVehicle,
-            this.hero.isCrouching,
+            this.hero.stance,
             GameState.currentBuilding
           );
 
