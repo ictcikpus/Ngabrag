@@ -897,6 +897,7 @@
         crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
         roll: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
         crouch: '<path d="m6 9 6 6 6-6"/><path d="M6 19h12"/>',
+        flag: '<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 8 2a6 6 0 0 0 4-1.5.5.5 0 0 1 .8.4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 14c-3 0-5-2-8-2a6 6 0 0 0-4 1.5"/>',
         fullscreen: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
         fullscreenExit: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
         vibrate: '<path d="m2 8 2 4-2 4"/><path d="m22 8-2 4 2 4"/><rect width="8" height="14" x="8" y="5" rx="1"/>',
@@ -4233,6 +4234,26 @@
         });
       }
 
+      // Membuat warga baru saat permainan berjalan (Satpol PP, copet misi, dll.)
+      spawnCitizen(r) {
+        const rig = CharacterRigFactory.createRig({
+          hair: 'hair_short', top: 'top_kaos', pants: 'pants_jeans',
+          shirtColor: r.shirt || '#475569', pantsColor: r.pants || '#1e293b', shoesColor: '#e2e8f0', skinColor: r.skin || '#c68642'
+        });
+        const gy = this.world.getGroundHeight(r.x, r.z);
+        const pos = new THREE.Vector3(r.x, gy, r.z);
+        rig.root.position.copy(pos);
+        rig.root.rotation.order = 'YXZ';
+        this.scene.add(rig.root);
+        const c = {
+          name: r.name || 'Warga', female: Boolean(r.female), rig, pos, yaw: Math.random() * Math.PI * 2, walkCycle: Math.random() * 6,
+          turnTimer: 2, greetTimer: 0, angryTimer: 0, knockbackVel: new THREE.Vector3(), flashTimer: 0, staggerTimer: 0, downTimer: 0, downBlend: 0, dustT: 0
+        };
+        this.list.push(c);
+        if (r.tier) this.assignTier(c, r.tier);
+        return c;
+      }
+
       // ---------- Tingkat kekuatan warga: biasa (lemah) / tangguh / jagoan / preman ----------
       assignTier(c, tier) {
         const T = CitizenManager.TIERS[tier];
@@ -4333,6 +4354,7 @@
         GameState.cash -= cost;
         GameState.health = 45;
         this.list.forEach(c => { c.hostile = 0; c.atk = null; c.truce = 25; });
+        if (app.missions) app.missions.onHeroKO();
         if (this.fx) this.fx.screenFlash('0,0,0', 0.95, 1100);
         this.sound.playKnockdown();
         hero.pos.set(0, this.world.getGroundHeight(0, 16), 16);
@@ -4466,6 +4488,7 @@
       }
 
       onHitCitizen(c, dmg, pushDir, fromVehicle = false, combo = 0) {
+        if (this.life && this.life.app.missions) this.life.app.missions.onCitizenHit(c, dmg, fromVehicle);
         if (!c.tier) { c.tier = 'biasa'; c.maxHp = CitizenManager.TIERS.biasa.hp; c.hp = c.maxHp; }
         const T = CitizenManager.TIERS[c.tier];
         const tough = c.tier !== 'biasa';
@@ -4500,6 +4523,7 @@
         if (ko) {
           c.hostile = 0;
           c.atk = null;
+          if (this.life && this.life.app.missions) this.life.app.missions.onCitizenKO(c);
           if (tough) {
             GameState.cash += T.reward;
             if (this.fx) this.fx.floatText(up, `KO! +${formatRupiah(T.reward)}`, '#fde047', 1.3);
@@ -4548,6 +4572,7 @@
           biasa: { hp: 45, kb: 1, scale: 1, label: null },
           tangguh: { hp: 120, kb: 0.55, scale: 1.04, label: 'TANGGUH', col: '#fbbf24', dmg: 7, speed: 3.5, cd: 1.5, windup: 0.42, block: 0.2, reward: 30000 },
           jagoan: { hp: 210, kb: 0.3, scale: 1.09, label: 'JAGOAN', col: '#fb923c', dmg: 12, speed: 4.1, cd: 1.15, windup: 0.34, block: 0.35, reward: 90000 },
+          satpol: { hp: 160, kb: 0.4, scale: 1.05, label: 'SATPOL', col: '#60a5fa', dmg: 9, speed: 4.7, cd: 1.1, windup: 0.36, block: 0.25, reward: 10000 },
           preman: { hp: 340, kb: 0.15, scale: 1.18, label: 'PREMAN', col: '#ef4444', dmg: 19, speed: 4.5, cd: 0.95, windup: 0.3, block: 0.45, reward: 220000 }
         };
       }
@@ -4672,8 +4697,14 @@
             this._fight(c, dt, hero);
           } else if (c.flee > 0) {
             c.yaw = Math.atan2(c.pos.x - hero.pos.x, c.pos.z - hero.pos.z);
-            c.pos.x += Math.sin(c.yaw) * 4.6 * dt;
-            c.pos.z += Math.cos(c.yaw) * 4.6 * dt;
+            let fs = 4.6;
+            if (c.thief) {
+              c.yaw += Math.sin((this.life ? this.life.t : 0) * 0.9 + 1) * 0.7;
+              if (Math.abs(c.pos.x) > 105 || Math.abs(c.pos.z) > 105) c.yaw = Math.atan2(-c.pos.x, -c.pos.z);
+              fs = 7.3;
+            }
+            c.pos.x += Math.sin(c.yaw) * fs * dt;
+            c.pos.z += Math.cos(c.yaw) * fs * dt;
           } else if (c.greetTimer > 0) {
             c.greetTimer -= dt;
             c.yaw = Math.atan2(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
@@ -6866,6 +6897,7 @@
           GameState.cash += prize;
           GameState.mgWins = GameState.mgWins || {};
           GameState.mgWins[key] = (GameState.mgWins[key] || 0) + 1;
+          if (this.app.missions) this.app.missions.onMinigameWin(key);
           this.app.sound.playMissionComplete();
           this.app.sound.playCrowdCheer(0.8);
           this.app.updateHUD();
@@ -10154,6 +10186,408 @@
     // ==========================================================================
     // 15. MAIN APPLICATION BOOTSTRAPPER
     // ==========================================================================
+    // ==========================================================================
+    // 12B. MISI SAMBILAN + SISTEM DICARI (SATPOL PP)
+    // ==========================================================================
+    class MissionSystem {
+      constructor(app) {
+        this.app = app;
+        this.active = null;
+        this.offers = [];
+        this.heat = 0;
+        this.stars = 0;
+        this.enforcers = [];
+        this.spawnT = 3;
+        this.done = 0;
+        this.earned = 0;
+        this.t = 0;
+        this.hintShown = false;
+        this._buildDom();
+        this._buildBeacon();
+      }
+
+      // ---------------- DOM ----------------
+      _buildDom() {
+        const wrap = document.createElement('div');
+        wrap.id = 'hud-mission-wrap';
+        wrap.className = 'fixed left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 pointer-events-none px-2';
+        wrap.style.top = '2.7rem';
+        wrap.innerHTML = `
+          <div id="hud-wanted" class="hidden glass-panel rounded-2xl px-3 py-1 border border-rose-500/60 text-center shadow-lg">
+            <div class="flex items-center justify-center gap-2"><span id="wanted-stars" class="text-base sm:text-lg font-black tracking-wider text-rose-400"></span><span class="text-[10px] sm:text-[11px] font-black text-rose-300">DICARI SATPOL PP</span></div>
+            <div class="h-1.5 w-40 rounded-full bg-slate-800 overflow-hidden mt-0.5"><div id="wanted-bar" class="h-full bg-rose-500" style="width:0%"></div></div>
+            <div id="wanted-hint" class="text-[9px] sm:text-[10px] text-slate-300 font-bold mt-0.5">Kabur! Tiarap jauh dari mereka atau masuk bangunan.</div>
+          </div>
+          <div id="hud-mission" class="hidden glass-panel rounded-2xl px-3 py-1.5 border border-amber-400/50 text-center shadow-lg max-w-[92vw]">
+            <div id="ms-title" class="text-[10px] sm:text-[11px] font-black text-amber-300"></div>
+            <div id="ms-obj" class="text-[10px] sm:text-xs font-bold text-slate-100"></div>
+            <div id="ms-info" class="text-[10px] font-extrabold text-emerald-300"></div>
+          </div>`;
+        document.body.appendChild(wrap);
+
+        const btn = document.createElement('button');
+        btn.id = 'btn-hud-missions';
+        btn.type = 'button';
+        btn.className = 'glass-pill rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-[11px] font-extrabold text-amber-300 flex items-center gap-1.5 shadow';
+        btn.innerHTML = `<span data-icon="flag" data-icon-class="w-3.5 h-3.5"></span><span>MISI</span>`;
+        const ref = document.getElementById('btn-hud-minigames');
+        if (ref && ref.parentElement) ref.parentElement.insertBefore(btn, ref);
+        if (window.GameIcons || typeof GameIcons !== 'undefined') { const sp = btn.querySelector('[data-icon]'); if (sp) sp.innerHTML = GameIcons.svg('flag', 'w-3.5 h-3.5'); }
+        btn.addEventListener('click', () => this.openBoard());
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-missions';
+        modal.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2.5 sm:p-6';
+        modal.innerHTML = `
+          <div class="glass-panel rounded-3xl border border-amber-400/30 w-full max-w-lg max-h-[88vh] overflow-y-auto p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div><div class="text-base sm:text-lg font-black text-amber-300">Papan Misi Pantura</div><div id="ms-stats" class="text-[10px] text-slate-400 font-bold"></div></div>
+              <button id="btn-close-missions" type="button" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">✕</button>
+            </div>
+            <div id="ms-list" class="space-y-2"></div>
+            <div class="flex gap-2"><button id="btn-ms-refresh" type="button" class="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/15 py-2 text-xs font-bold text-slate-200">Acak Misi Baru</button><button id="btn-ms-cancel" type="button" class="flex-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 py-2 text-xs font-bold text-rose-300">Batalkan Misi Aktif</button></div>
+            <div class="text-[10px] text-slate-400 leading-snug">Tip: memukul warga biasa membuatmu DICARI Satpol PP. Kabur sejauh mungkin, tiarap/jongkok, atau masuk bangunan agar bintangmu hilang.</div>
+          </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#btn-close-missions').addEventListener('click', () => this.closeBoard());
+        modal.querySelector('#btn-ms-refresh').addEventListener('click', () => { this._genOffers(); this._renderBoard(); });
+        modal.querySelector('#btn-ms-cancel').addEventListener('click', () => { if (this.active) { this._clearActive(); showToast('Misi dibatalkan', 'alert'); } this._renderBoard(); });
+      }
+
+      _buildBeacon() {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 26, 20, 1, true), mat);
+        beam.position.y = 13;
+        const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 2.3, 32), new THREE.MeshBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.12;
+        g.add(beam, ring);
+        g.visible = false;
+        this.app.scene.add(g);
+        this.beacon = g;
+        this._beamMat = mat;
+        this._ring = ring;
+      }
+
+      // ---------------- papan & penawaran ----------------
+      _spots() {
+        const w = this.app.world;
+        const arr = (w.buildings || []).filter(b => b.title).map(b => ({ name: b.title, x: b.x, z: b.z + (b.d || 8) * 0.5 + 3.2 }));
+        arr.push({ name: 'Alun-Alun Pantura', x: 0, z: 14 }, { name: 'Sasana Tinju', x: 0, z: 53 });
+        return arr;
+      }
+
+      _genOffers() {
+        const spots = this._spots();
+        const pick = (a) => a[Math.floor(Math.random() * a.length)];
+        const offers = [];
+        // paket
+        for (let k = 0; k < 6 && offers.filter(o => o.type === 'paket').length < 1; k++) {
+          const a = pick(spots); const b = pick(spots);
+          const d = Math.hypot(a.x - b.x, a.z - b.z);
+          if (a === b || d < 45) continue;
+          offers.push({ type: 'paket', title: 'Antar Paket Kilat', desc: `Ambil paket di ${a.name}, antar ke ${b.name}.`, a, b, time: Math.round(30 + d * 0.5), reward: Math.round((40000 + d * 900) / 1000) * 1000, xp: ['kelincahan', 1] });
+        }
+        offers.push({ type: 'copet', title: 'Kejar Copet!', desc: 'Ada copet kabur bawa dompet warga. Kejar dan pukul dia sebelum hilang (50 detik).', time: 50, reward: 120000, xp: ['kelincahan', 2] });
+        const strong = this.app.citizens.list.filter(c => c.tier && ['jagoan', 'preman'].includes(c.tier));
+        if (strong.length) { const t = pick(strong); offers.push({ type: 'bounty', title: 'Buru Jagoan Kampung', desc: `Warga resah dengan ${t.name} (${CitizenManager.TIERS[t.tier].label}). Kalahkan dia sampai KO.`, target: t, reward: t.tier === 'preman' ? 250000 : 150000, xp: ['kekuatan', 2] }); }
+        const games = [['motor', 'Balap Motor'], ['sack', 'Balap Karung'], ['panco', 'Adu Panco'], ['sumo', 'Sumo Pantura'], ['shooting', 'Lomba Tembak']];
+        const g = pick(games);
+        offers.push({ type: 'lomba', title: 'Juara Lomba Kampung', desc: `Menangkan ${g[1]} di menu LOMBA.`, key: g[0], gname: g[1], reward: 100000, xp: ['dayaTahan', 1] });
+        this.offers = offers.slice(0, 4);
+      }
+
+      openBoard() {
+        if (!GameState.started || GameState.inVehicle) { showToast('Turun dari kendaraan dulu untuk membuka Papan Misi', 'flag'); return; }
+        if (!this.offers.length) this._genOffers();
+        GameState.paused = true;
+        this._renderBoard();
+        document.getElementById('modal-missions').classList.remove('hidden');
+      }
+
+      closeBoard() {
+        document.getElementById('modal-missions').classList.add('hidden');
+        GameState.paused = false;
+      }
+
+      _renderBoard() {
+        const st = document.getElementById('ms-stats');
+        if (st) st.textContent = `Selesai: ${this.done} misi • Total penghasilan: ${formatRupiah(this.earned)}${this.active ? ' • 1 misi sedang berjalan' : ''}`;
+        const list = document.getElementById('ms-list');
+        list.innerHTML = this.offers.map((o, i) => `
+          <div class="rounded-2xl bg-slate-900/70 border border-white/10 p-3 flex items-center gap-3">
+            <div class="flex-1 min-w-0"><div class="text-xs sm:text-sm font-black text-amber-200">${o.title}</div><div class="text-[11px] text-slate-300 leading-snug">${o.desc}</div><div class="text-[11px] font-black text-emerald-300 mt-0.5">Hadiah ${formatRupiah(o.reward)}</div></div>
+            <button type="button" data-ms="${i}" class="shrink-0 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3 py-2 ${this.active ? 'opacity-40' : ''}">Terima</button>
+          </div>`).join('');
+        list.querySelectorAll('[data-ms]').forEach(b => b.addEventListener('click', () => this.accept(parseInt(b.dataset.ms, 10))));
+      }
+
+      accept(i) {
+        if (this.active) { showToast('Selesaikan atau batalkan misi yang sedang berjalan dulu', 'alert'); return; }
+        const o = this.offers[i];
+        if (!o) return;
+        this.closeBoard();
+        const m = Object.assign({}, o, { stage: 0, timeLeft: o.time || 0 });
+        this.active = m;
+        this.offers.splice(i, 1);
+        if (m.type === 'paket') m.target = { x: m.a.x, z: m.a.z, r: 4.6, label: m.a.name };
+        if (m.type === 'copet') this._spawnThief(m);
+        showToast(`Misi diterima: ${m.title}`, 'flag');
+        this.app.sound.playBellRing();
+      }
+
+      _spawnThief(m) {
+        const hero = this.app.hero;
+        const ang = Math.random() * Math.PI * 2;
+        let x = hero.pos.x + Math.sin(ang) * 22; let z = hero.pos.z + Math.cos(ang) * 22;
+        x = Math.max(-110, Math.min(110, x)); z = Math.max(-110, Math.min(110, z));
+        const p = new THREE.Vector3(x, 0, z);
+        for (let k = 0; k < 4; k++) this.app.world.resolveCircleCollision(p, 0.8);
+        const c = this.app.citizens.spawnCitizen({ name: 'Si Copet', shirt: '#111827', pants: '#1c1917', x: p.x, z: p.z, skin: '#a0693a' });
+        c.thief = true;
+        c.flee = 9999;
+        c.mission = true;
+        m.thief = c;
+        this.app.life && this.app.life.say(c, 'Hehe, dompet ini punya gue!', 3);
+      }
+
+      _clearActive() {
+        const m = this.active;
+        if (m && m.thief) this._remove(m.thief);
+        this.active = null;
+        this.beacon.visible = false;
+      }
+
+      _remove(c) {
+        const cm = this.app.citizens;
+        const i = cm.list.indexOf(c);
+        if (i >= 0) cm.list.splice(i, 1);
+        this.app.scene.remove(c.rig.root);
+        if (c.tag) this.app.scene.remove(c.tag.sp);
+        if (c.bubble && c.bubble.sp) this.app.scene.remove(c.bubble.sp);
+        const j = this.enforcers.indexOf(c);
+        if (j >= 0) this.enforcers.splice(j, 1);
+      }
+
+      _complete(extra = '') {
+        const m = this.active;
+        if (!m) return;
+        GameState.cash += m.reward;
+        this.done++;
+        this.earned += m.reward;
+        if (m.xp) GameStats.add(m.xp[0], m.xp[1]);
+        this.app.sound.playMissionComplete();
+        this.app.sound.playCrowdCheer && this.app.sound.playCrowdCheer(0.6);
+        Haptics.buzz([40, 30, 80]);
+        showToast(`MISI SELESAI! +${formatRupiah(m.reward)}${extra}`, 'trophy');
+        if (this.app.fx) this.app.fx.screenFlash('250,204,21', 0.25, 500);
+        if (this.done % 3 === 0) {
+          GameState.cash += 150000;
+          this.earned += 150000;
+          GameStats.add('kekuatan', 1);
+          setTimeout(() => showToast(`Bonus beruntun ${this.done} misi! +${formatRupiah(150000)}`, 'trophy'), 1800);
+        }
+        if (m.thief) { m.thief.thief = false; m.thief.mission = false; m.thief.flee = 5; m.thief = null; }
+        this._clearActive();
+        this._genOffers();
+        this.app.updateHUD();
+      }
+
+      _fail(why) {
+        showToast(`Misi gagal: ${why}`, 'alert');
+        this.app.sound.playBlock();
+        this._clearActive();
+      }
+
+      // ---------------- hook dari sistem lain ----------------
+      onCitizenHit(c, dmg, fromVehicle) {
+        const m = this.active;
+        if (m && m.type === 'copet' && c === m.thief) {
+          m.thief.flee = 0;
+          this.app.fx && this.app.fx.floatText(c.pos.clone().setY(c.pos.y + 2.4), 'KETANGKAP!', '#4ade80', 1.2);
+          this.app.life && this.app.life.say(c, 'Ampun Bang! Ini dompetnya!', 3);
+          this._complete();
+          return;
+        }
+        if (c.tier && c.tier !== 'biasa') return;
+        if (c.mission) return;
+        this.addHeat(fromVehicle ? 24 : 16);
+      }
+
+      onCitizenKO(c) {
+        const m = this.active;
+        if (m && m.type === 'bounty' && c === m.target) this._complete(` (${c.name} K.O.)`);
+      }
+
+      onMinigameWin(key) {
+        const m = this.active;
+        if (m && m.type === 'lomba' && m.key === key) this._complete();
+      }
+
+      onHeroKO() {
+        this.heat = 0;
+        this.stars = 0;
+        this.enforcers.slice().forEach(e => this._remove(e));
+        this.enforcers = [];
+        if (this.active && this.active.type === 'copet') this._fail('Kamu K.O.');
+        else if (this.active && this.active.type === 'paket') this._fail('Kamu K.O.');
+      }
+
+      addHeat(n) {
+        const was = this.stars;
+        this.heat = Math.min(110, this.heat + n);
+        this.grace = 7;
+        this._calcStars();
+        if (this.stars > 0 && this.enforcers.length === 0) this.spawnT = Math.min(this.spawnT, 1.5);
+        if (this.stars > was && was === 0) { showToast('DICARI SATPOL PP! Kabur sebelum mereka menangkapmu!', 'alert'); this.app.sound.playHorn && this.app.sound.playHorn('coupe'); Haptics.buzz([50, 40, 50]); }
+      }
+
+      _calcStars() { this.stars = this.heat >= 20 ? Math.min(5, Math.ceil(this.heat / 22)) : 0; }
+
+      // ---------------- update ----------------
+      update(dt) {
+        this.t += dt;
+        const hero = this.app.hero;
+        if (!this.hintShown && this.t > 8) { this.hintShown = true; showToast('Tekan tombol MISI untuk cari kerja sampingan di Pantura', 'flag'); }
+        this._updateMission(dt, hero);
+        this._updateWanted(dt, hero);
+        this._updateHud();
+      }
+
+      _updateMission(dt, hero) {
+        const m = this.active;
+        if (!m) { this.beacon.visible = false; return; }
+        if (m.timeLeft > 0 || m.time) { m.timeLeft -= dt; if (m.timeLeft <= 0) { this._fail(m.type === 'copet' ? 'Copet kabur!' : 'Waktu habis'); return; } }
+        if (m.type === 'copet') { if (m.thief && this.app.citizens.list.indexOf(m.thief) < 0) { this._fail('Copet hilang'); return; } m.target = { x: m.thief.pos.x, z: m.thief.pos.z, r: 0, label: 'Si Copet' }; }
+        if (m.type === 'bounty') {
+          const t = m.target;
+          if (this.app.citizens.list.indexOf(t) < 0) { this._fail('Target hilang'); return; }
+          m.tpos = { x: t.pos.x, z: t.pos.z, r: 0, label: t.name };
+        }
+        const tp = m.type === 'bounty' ? m.tpos : (m.type === 'lomba' ? null : m.target);
+        m.cur = tp;
+        if (tp) {
+          this.beacon.visible = true;
+          this.beacon.position.set(tp.x, this.app.world.getGroundHeight(tp.x, tp.z), tp.z);
+          this._beamMat.opacity = 0.26 + Math.sin(this.t * 4) * 0.08;
+          this._ring.scale.setScalar(1 + Math.sin(this.t * 3) * 0.12);
+          this._beamMat.color.setHex(m.type === 'paket' && m.stage === 1 ? 0x34d399 : (m.type === 'paket' ? 0xfbbf24 : 0xf87171));
+        } else this.beacon.visible = false;
+        if (m.type === 'paket' && tp) {
+          const d = Math.hypot(hero.pos.x - tp.x, hero.pos.z - tp.z);
+          const inV = GameState.inVehicle && GameState.activeVehicle;
+          const px = inV ? GameState.activeVehicle.pos.x : hero.pos.x; const pz = inV ? GameState.activeVehicle.pos.z : hero.pos.z;
+          if (Math.hypot(px - tp.x, pz - tp.z) < tp.r + (inV ? 1.5 : 0)) {
+            if (m.stage === 0) { m.stage = 1; m.target = { x: m.b.x, z: m.b.z, r: 4.6, label: m.b.name }; showToast(`Paket diambil! Antar ke ${m.b.name}`, 'backpack'); this.app.sound.playPickup(); Haptics.buzz(30); }
+            else this._complete(m.timeLeft > m.time * 0.4 ? ' (bonus cepat!)' : '');
+          }
+        }
+      }
+
+      _updateWanted(dt, hero) {
+        const cm = this.app.citizens;
+        const seePos = GameState.inVehicle && GameState.activeVehicle ? GameState.activeVehicle.pos : hero.pos;
+        // pasukan Satpol yang masih hidup
+        this.enforcers = this.enforcers.filter(e => cm.list.indexOf(e) >= 0);
+        let nearest = 1e9;
+        this.enforcers.forEach(e => { nearest = Math.min(nearest, Math.hypot(e.pos.x - seePos.x, e.pos.z - seePos.z)); });
+        if (this.heat > 0) {
+          let decay = 2.2;
+          const hidden = !GameState.inVehicle && hero.stance >= 1;
+          if (nearest < 18) decay = 0;
+          else if (GameState.currentBuilding) decay = 12;
+          else if (hidden && nearest > 26) decay = 10;
+          else if (nearest > 40) decay = 7;
+          else decay = hidden ? 5 : 3.5;
+          if (this.grace > 0) { this.grace -= dt; decay = 0; }
+          const was = this.stars;
+          this.heat = Math.max(0, this.heat - decay * dt);
+          this._calcStars();
+          if (was > 0 && this.stars === 0) { showToast('Kamu berhasil lolos dari Satpol PP!', 'shield'); this.heat = 0; }
+        }
+        const want = this.stars === 0 ? 0 : Math.min(4, this.stars === 5 ? 4 : Math.max(1, this.stars === 4 ? 3 : this.stars));
+        // spawn
+        this.spawnT -= dt;
+        if (this.stars > 0 && this.enforcers.length < want && this.spawnT <= 0) {
+          this.spawnT = 5.5;
+          const ang = Math.random() * Math.PI * 2;
+          let x = seePos.x + Math.sin(ang) * (24 + Math.random() * 8); let z = seePos.z + Math.cos(ang) * (24 + Math.random() * 8);
+          x = Math.max(-115, Math.min(115, x)); z = Math.max(-115, Math.min(115, z));
+          const p = new THREE.Vector3(x, 0, z);
+          for (let k = 0; k < 4; k++) this.app.world.resolveCircleCollision(p, 0.8);
+          const c = cm.spawnCitizen({ name: `Satpol ${['Budi', 'Anto', 'Dadang', 'Yoga', 'Tarno'][Math.floor(Math.random() * 5)]}`, shirt: '#1e3a8a', pants: '#0b1020', x: p.x, z: p.z, tier: 'satpol', skin: '#a0693a' });
+          c.enforcer = true;
+          this.enforcers.push(c);
+          this.app.life && this.app.life.say(c, 'Berhenti! Satpol PP!', 2.6);
+        }
+        // kendalikan perilaku
+        this.enforcers.forEach(e => {
+          if (this.stars > 0) {
+            e.truce = 0;
+            if (e.downTimer <= 0) e.hostile = Math.max(e.hostile, 30);
+          } else {
+            e.hostile = 0;
+            e.leave = (e.leave || 0) + dt;
+            if (e.leave > 3.5) this._remove(e);
+          }
+        });
+        // tangkap: Hero terkena KO ditangani _heroKO
+      }
+
+      _updateHud() {
+        const wEl = document.getElementById('hud-wanted');
+        if (wEl) {
+          if (this.stars > 0) {
+            wEl.classList.remove('hidden');
+            document.getElementById('wanted-stars').textContent = '★'.repeat(this.stars) + '☆'.repeat(5 - this.stars);
+            document.getElementById('wanted-bar').style.width = `${Math.min(100, this.heat / 1.1)}%`;
+            const near = this.enforcers.some(e => Math.hypot(e.pos.x - this.app.hero.pos.x, e.pos.z - this.app.hero.pos.z) < 18);
+            document.getElementById('wanted-hint').textContent = near ? 'Satpol dekat! Jauhi mereka agar bintang turun.' : (this.app.hero.stance >= 1 || GameState.currentBuilding ? 'Bersembunyi... bintang menurun.' : 'Menjauh & tiarap/jongkok untuk sembunyi.');
+          } else wEl.classList.add('hidden');
+        }
+        const mEl = document.getElementById('hud-mission');
+        const m = this.active;
+        if (!mEl) return;
+        if (!m) { mEl.classList.add('hidden'); return; }
+        mEl.classList.remove('hidden');
+        document.getElementById('ms-title').textContent = `MISI: ${m.title}`;
+        let obj = '';
+        if (m.type === 'paket') obj = m.stage === 0 ? `Ambil paket di ${m.a.name}` : `Antar ke ${m.b.name}`;
+        else if (m.type === 'copet') obj = 'Kejar dan pukul Si Copet!';
+        else if (m.type === 'bounty') obj = `Kalahkan ${m.target.name}`;
+        else obj = `Menangkan ${m.gname} (menu LOMBA)`;
+        document.getElementById('ms-obj').textContent = obj;
+        const hp = this.app.hero.pos;
+        const dist = m.cur ? Math.round(Math.hypot(hp.x - m.cur.x, hp.z - m.cur.z)) : null;
+        const parts = [];
+        if (dist !== null) parts.push(`${dist} m`);
+        if (m.time) parts.push(`${Math.max(0, Math.ceil(m.timeLeft))} dtk`);
+        parts.push(formatRupiah(m.reward));
+        document.getElementById('ms-info').textContent = parts.join(' • ');
+      }
+
+      drawMinimap(canvas, heroPos) {
+        const m = this.active;
+        if (!canvas || !m || !m.cur) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width; const h = canvas.height; const scale = 0.58;
+        let x = w / 2 + (m.cur.x - heroPos.x) * scale; let y = h / 2 + (m.cur.z - heroPos.z) * scale;
+        const pad = 9;
+        const out = x < pad || x > w - pad || y < pad || y > h - pad;
+        x = Math.max(pad, Math.min(w - pad, x)); y = Math.max(pad, Math.min(h - pad, y));
+        ctx.save();
+        ctx.fillStyle = m.type === 'paket' && m.stage === 1 ? '#34d399' : (m.type === 'paket' ? '#fbbf24' : '#f87171');
+        ctx.strokeStyle = '#020617'; ctx.lineWidth = 2;
+        const pul = 1 + Math.sin(this.t * 5) * 0.15;
+        ctx.beginPath(); ctx.arc(x, y, (out ? 4.5 : 6) * pul, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+        // satpol
+        ctx.fillStyle = '#3b82f6';
+        this.enforcers.forEach(e => { const ex = w / 2 + (e.pos.x - heroPos.x) * scale; const ey = h / 2 + (e.pos.z - heroPos.z) * scale; if (ex > 0 && ex < w && ey > 0 && ey < h) ctx.fillRect(ex - 2.5, ey - 2.5, 5, 5); });
+      }
+    }
+
     class PanturaGameApp {
       constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -10181,6 +10615,7 @@
         this.eduCtrl = new EducationCenterController(this);
         this.mgCtrl = new MiniGamesHubController(this);
         this.life = new LifeSystem(this);
+        this.missions = new MissionSystem(this);
         this.hero.life = this.life;
         this.citizens.life = this.life;
 
@@ -10709,6 +11144,7 @@
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
+            this.missions.update(dt);
             if (this.fx) this.fx.update(dt);
             this._updateProximityAndPickups();
           }
@@ -10732,6 +11168,7 @@
           if (GameState.started) {
             this.updateHUD();
             this.minimap.render(focusPos, focusYaw, this.world, this.vehicles, this.citizens);
+            this.missions.drawMinimap(this.minimap.canvas, focusPos);
           }
         }
 
