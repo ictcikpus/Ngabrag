@@ -77,6 +77,19 @@
       border: 1px solid rgba(255, 255, 255, 0.16);
       transition: transform 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
     }
+    /* ===== HUD ringkas: area pandang Hero lebih luas ===== */
+    .safe-hud-top { padding-top: max(0.3rem, env(safe-area-inset-top)) !important; }
+    #minimap-canvas { width: 62px !important; height: 62px !important; }
+    @media (min-width: 640px) { #minimap-canvas { width: 80px !important; height: 80px !important; } }
+    .safe-hud-top .glass-pill[class*="w-8"] { width: 1.6rem !important; height: 1.6rem !important; border-radius: 0.55rem !important; }
+    .safe-hud-top .glass-pill[class*="w-8"] svg { width: 0.85rem !important; height: 0.85rem !important; }
+    #btn-hud-cam { height: 1.6rem !important; padding: 0 0.4rem !important; border-radius: 0.55rem !important; }
+    .hud-pill-row > button { padding: 0.28rem 0.38rem !important; border-radius: 0.6rem !important; }
+    .hud-pill-row > button > span:nth-child(2) { display: none; }
+    #hud-gear-pill { padding: 0.15rem 0.4rem !important; font-size: 8px !important; max-width: 110px !important; }
+    #hud-gear-pill svg { width: 0.7rem !important; height: 0.7rem !important; }
+    body.hud-min .hud-pill-row, body.hud-min #stats-pill, body.hud-min #hud-gear-pill { display: none !important; }
+    body.hud-min #hud-tr-row > button:not(#btn-hud-collapse):not(#btn-hud-fs):not(#btn-hud-touch) { display: none !important; }
     .glass-pill:active {
       transform: scale(0.95);
     }
@@ -348,45 +361,31 @@
             <div class="absolute bottom-0.5 sm:bottom-1 inset-x-0 text-center text-[8px] sm:text-[9px] font-extrabold tracking-wider text-amber-300 drop-shadow">PANTURA</div>
           </div>
 
-          <!-- Hero Profile, Health, Nitro & Rupiah -->
-          <div class="glass-panel rounded-2xl px-2.5 py-2 sm:px-3 sm:py-2.5 min-w-0 flex-1 max-w-[185px] sm:max-w-[220px]">
-            <div class="flex items-center justify-between gap-1.5 mb-0.5">
-              <span id="hud-hero-name" class="text-[11px] sm:text-sm font-black text-white truncate">Kang Raka</span>
-              <span class="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0">AKTIF</span>
+          <!-- Hero Profile, Health, Nitro & Rupiah (ringkas) -->
+          <div class="glass-panel rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 min-w-0 flex-1 max-w-[128px] sm:max-w-[158px]">
+            <div class="flex items-baseline justify-between gap-1">
+              <span id="hud-hero-name" class="text-[10px] sm:text-[11px] font-black text-white truncate">Kang Raka</span>
             </div>
-            <div id="hud-zone-name" class="text-[9px] sm:text-[10px] font-semibold text-amber-300 truncate mb-1.5 sm:mb-2">SUMMARECON BEKASI</div>
-
-            <!-- Health Bar -->
-            <div class="mb-1 sm:mb-1.5">
-              <div class="flex justify-between items-center text-[8px] sm:text-[9px] font-bold text-slate-300 mb-0.5">
-                <span class="inline-flex items-center gap-1"><span data-icon="heart" data-icon-class="w-2.5 h-2.5 text-rose-400"></span><span>ENERGI</span></span>
-                <span id="hud-health-text">100%</span>
-              </div>
-              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                <div id="hud-health-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div>
-              </div>
+            <div id="hud-zone-name" class="text-[7.5px] sm:text-[8.5px] font-semibold text-amber-300 truncate leading-tight mb-0.5">SUMMARECON BEKASI</div>
+            <div class="flex items-center gap-1 mb-0.5" title="Energi">
+              <span data-icon="heart" data-icon-class="w-2.5 h-2.5 text-rose-400"></span>
+              <div class="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden"><div id="hud-health-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div></div>
+              <span id="hud-health-text" class="text-[7.5px] font-bold text-slate-300 w-6 text-right">100%</span>
             </div>
-
-            <!-- Stamina / Nitro Bar -->
-            <div class="mb-1.5 sm:mb-2">
-              <div class="flex justify-between items-center text-[8px] sm:text-[9px] font-bold text-slate-300 mb-0.5">
-                <span class="inline-flex items-center gap-1"><span data-icon="bolt" data-icon-class="w-2.5 h-2.5 text-amber-400"></span><span>STAMINA / NITRO</span></span>
-              </div>
-              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                <div id="hud-nitro-bar" class="h-full bg-gradient-to-r from-amber-400 to-cyan-400 transition-all duration-100" style="width: 100%"></div>
-              </div>
+            <div class="flex items-center gap-1 mb-0.5" title="Stamina / Nitro">
+              <span data-icon="bolt" data-icon-class="w-2.5 h-2.5 text-amber-400"></span>
+              <div class="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden"><div id="hud-nitro-bar" class="h-full bg-gradient-to-r from-amber-400 to-cyan-400 transition-all duration-100" style="width: 100%"></div></div>
+              <span class="w-6"></span>
             </div>
-
-            <!-- Cash Display -->
-            <div class="flex items-center justify-between gap-1 pt-1 border-t border-white/10">
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 inline-flex items-center gap-1"><span data-icon="wallet" data-icon-class="w-3 h-3 text-emerald-400"></span><span>DOMPET</span></span>
-              <span id="hud-cash" class="text-[11px] sm:text-sm font-black text-emerald-400 truncate">Rp 1.250.000</span>
+            <div class="flex items-center gap-1" title="Dompet">
+              <span data-icon="wallet" data-icon-class="w-2.5 h-2.5 text-emerald-400"></span>
+              <span id="hud-cash" class="text-[9.5px] sm:text-[10.5px] font-black text-emerald-400 truncate">Rp 1.250.000</span>
             </div>
           </div>
         </div>
 
         <!-- Primary Feature Pills -->
-        <div class="flex flex-wrap items-center gap-1 sm:gap-1.5">
+        <div class="hud-pill-row flex flex-wrap items-center gap-1">
           <button id="btn-hud-shop" type="button" class="glass-pill rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-[11px] font-extrabold text-amber-300 flex items-center gap-1.5 shadow">
             <span data-icon="store" data-icon-class="w-3.5 h-3.5"></span><span>TOKO</span>
           </button>
@@ -407,7 +406,8 @@
 
       <!-- Top-Right: Camera, Time, Audio, Touch Toggle -->
       <div class="flex flex-col items-end gap-1.5 pointer-events-auto shrink-0">
-        <div class="flex flex-wrap justify-end items-center gap-1 sm:gap-1.5 max-w-[114px] sm:max-w-none">
+        <div id="hud-tr-row" class="flex flex-wrap justify-end items-center gap-1 max-w-[120px] sm:max-w-[170px]">
+          <button id="btn-hud-collapse" type="button" title="Ringkas / Tampilkan HUD" class="glass-pill w-8 h-8 rounded-xl flex items-center justify-center text-slate-200"><span id="hud-collapse-icon" data-icon="panelMin" data-icon-class="w-4 h-4"></span></button>
           <button id="btn-hud-time" type="button" title="Ubah Waktu (Siang/Sore/Malam)" class="glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-amber-300">
             <span id="hud-time-icon" data-icon="sunset" data-icon-class="w-4 h-4 sm:w-5 sm:h-5"></span>
           </button>
@@ -898,6 +898,11 @@
         roll: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
         crouch: '<path d="m6 9 6 6 6-6"/><path d="M6 19h12"/>',
         flag: '<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 8 2a6 6 0 0 0 4-1.5.5.5 0 0 1 .8.4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 14c-3 0-5-2-8-2a6 6 0 0 0-4 1.5"/>',
+        cloudRain: '<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>',
+        wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+        star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21.1 7 14.2 2 9.3l6.9-1z"/>',
+        panelMin: '<path d="m18 15-6-6-6 6"/>',
+        panelMax: '<path d="m6 9 6 6 6-6"/>',
         fullscreen: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
         fullscreenExit: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
         vibrate: '<path d="m2 8 2 4-2 4"/><path d="m22 8-2 4 2 4"/><rect width="8" height="14" x="8" y="5" rx="1"/>',
@@ -1478,6 +1483,21 @@
         this.playNoiseBurst({ duration: 0.07, startFreq: 1400, endFreq: 500, gainVal: 0.1 });
       }
 
+      playRain(i = 0.6) {
+        this.playNoiseBurst({ duration: 0.4, filterType: 'highpass', startFreq: 3200, endFreq: 5200, Q: 0.6, gainVal: 0.012 + 0.03 * i });
+      }
+
+      playThunder() {
+        this.playNoiseBurst({ duration: 1.9, filterType: 'lowpass', startFreq: 700, endFreq: 60, Q: 0.7, gainVal: 0.42, wet: 0.4, attack: 0.05 });
+        this.playTone(55, 1.4, 'triangle', 0.2, 28, 0.05, 0.3);
+      }
+
+      playBark() {
+        this.playTone(520, 0.09, 'sawtooth', 0.07, 260);
+        this.playTone(380, 0.12, 'square', 0.04, 190, 0.09);
+        this.playNoiseBurst({ duration: 0.08, filterType: 'bandpass', startFreq: 1800, endFreq: 900, Q: 1.2, gainVal: 0.06 });
+      }
+
       playBlasterShot() {
         this.playTone(980, 0.14, 'sawtooth', 0.08, 220);
         this.playTone(640, 0.1, 'sine', 0.06, 160);
@@ -1788,6 +1808,7 @@
         this.elevatedZones = [];
         this.doors = [];
         this.serviceZones = [];
+        this.trees = [];
         this.neonSigns = [];
         this.trafficLights = [];
         this.cashPickups = [];
@@ -2322,6 +2343,7 @@
           crown.castShadow = true;
           this.scene.add(crown);
           this.addBoxCollider(tx, tz, 1.1, 1.1);
+          this.trees.push({ x: tx, z: tz, gy, trunk, crown, state: 'up', t: 0, ang: 0, pivot: null, log: null });
         });
       }
 
@@ -2372,27 +2394,44 @@
       }
 
       _buildCashPickups() {
-        const mat = new THREE.MeshStandardMaterial({
-          color: 0x10b981,
-          emissive: 0x059669,
-          emissiveIntensity: 0.45,
-          metalness: 0.3,
-          roughness: 0.35
-        });
+        // Koin emas "Rp" berputar dengan halo & kilau
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const g = c.getContext('2d');
+        const gr = g.createRadialGradient(54, 50, 6, 64, 64, 64);
+        gr.addColorStop(0, '#fff7c2'); gr.addColorStop(0.55, '#facc15'); gr.addColorStop(1, '#b45309');
+        g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 62, 0, 7); g.fill();
+        g.strokeStyle = '#92400e'; g.lineWidth = 5; g.beginPath(); g.arc(64, 64, 50, 0, 7); g.stroke();
+        g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 2; g.beginPath(); g.arc(64, 64, 57, 0, 7); g.stroke();
+        g.fillStyle = '#78350f'; g.font = '900 46px Inter, Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Rp', 64, 70);
+        g.fillStyle = '#fff8dc'; g.font = '900 15px Arial'; g.fillText('★ ★ ★', 64, 32);
+        const tex = new THREE.CanvasTexture(c);
+        const faceMat = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xf59e0b, emissiveMap: tex, emissiveIntensity: 0.55, metalness: 0.65, roughness: 0.28 });
+        const edgeMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xd97706, emissiveIntensity: 0.5, metalness: 0.8, roughness: 0.25 });
+        const haloMat = new THREE.MeshBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const sparkMat = new THREE.MeshBasicMaterial({ color: 0xfff7ae });
         const spots = [
           [0, 12], [-22, -26], [24, -26], [-48, 0],
           [48, 0], [0, 32], [-68, -45], [68, 45]
         ];
         spots.forEach(([x, z]) => {
           const gy = this.getGroundHeight(x, z);
-          const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.65, 0.55), mat);
-          mesh.position.set(x, gy + 0.95, z);
-          mesh.castShadow = true;
+          const mesh = new THREE.Group();
+          const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.14, 36), [edgeMat, faceMat, faceMat]);
+          coin.rotation.x = Math.PI / 2;
+          coin.castShadow = true;
+          mesh.add(coin);
+          const halo = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.9, 40), haloMat);
+          halo.position.z = -0.01;
+          mesh.add(halo);
+          const sparks = [0, 1, 2, 3].map(() => { const sp = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), sparkMat); mesh.add(sp); return sp; });
+          mesh.position.set(x, gy + 1.15, z);
           this.scene.add(mesh);
           this.cashPickups.push({
             mesh,
+            sparks,
+            halo,
             pos: new THREE.Vector3(x, gy + 0.8, z),
-            baseY: gy + 0.95,
+            baseY: gy + 1.15,
             amount: 75000,
             respawnTimer: 0
           });
@@ -2439,8 +2478,16 @@
             }
             continue;
           }
-          cp.mesh.rotation.y = now + i;
+          cp.mesh.rotation.y = now * 1.3 + i;
           cp.mesh.position.y = cp.baseY + Math.sin(now * 1.4 + i) * 0.16;
+          if (cp.sparks) {
+            cp.sparks.forEach((sp, k) => {
+              const a = now * 2.2 + k * 1.57;
+              sp.position.set(Math.cos(a) * 0.95, Math.sin(now * 3 + k * 2) * 0.35, Math.sin(a) * 0.95);
+              sp.rotation.y = now * 4;
+            });
+            cp.halo.scale.setScalar(1 + Math.sin(now * 3 + i) * 0.12);
+          }
         }
       }
     }
@@ -4014,7 +4061,7 @@
           });
         }
 
-        return { root, wheels, doorPivot };
+        return { root, wheels, doorPivot, bodyMat };
       }
 
       _spawnInitialFleet() {
@@ -4049,9 +4096,11 @@
           speed: 0,
           mesh: built.root,
           wheels: built.wheels,
-          doorPivot: built.doorPivot
+          doorPivot: built.doorPivot,
+          bodyMat: built.bodyMat
         };
         this.list.push(veh);
+        if (typeof GarageSystem !== 'undefined') GarageSystem.apply(veh);
         return veh;
       }
 
@@ -4094,10 +4143,10 @@
             const isDrifting = input.crouch && Math.abs(v.speed) > 7 && Math.abs(steer) > 0.2;
 
             if (isNitro) {
-              GameState.nitro = Math.max(0, GameState.nitro - 24 * dt);
+              GameState.nitro = Math.max(0, GameState.nitro - 24 * dt / (1 + 0.3 * (v.nitroLvl || 0)));
             }
 
-            const topSpeed = isNitro ? v.maxSpeed * 1.32 : v.maxSpeed;
+            const topSpeed = isNitro ? v.maxSpeed * (1.32 + 0.03 * (v.nitroLvl || 0)) : v.maxSpeed;
             if (Math.abs(throttle) > 0.05) {
               v.speed += throttle * v.accel * (isNitro ? 1.35 : 1.0) * dt;
             } else {
@@ -4232,6 +4281,9 @@
           rig.root.rotation.order = 'YXZ';
           if (r.tier) this.assignTier(_cit, r.tier);
         });
+        // beberapa warga biasa jalan-jalan bersama anjingnya
+        const plain = this.list.filter(c => !c.tier);
+        [0, 2, 4, 6].forEach((i, k) => { if (plain[i]) this.attachDog(plain[i], k); });
       }
 
       // Membuat warga baru saat permainan berjalan (Satpol PP, copet misi, dll.)
@@ -4580,7 +4632,135 @@
       update(dt, hero) {
         this._updateCore(dt, hero);
         this._separate(dt, hero);
+        this._updateDogs(dt, hero);
       }
+
+      // ---------- Anjing peliharaan warga (jalan mengikuti pemilik dengan tali) ----------
+      attachDog(c, kind = 0) {
+        const pal = [
+          { fur: 0x9a6a3c, dark: 0x5b3a1a, belly: 0xe7c9a0 },
+          { fur: 0x1f2937, dark: 0x0b1220, belly: 0x4b5563 },
+          { fur: 0xf1f5f9, dark: 0xcbd5e1, belly: 0xffffff },
+          { fur: 0xd9a441, dark: 0x92661f, belly: 0xf3deb0 }
+        ][kind % 4];
+        const M = (col) => new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 });
+        const fur = M(pal.fur); const dark = M(pal.dark); const belly = M(pal.belly);
+        const g = new THREE.Group();
+        const part = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+        part(new THREE.BoxGeometry(0.34, 0.3, 0.72), fur, 0, 0.5, 0);
+        part(new THREE.BoxGeometry(0.28, 0.12, 0.5), belly, 0, 0.36, 0.02);
+        const head = new THREE.Group(); head.position.set(0, 0.7, 0.4); g.add(head);
+        const hm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.26, 0.28), fur); hm.castShadow = true; head.add(hm);
+        const sn = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.2), belly); sn.position.set(0, -0.05, 0.2); head.add(sn);
+        const nose = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.04), M(0x0b0b0b)); nose.position.set(0, -0.02, 0.31); head.add(nose);
+        [-0.1, 0.1].forEach(x => {
+          const ear = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.17, 0.1), dark); ear.position.set(x * 1.35, 0.15, -0.02); ear.rotation.z = x > 0 ? -0.3 : 0.3; head.add(ear);
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.03), M(0x050505)); eye.position.set(x, 0.04, 0.15); head.add(eye);
+        });
+        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.1), M(0xdc2626)); collar.position.set(0, 0.6, 0.3); g.add(collar);
+        const tail = new THREE.Group(); tail.position.set(0, 0.62, -0.38); g.add(tail);
+        const tm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.34), dark); tm.position.set(0, 0.08, -0.15); tm.rotation.x = 0.7; tail.add(tm);
+        const legs = [[-0.12, 0.26], [0.12, 0.26], [-0.12, -0.26], [0.12, -0.26]].map(([x, z]) => {
+          const pv = new THREE.Group(); pv.position.set(x, 0.38, z);
+          const l = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.38, 0.1), dark); l.position.y = -0.19; l.castShadow = true; pv.add(l);
+          g.add(pv); return pv;
+        });
+        g.scale.setScalar(1.35);
+        const gy = this.world.getGroundHeight(c.pos.x, c.pos.z);
+        g.position.set(c.pos.x - 1.2, gy, c.pos.z - 0.8);
+        this.scene.add(g);
+        const leashGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+        const leash = new THREE.Line(leashGeo, new THREE.LineBasicMaterial({ color: 0xdc2626 }));
+        leash.frustumCulled = false;
+        this.scene.add(leash);
+        c.dog = { root: g, head, tail, legs, leash, pos: g.position, yaw: c.yaw, cycle: Math.random() * 6, speed: 0, barkT: 2 + Math.random() * 4, side: Math.random() < 0.5 ? 1 : -1, sniff: 0, wander: new THREE.Vector3() };
+        return c.dog;
+      }
+
+      removeDog(c) {
+        if (!c.dog) return;
+        this.scene.remove(c.dog.root);
+        this.scene.remove(c.dog.leash);
+        c.dog = null;
+      }
+
+      _updateDogs(dt, hero) {
+        const app = window.ngabragApp;
+        this.list.forEach(c => {
+          const d = c.dog;
+          if (!d) return;
+          const hx = hero.pos.x - d.pos.x; const hz = hero.pos.z - d.pos.z;
+          const heroD = Math.hypot(hx, hz);
+          const fighting = (c.hostile > 0) || (c.flee > 0) || (c.atk != null);
+          const down = c.downTimer > 0 || c.downBlend > 0.3;
+          // tujuan: di samping-belakang pemilik
+          let tx = c.pos.x - Math.sin(c.yaw) * 1.1 + Math.cos(c.yaw) * 0.85 * d.side;
+          let tz = c.pos.z - Math.cos(c.yaw) * 1.1 - Math.sin(c.yaw) * 0.85 * d.side;
+          const osp = d.lo ? Math.hypot(c.pos.x - d.lo.x, c.pos.z - d.lo.z) / Math.max(dt, 0.001) : 1;
+          d.lo = d.lo || new THREE.Vector3(); d.lo.copy(c.pos);
+          d.osp = (d.osp === undefined ? 1 : d.osp) + (osp - (d.osp === undefined ? 1 : d.osp)) * Math.min(1, dt * 4);
+          const ownerMoving = !c._busy && d.osp > 0.25;
+          d.sniff -= dt;
+          if (!ownerMoving || down) {
+            // pemilik diam: anjing berkeliaran & mengendus di sekitar pemilik
+            if (d.sniff <= 0) { d.sniff = 1.8 + Math.random() * 2.5; const a = Math.random() * 6.28; d.wander.set(Math.sin(a) * (0.9 + Math.random() * 1.1), 0, Math.cos(a) * (0.9 + Math.random() * 1.1)); }
+            tx = c.pos.x + d.wander.x; tz = c.pos.z + d.wander.z;
+          }
+          if (fighting) { const a = performance.now() * 0.004 + c.pos.x; tx = c.pos.x + Math.sin(a) * 1.6; tz = c.pos.z + Math.cos(a) * 1.6; }
+          let dx = tx - d.pos.x; let dz = tz - d.pos.z;
+          let dist = Math.hypot(dx, dz);
+          const maxSp = fighting ? 6.5 : 4.6;
+          const sp = Math.min(maxSp, dist * 3.2);
+          if (dist > 0.12) {
+            const want = Math.atan2(dx, dz);
+            let da = want - d.yaw; da = Math.atan2(Math.sin(da), Math.cos(da));
+            d.yaw += da * Math.min(1, dt * 9);
+            const move = sp * dt;
+            d.pos.x += (dx / dist) * move; d.pos.z += (dz / dist) * move;
+            d.speed += (sp - d.speed) * Math.min(1, dt * 8);
+          } else d.speed *= Math.max(0, 1 - dt * 8);
+          // tali tidak boleh terlalu panjang
+          const ox = d.pos.x - c.pos.x; const oz = d.pos.z - c.pos.z; const od = Math.hypot(ox, oz);
+          if (od > 3.2) { d.pos.x = c.pos.x + (ox / od) * 3.2; d.pos.z = c.pos.z + (oz / od) * 3.2; }
+          const tmp = new THREE.Vector3(d.pos.x, 0, d.pos.z);
+          this.world.resolveCircleCollision(tmp, 0.3);
+          d.pos.x = tmp.x; d.pos.z = tmp.z;
+          d.pos.y = this.world.getGroundHeight(d.pos.x, d.pos.z);
+          // menoleh ke Hero saat dekat & diam
+          if (heroD < 5 && d.speed < 0.6) { let da = Math.atan2(hx, hz) - d.yaw; da = Math.atan2(Math.sin(da), Math.cos(da)); d.yaw += da * Math.min(1, dt * 5); }
+          d.root.rotation.y = d.yaw;
+          // animasi
+          d.cycle += d.speed * dt * 5.5;
+          const sw = Math.sin(d.cycle) * Math.min(1, d.speed / 2.2) * 0.8;
+          d.legs[0].rotation.x = sw; d.legs[3].rotation.x = sw; d.legs[1].rotation.x = -sw; d.legs[2].rotation.x = -sw;
+          const t = performance.now() * 0.001;
+          const happy = heroD < 6 || fighting;
+          d.tail.rotation.y = Math.sin(t * (happy ? 18 : 8)) * (happy ? 0.7 : 0.4);
+          d.tail.rotation.x = fighting ? -0.5 : 0;
+          const sniffing = d.speed < 0.5 && !fighting;
+          d.head.rotation.x = sniffing ? 0.55 + Math.sin(t * 7) * 0.12 : Math.sin(d.cycle * 2) * 0.05;
+          d.root.position.y = d.pos.y + Math.abs(Math.sin(d.cycle)) * 0.04 * Math.min(1, d.speed / 2);
+          // gonggong
+          d.barkT -= dt;
+          if (d.barkT <= 0) {
+            d.barkT = fighting ? 1.2 + Math.random() : 4 + Math.random() * 6;
+            if (heroD < 18 && (heroD < 7 || fighting)) {
+              if (this.sound.playBark) this.sound.playBark();
+              if (app && app.fx) app.fx.floatText(new THREE.Vector3(d.pos.x, d.pos.y + 1.1, d.pos.z), fighting ? 'GRRR! GUK!' : 'Guk!', '#fde68a', 0.8);
+              d.head.rotation.x = -0.4;
+            }
+          }
+          // tali
+          const hxp = c.pos.x + Math.sin(c.yaw + 1.1) * 0.35; const hzp = c.pos.z + Math.cos(c.yaw + 1.1) * 0.35;
+          const pa = d.leash.geometry.attributes.position;
+          pa.setXYZ(0, hxp, c.pos.y + 0.95, hzp);
+          const cp = new THREE.Vector3(0, 0.6 * 1.35, 0.3 * 1.35).applyAxisAngle(new THREE.Vector3(0, 1, 0), d.yaw);
+          pa.setXYZ(1, d.pos.x + cp.x, d.pos.y + cp.y, d.pos.z + cp.z);
+          pa.needsUpdate = true;
+        });
+      }
+
+
 
       // Tabrakan antar-warga & dengan Hero: saling dorong + berbelok, tidak lagi tembus
       _separate(dt, hero) {
@@ -6933,7 +7113,8 @@
         const TRACK = 600;
         const VMAX = [17, 29, 41, 53, 66];
         const A0 = [15, 11.5, 9, 7.5, 6.6];
-        const agi = 1 + 0.012 * (GameStats.level('kelincahan') - 1);
+        const bestBike = Math.max(0, ...this.app.vehicles.list.filter(v => v.type === 'motorbike').map(v => ((v.tune && v.tune.eng) || 0) + ((v.tune && v.tune.gear) || 0)));
+        const agi = (1 + 0.012 * (GameStats.level('kelincahan') - 1)) * (1 + 0.018 * bestBike);
         const mk = (isPlayer) => ({ d: 0, v: 0, g: 0, rpm: 0, wheel: 0, shiftT: 0, nitroT: 0, charge: 0, stall: 0, pitch: 0, smokeT: 0, fin: 0, top: 0, nextShift: 0.84 + Math.random() * 0.08, isPlayer });
         const me = mk(true);
         const rv = mk(false);
@@ -7927,6 +8108,7 @@
         let p = pts;
         if (k === 'kekuatan' && GameState.ownedItems.has('tool_dumbbell')) p *= 1.25;
         if (k === 'kelincahan' && GameState.ownedItems.has('tool_tali')) p *= 1.2;
+        if (window.ngabragApp && window.ngabragApp.progress) window.ngabragApp.progress.bump('train');
         const before = this.level(k);
         GameState.stats[k] = (GameState.stats[k] || 0) + p;
         const after = this.level(k);
@@ -10110,14 +10292,14 @@
       _buildUI() {
         const panel = document.createElement('div');
         panel.id = 'life-panel';
-        panel.style.cssText = 'position:fixed;left:50%;bottom:132px;transform:translateX(-50%);z-index:40;display:none;min-width:260px;max-width:92vw;padding:10px 14px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);color:#f8fafc;font-family:system-ui,sans-serif;text-align:center;backdrop-filter:blur(6px);pointer-events:none';
-        panel.innerHTML = '<div id="lp-title" style="font-weight:900;font-size:13px;letter-spacing:.04em;color:#facc15"></div><div id="lp-sub" style="font-size:11px;color:#cbd5e1;margin-top:2px"></div><div style="height:8px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:7px;overflow:hidden"><div id="lp-bar" style="height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#22d3ee);transition:width .1s"></div></div><div id="lp-info" style="font-size:11px;color:#94a3b8;margin-top:5px"></div>';
+        panel.style.cssText = 'position:fixed;left:50%;top:78px;transform:translateX(-50%);z-index:40;display:none;min-width:200px;max-width:min(300px,86vw);padding:5px 10px;border-radius:12px;background:rgba(2,6,23,.62);border:1px solid rgba(250,204,21,.45);color:#f8fafc;font-family:system-ui,sans-serif;text-align:center;backdrop-filter:blur(6px);pointer-events:none';
+        panel.innerHTML = '<div id="lp-title" style="font-weight:900;font-size:11px;letter-spacing:.04em;color:#facc15"></div><div id="lp-sub" style="font-size:9.5px;color:#cbd5e1;margin-top:1px;line-height:1.25"></div><div style="height:5px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:4px;overflow:hidden"><div id="lp-bar" style="height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#22d3ee);transition:width .1s"></div></div><div id="lp-info" style="font-size:9.5px;color:#94a3b8;margin-top:3px"></div>';
         document.body.appendChild(panel);
         this._panelEl = panel;
 
         const pill = document.createElement('div');
         pill.id = 'stats-pill';
-        pill.style.cssText = 'position:fixed;left:12px;top:150px;z-index:35;display:none;padding:6px 10px;border-radius:12px;background:rgba(2,6,23,.72);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font:700 10px system-ui,sans-serif;line-height:1.5;pointer-events:none';
+        pill.style.cssText = 'position:fixed;left:10px;top:108px;z-index:35;display:none;padding:3px 7px;border-radius:9px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;font:700 8.5px system-ui,sans-serif;line-height:1.35;pointer-events:none';
         document.body.appendChild(pill);
         this._pillEl = pill;
       }
@@ -10211,7 +10393,7 @@
         const wrap = document.createElement('div');
         wrap.id = 'hud-mission-wrap';
         wrap.className = 'fixed left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 pointer-events-none px-2';
-        wrap.style.top = '2.7rem';
+        wrap.style.top = '2.2rem';
         wrap.innerHTML = `
           <div id="hud-wanted" class="hidden glass-panel rounded-2xl px-3 py-1 border border-rose-500/60 text-center shadow-lg">
             <div class="flex items-center justify-center gap-2"><span id="wanted-stars" class="text-base sm:text-lg font-black tracking-wider text-rose-400"></span><span class="text-[10px] sm:text-[11px] font-black text-rose-300">DICARI SATPOL PP</span></div>
@@ -10366,6 +10548,7 @@
         this.app.scene.remove(c.rig.root);
         if (c.tag) this.app.scene.remove(c.tag.sp);
         if (c.bubble && c.bubble.sp) this.app.scene.remove(c.bubble.sp);
+        if (c.dog) cm.removeDog(c);
         const j = this.enforcers.indexOf(c);
         if (j >= 0) this.enforcers.splice(j, 1);
       }
@@ -10376,6 +10559,7 @@
         GameState.cash += m.reward;
         this.done++;
         this.earned += m.reward;
+        if (this.app.progress) this.app.progress.bump('mission');
         if (m.xp) GameStats.add(m.xp[0], m.xp[1]);
         this.app.sound.playMissionComplete();
         this.app.sound.playCrowdCheer && this.app.sound.playCrowdCheer(0.6);
@@ -10417,11 +10601,13 @@
 
       onCitizenKO(c) {
         const m = this.active;
+        if (c.tier && c.tier !== 'biasa' && c.tier !== 'satpol' && this.app.progress) { this.app.progress.count('tough_ko'); if (c.tier === 'preman') this.app.progress.count('preman_ko'); this.app.progress.bump('tough'); }
         if (m && m.type === 'bounty' && c === m.target) this._complete(` (${c.name} K.O.)`);
       }
 
       onMinigameWin(key) {
         const m = this.active;
+        if (this.app.progress) this.app.progress.bump('mg');
         if (m && m.type === 'lomba' && m.key === key) this._complete();
       }
 
@@ -10501,10 +10687,11 @@
           else if (nearest > 40) decay = 7;
           else decay = hidden ? 5 : 3.5;
           if (this.grace > 0) { this.grace -= dt; decay = 0; }
+          else if (this.app.weather && this.app.weather.level > 0.5) decay *= 1.4;
           const was = this.stars;
           this.heat = Math.max(0, this.heat - decay * dt);
           this._calcStars();
-          if (was > 0 && this.stars === 0) { showToast('Kamu berhasil lolos dari Satpol PP!', 'shield'); this.heat = 0; }
+          if (was > 0 && this.stars === 0) { showToast('Kamu berhasil lolos dari Satpol PP!', 'shield'); this.heat = 0; if (this.app.progress) { this.app.progress.count('escapes'); this.app.progress.bump('escape'); } }
         }
         const want = this.stars === 0 ? 0 : Math.min(4, this.stars === 5 ? 4 : Math.max(1, this.stars === 4 ? 3 : this.stars));
         // spawn
@@ -10588,6 +10775,608 @@
       }
     }
 
+    // ==========================================================================
+    // 12C. CUACA DINAMIS: HUJAN, BADAI, PETIR, POHON TUMBANG
+    // ==========================================================================
+    class WeatherSystem {
+      constructor(app) {
+        this.app = app;
+        this.mode = 'auto'; // auto | cerah | hujan | badai
+        this.state = 'cerah';
+        this.level = 0; // 0 cerah .. 1 badai (halus)
+        this.target = 0;
+        this.t = 0;
+        this.timer = 70 + Math.random() * 50;
+        this.lightning = 0;
+        this.nextBolt = 6;
+        this.rainSnd = 0;
+        this.fallT = 12;
+        this.windPhase = 0;
+        this.calmT = 0;
+        this._base = null;
+        this._buildRain();
+        this._buildHud();
+        this.captureBase();
+      }
+
+      _buildRain() {
+        const N = isMobileDevice ? 700 : 1500;
+        this.N = N;
+        this.drops = new Float32Array(N * 3);
+        for (let i = 0; i < N; i++) { this.drops[i * 3] = (Math.random() - 0.5) * 60; this.drops[i * 3 + 1] = Math.random() * 30; this.drops[i * 3 + 2] = (Math.random() - 0.5) * 60; }
+        this.rainPos = new Float32Array(N * 6);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(this.rainPos, 3));
+        this.rainMat = new THREE.LineBasicMaterial({ color: 0xc7dcff, transparent: true, opacity: 0.0, depthWrite: false });
+        this.rain = new THREE.LineSegments(geo, this.rainMat);
+        this.rain.frustumCulled = false;
+        this.rain.visible = false;
+        this.rain.renderOrder = 20;
+        this.app.scene.add(this.rain);
+      }
+
+      _buildHud() {
+        const ref = document.getElementById('btn-hud-time');
+        if (!ref || !ref.parentElement) return;
+        const b = document.createElement('button');
+        b.id = 'btn-hud-weather';
+        b.type = 'button';
+        b.title = 'Cuaca: Otomatis / Cerah / Hujan / Badai';
+        b.className = 'glass-pill w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sky-300';
+        b.innerHTML = `<span id="hud-weather-icon">${GameIcons.svg('cloudRain', 'w-4 h-4 sm:w-5 sm:h-5')}</span>`;
+        ref.parentElement.insertBefore(b, ref.nextSibling);
+        b.addEventListener('click', () => {
+          const order = ['auto', 'cerah', 'hujan', 'badai'];
+          this.mode = order[(order.indexOf(this.mode) + 1) % order.length];
+          if (this.mode !== 'auto') this.setState(this.mode); else this.timer = 20;
+          showToast(`Cuaca: ${{ auto: 'Otomatis', cerah: 'Cerah', hujan: 'Hujan', badai: 'Badai' }[this.mode]}`, 'cloudRain');
+        });
+      }
+
+      captureBase() {
+        const a = this.app;
+        if (!a.scene.fog || !a.scene.background) return;
+        this._base = {
+          bg: a.scene.background.clone(),
+          fog: a.scene.fog.color.clone(),
+          dens: 0.0042,
+          hemiInt: a.hemiLight.intensity, sunInt: a.sunLight.intensity,
+          hemiSky: a.hemiLight.color.clone()
+        };
+      }
+
+      setState(s) {
+        if (s === this.state) return;
+        this.state = s;
+        this.target = { cerah: 0, mendung: 0.3, hujan: 0.62, badai: 1 }[s];
+        const msg = { cerah: 'Langit kembali cerah', mendung: 'Langit mulai mendung...', hujan: 'Hujan turun! Jalan jadi licin & jarak pandang pendek.', badai: 'BADAI! Awas petir dan pohon tumbang!' }[s];
+        showToast(msg, s === 'badai' ? 'alert' : 'cloudRain');
+        if (s === 'badai') Haptics.buzz([40, 40, 40]);
+      }
+
+      _auto(dt) {
+        this.timer -= dt;
+        if (this.timer > 0) return;
+        this.timer = 60 + Math.random() * 90;
+        const r = Math.random();
+        const s = this.state;
+        if (s === 'cerah') this.setState(r < 0.55 ? 'mendung' : 'cerah');
+        else if (s === 'mendung') this.setState(r < 0.5 ? 'hujan' : (r < 0.62 ? 'badai' : 'cerah'));
+        else if (s === 'hujan') this.setState(r < 0.3 ? 'badai' : (r < 0.7 ? 'mendung' : 'hujan'));
+        else this.setState(r < 0.6 ? 'hujan' : 'mendung');
+      }
+
+      update(dt) {
+        const app = this.app;
+        this.t += dt;
+        if (this.mode === 'auto') this._auto(dt);
+        this.level += (this.target - this.level) * Math.min(1, dt * 0.6);
+        const w = this.level;
+        // ----- langit, kabut & cahaya
+        const B = this._base;
+        if (B && app.scene.fog) {
+          const gray = (c) => { const l = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b; return new THREE.Color(l, l, l * 1.04); };
+          const flash = this.lightning;
+          const bg = B.bg.clone().lerp(gray(B.bg), 0.7 * w).multiplyScalar(1 - 0.3 * w);
+          if (flash > 0) bg.lerp(new THREE.Color(0xdbeafe), Math.min(0.7, flash * 0.7));
+          app.scene.background.copy(bg);
+          app.scene.fog.color.copy(B.fog.clone().lerp(gray(B.fog), 0.7 * w).multiplyScalar(1 - 0.3 * w));
+          if (flash > 0) app.scene.fog.color.lerp(new THREE.Color(0xdbeafe), Math.min(0.5, flash * 0.5));
+          app.scene.fog.density = B.dens * (1 + w * 1.7);
+          app.hemiLight.intensity = B.hemiInt * (1 - 0.32 * w) + flash * 1.6;
+          app.sunLight.intensity = B.sunInt * (1 - 0.7 * w);
+        }
+        // ----- hujan
+        const rainAmt = Math.max(0, (w - 0.22) / 0.78);
+        this.rain.visible = rainAmt > 0.02;
+        this.rainMat.opacity = 0.12 + rainAmt * 0.38;
+        if (this.rain.visible) {
+          const cam = app.camera.position;
+          this.rain.position.set(cam.x, 0, cam.z);
+          const wind = 2.2 + w * 5;
+          const sp = 24 + rainAmt * 12;
+          const vis = Math.floor(this.N * (0.35 + 0.65 * rainAmt));
+          const d = this.drops; const p = this.rainPos;
+          for (let i = 0; i < this.N; i++) {
+            let y = d[i * 3 + 1] - sp * dt;
+            let x = d[i * 3] + wind * dt;
+            if (y < 0 || x > 30) { y = 22 + Math.random() * 10; x = (Math.random() - 0.5) * 60; d[i * 3 + 2] = (Math.random() - 0.5) * 60; }
+            d[i * 3] = x; d[i * 3 + 1] = y;
+            const z = d[i * 3 + 2];
+            const on = i < vis ? 1 : 0;
+            p[i * 6] = x; p[i * 6 + 1] = y; p[i * 6 + 2] = z;
+            p[i * 6 + 3] = x - wind * 0.035 * on; p[i * 6 + 4] = y + 0.95 * on; p[i * 6 + 5] = z;
+          }
+          this.rain.geometry.attributes.position.needsUpdate = true;
+          this.rainSnd -= dt;
+          if (this.rainSnd <= 0 && GameState.audioEnabled) {
+            this.rainSnd = 0.28;
+            app.sound.playRain(rainAmt);
+          }
+        }
+        // ----- petir (badai)
+        if (this.lightning > 0) this.lightning = Math.max(0, this.lightning - dt * 4.5);
+        if (w > 0.8) {
+          this.nextBolt -= dt;
+          if (this.nextBolt <= 0) {
+            this.nextBolt = 5 + Math.random() * 8;
+            this.lightning = 1;
+            if (app.fx) app.fx.screenFlash('220,230,255', 0.45, 220);
+            const delay = 150 + Math.random() * 1400;
+            setTimeout(() => { app.sound.playThunder(); Haptics.buzz([60, 30, 120]); if (app.camCtrl && app.camCtrl.addShake) app.camCtrl.addShake(0.25); }, delay);
+            if (Math.random() < 0.45) setTimeout(() => { this.lightning = 0.8; }, 180);
+          }
+        }
+        // ----- pohon tumbang
+        this._trees(dt, w);
+      }
+
+      _trees(dt, w) {
+        const trees = this.app.world.trees || [];
+        const hero = this.app.hero;
+        const storm = w > 0.8;
+        this.calmT = w < 0.3 ? this.calmT + dt : 0;
+        this.fallT -= dt;
+        if (storm && this.fallT <= 0) {
+          const up = trees.filter(t => t.state === 'up');
+          const fallen = trees.filter(t => t.state !== 'up').length;
+          if (up.length && fallen < 3) {
+            up.sort((a, b) => Math.hypot(a.x - hero.pos.x, a.z - hero.pos.z) - Math.hypot(b.x - hero.pos.x, b.z - hero.pos.z));
+            const tr = up[Math.floor(Math.random() * Math.min(3, up.length))];
+            tr.state = 'wobble'; tr.t = 0;
+            tr.ang = Math.random() * Math.PI * 2;
+            // condong ke jalan terdekat bila ada
+            const rc = this.app.world.roadCoords;
+            let best = null;
+            rc.forEach(r => { [[r, tr.z, 'x'], [tr.x, r, 'z']].forEach(([px, pz, ax]) => { const d = ax === 'x' ? Math.abs(tr.x - r) : Math.abs(tr.z - r); if (d < 14 && (!best || d < best.d)) best = { d, ax, r }; }); });
+            if (best) tr.ang = best.ax === 'x' ? (tr.x < best.r ? Math.PI / 2 : -Math.PI / 2) : (tr.z < best.r ? 0 : Math.PI);
+            const d = Math.hypot(tr.x - hero.pos.x, tr.z - hero.pos.z);
+            if (d < 40) showToast('Awas! Pohon mau tumbang!', 'alert');
+          }
+          this.fallT = 12 + Math.random() * 10;
+        }
+        trees.forEach(tr => {
+          if (tr.state === 'up') return;
+          if (!tr.pivot) {
+            tr.pivot = new THREE.Group();
+            tr.pivot.position.set(tr.x, tr.gy, tr.z);
+            this.app.scene.add(tr.pivot);
+            tr.pivot.attach(tr.trunk); tr.pivot.attach(tr.crown);
+          }
+          const A = new THREE.Vector3(Math.cos(tr.ang), 0, -Math.sin(tr.ang));
+          tr.t += dt;
+          if (tr.state === 'wobble') {
+            const k = tr.t / 2.2;
+            tr.pivot.quaternion.setFromAxisAngle(new THREE.Vector3(Math.cos(tr.ang + 1.2), 0, -Math.sin(tr.ang + 1.2)), Math.sin(tr.t * 14) * 0.03 * k);
+            if (Math.floor(tr.t * 4) !== Math.floor((tr.t - dt) * 4)) this.app.sound.playTone(90 + Math.random() * 40, 0.12, 'sawtooth', 0.04, 60);
+            if (tr.t >= 2.2) { tr.state = 'falling'; tr.t = 0; }
+          } else if (tr.state === 'falling') {
+            const k = Math.min(1, tr.t / 1.1);
+            tr.pivot.quaternion.setFromAxisAngle(A, 1.25 * k * k);
+            if (k >= 1) this._impact(tr, A);
+          } else if (tr.state === 'down') {
+            const bounce = Math.max(0, 0.06 - tr.t * 0.12) * Math.abs(Math.sin(tr.t * 18));
+            tr.pivot.quaternion.setFromAxisAngle(A, 1.25 - bounce);
+            if (this.calmT > 25 && tr.t > 20) { tr.state = 'rising'; tr.t = 0; showToast('Warga membersihkan pohon tumbang', 'cloudRain'); }
+          } else if (tr.state === 'rising') {
+            const k = Math.min(1, tr.t / 2.5);
+            tr.pivot.quaternion.setFromAxisAngle(A, 1.25 * (1 - k));
+            if (k >= 1) {
+              tr.state = 'up'; tr.pivot.quaternion.identity();
+              const ci = this.app.world.colliders.indexOf(tr.log);
+              if (ci >= 0) this.app.world.colliders.splice(ci, 1);
+              tr.log = null;
+            }
+          }
+        });
+      }
+
+      _impact(tr, A) {
+        tr.state = 'down'; tr.t = 0;
+        const app = this.app;
+        const dx = Math.sin(tr.ang); const dz = Math.cos(tr.ang);
+        const bx = tr.x; const bz = tr.z;
+        const len = 8;
+        const cx = bx + dx * len * 0.5; const cz = bz + dz * len * 0.5;
+        const horiz = Math.abs(dx) > Math.abs(dz);
+        const w = horiz ? len : 1.7; const d = horiz ? 1.7 : len;
+        tr.log = { minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 };
+        app.world.colliders.push(tr.log);
+        app.sound.playLand(1.5);
+        app.sound.playThunder && app.sound.playTone(60, 0.5, 'triangle', 0.18, 30);
+        if (app.fx) app.fx.landRing(new THREE.Vector3(cx, tr.gy, cz), 1.6);
+        const hp = app.hero.pos;
+        const along = (hp.x - bx) * dx + (hp.z - bz) * dz;
+        const perp = Math.abs((hp.x - bx) * dz - (hp.z - bz) * dx);
+        const pd = Math.hypot(hp.x - bx, hp.z - bz);
+        if (pd < 40 && app.camCtrl && app.camCtrl.addShake) app.camCtrl.addShake(0.45);
+        if (!GameState.inVehicle && along > -0.5 && along < len + 1 && perp < 2.3) {
+          GameState.health = Math.max(5, GameState.health - 22);
+          app.sound.playHeroHurt();
+          if (app.fx) { app.fx.screenFlash('239,68,68', 0.45, 400); app.fx.floatText(hp.clone().setY(hp.y + 2.4), 'TERTIMPA POHON! -22', '#f87171', 1.2); }
+          const sg = Math.sign((hp.x - bx) * dz - (hp.z - bz) * dx) || 1;
+          app.hero.pos.x += dz * sg * 2.2; app.hero.pos.z += -dx * sg * 2.2;
+          showToast('Kamu tertimpa pohon tumbang! Hati-hati saat badai.', 'alert');
+          if (app.progress) app.progress.count('tree_hit');
+          app.updateHUD();
+        }
+      }
+    }
+
+    // ==========================================================================
+    // 12D. SIMPAN OTOMATIS + PRESTASI + TANTANGAN HARIAN
+    // ==========================================================================
+    class ProgressSystem {
+      static get KEY() { return 'ngabrag_save_v1'; }
+
+      // Dipanggil sebelum game dibuat: pulihkan progres dari penyimpanan browser
+      static preload() {
+        let d = null;
+        try { d = JSON.parse(localStorage.getItem(ProgressSystem.KEY) || 'null'); } catch (e) { d = null; }
+        ProgressSystem.pending = d;
+        if (!d) return false;
+        try {
+          const G = GameState;
+          ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
+          if (d.foodInventory) G.foodInventory = d.foodInventory;
+          if (d.stats) G.stats = Object.assign({ kekuatan: 0, dayaTahan: 0, kelincahan: 0 }, d.stats);
+          if (d.ownedItems) G.ownedItems = new Set(d.ownedItems);
+          if (d.eduSolved) G.eduSolved = new Set(d.eduSolved);
+          if (d.appearance) Object.assign(G.appearance, d.appearance);
+          if (d.equipped) Object.assign(G.equipped, d.equipped);
+          if (d.mgWins) G.mgWins = d.mgWins;
+          G.counters = d.counters || {};
+          G.achievements = d.achievements || {};
+          G.daily = d.daily || null;
+          G.tuning = d.tuning || {};
+          G.streak = d.streak || { n: 0, last: '' };
+          if (typeof d.audioEnabled === 'boolean') G.audioEnabled = d.audioEnabled;
+          return true;
+        } catch (e) { return false; }
+      }
+
+      constructor(app) {
+        this.app = app;
+        const G = GameState;
+        G.counters = G.counters || {};
+        G.achievements = G.achievements || {};
+        G.streak = G.streak || { n: 0, last: '' };
+        const p = ProgressSystem.pending;
+        if (p && p.missions && app.missions) { app.missions.done = p.missions.done || 0; app.missions.earned = p.missions.earned || 0; }
+        this.saveT = 8;
+        this.checkT = 1;
+        this.last = { fish: G.fishCaught || 0, box: G.boxingWins || 0, mg: this._mgTotal() };
+        this._defs();
+        this._rollDaily();
+        this._buildDom();
+        const inp = document.getElementById('start-hero-name');
+        if (inp && p) inp.value = G.heroName;
+        if (p) setTimeout(() => showToast(`Progres dimuat — ${formatRupiah(G.cash)}, ${this.unlockedCount()} prestasi`, 'trophy'), 600);
+        window.addEventListener('pagehide', () => this.save());
+        document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); });
+      }
+
+      _mgTotal() { return Object.values(GameState.mgWins || {}).reduce((a, b) => a + b, 0); }
+      unlockedCount() { return Object.keys(GameState.achievements).length; }
+
+      save() {
+        try {
+          const G = GameState;
+          const m = this.app.missions;
+          const d = {
+            v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
+            timePresetIndex: G.timePresetIndex, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
+            appearance: G.appearance, equipped: G.equipped, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
+            audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
+          };
+          localStorage.setItem(ProgressSystem.KEY, JSON.stringify(d));
+          return true;
+        } catch (e) { return false; }
+      }
+
+      reset() { try { localStorage.removeItem(ProgressSystem.KEY); } catch (e) { /* abaikan */ } location.reload(); }
+
+      // ---------------- prestasi ----------------
+      _defs() {
+        const G = GameState; const C = () => G.counters;
+        const mg = () => this._mgTotal();
+        this.defs = [
+          { id: 'box1', name: 'Pukulan Pertama', desc: 'Menangkan 1 pertandingan tinju', ok: () => G.boxingWins >= 1, prog: () => [G.boxingWins, 1] },
+          { id: 'box5', name: 'Juara Sasana', desc: 'Menangkan 5 pertandingan tinju', ok: () => G.boxingWins >= 5, prog: () => [G.boxingWins, 5] },
+          { id: 'tough3', name: 'Pembasmi Jagoan', desc: 'K.O. 3 warga tangguh/jagoan/preman', ok: () => (C().tough_ko || 0) >= 3, prog: () => [C().tough_ko || 0, 3] },
+          { id: 'preman', name: 'Preman Pensiun', desc: 'K.O. 1 preman', ok: () => (C().preman_ko || 0) >= 1, prog: () => [C().preman_ko || 0, 1] },
+          { id: 'mis5', name: 'Pekerja Keras', desc: 'Selesaikan 5 misi', ok: () => this.app.missions.done >= 5, prog: () => [this.app.missions.done, 5] },
+          { id: 'mis15', name: 'Raja Sambilan', desc: 'Selesaikan 15 misi', ok: () => this.app.missions.done >= 15, prog: () => [this.app.missions.done, 15] },
+          { id: 'esc3', name: 'Licin Seperti Belut', desc: 'Lolos dari Satpol PP 3 kali', ok: () => (C().escapes || 0) >= 3, prog: () => [C().escapes || 0, 3] },
+          { id: 'mg5', name: 'Atlet Kampung', desc: 'Menangkan 5 lomba mini game', ok: () => mg() >= 5, prog: () => [mg(), 5] },
+          { id: 'fish10', name: 'Raja Pancing', desc: 'Tangkap 10 ikan', ok: () => G.fishCaught >= 10, prog: () => [G.fishCaught, 10] },
+          { id: 'str5', name: 'Otot Baja', desc: 'Kekuatan mencapai Level 5', ok: () => GameStats.level('kekuatan') >= 5, prog: () => [GameStats.level('kekuatan'), 5] },
+          { id: 'rich', name: 'Juragan Pantura', desc: 'Miliki uang Rp 5.000.000', ok: () => G.cash >= 5000000, prog: () => [Math.min(G.cash, 5000000), 5000000] },
+          { id: 'edu5', name: 'Si Cerdas', desc: 'Selesaikan 5 soal edukasi', ok: () => G.eduSolved.size >= 5, prog: () => [G.eduSolved.size, 5] },
+          { id: 'shop8', name: 'Kolektor', desc: 'Miliki 8 item', ok: () => G.ownedItems.size >= 8, prog: () => [G.ownedItems.size, 8] },
+          { id: 'prone', name: 'Prajurit Merayap', desc: 'Merayap (tiarap) total 30 detik', ok: () => (C().prone_s || 0) >= 30, prog: () => [Math.floor(C().prone_s || 0), 30] },
+          { id: 'tree', name: 'Sial Kena Pohon', desc: 'Tertimpa pohon tumbang saat badai', ok: () => (C().tree_hit || 0) >= 1, prog: () => [C().tree_hit || 0, 1] },
+          { id: 'streak3', name: 'Rajin Harian', desc: 'Selesaikan semua tantangan harian 3 hari beruntun', ok: () => G.streak.n >= 3, prog: () => [G.streak.n, 3] }
+        ];
+      }
+
+      _checkAchievements() {
+        this.defs.forEach(d => {
+          if (GameState.achievements[d.id]) return;
+          let ok = false; try { ok = d.ok(); } catch (e) { ok = false; }
+          if (!ok) return;
+          GameState.achievements[d.id] = Date.now();
+          GameState.cash += 50000;
+          showToast(`PRESTASI: ${d.name}! +${formatRupiah(50000)}`, 'trophy');
+          this.app.sound.playLevelUp();
+          Haptics.buzz([30, 30, 60]);
+          if (this.app.fx) this.app.fx.screenFlash('250,204,21', 0.25, 500);
+          this.app.updateHUD();
+          this.save();
+        });
+      }
+
+      // ---------------- tantangan harian ----------------
+      _today() { return new Date().toLocaleDateString('sv-SE'); }
+      _yesterday() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('sv-SE'); }
+
+      _rollDaily() {
+        const today = this._today();
+        const G = GameState;
+        if (G.daily && G.daily.date === today) return;
+        const pool = [
+          { k: 'mg', text: 'Menangkan lomba mini game', goal: 2 },
+          { k: 'mission', text: 'Selesaikan misi sambilan', goal: 2 },
+          { k: 'tough', text: 'K.O. warga tangguh / jagoan / preman', goal: 1 },
+          { k: 'fish', text: 'Tangkap ikan', goal: 3 },
+          { k: 'escape', text: 'Lolos dari kejaran Satpol PP', goal: 1 },
+          { k: 'train', text: 'Latihan fisik (gym, tinju, olahraga)', goal: 6 }
+        ];
+        let seed = 0; for (const ch of today) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
+        const rnd = MG.rnd(seed);
+        const picks = [];
+        while (picks.length < 3) { const x = pool[Math.floor(rnd() * pool.length)]; if (!picks.includes(x)) picks.push(x); }
+        G.daily = { date: today, tasks: picks.map(p => Object.assign({ n: 0, claimed: false }, p)), bonus: false };
+      }
+
+      bump(k, n = 1) {
+        const G = GameState;
+        this._rollDaily();
+        G.daily.tasks.forEach(t => {
+          if (t.k !== k || t.claimed) return;
+          t.n = Math.min(t.goal, t.n + n);
+          if (t.n >= t.goal) {
+            t.claimed = true;
+            G.cash += 80000;
+            showToast(`Tantangan harian selesai: ${t.text} (+${formatRupiah(80000)})`, 'flag');
+            this.app.sound.playMissionComplete();
+            Haptics.buzz([30, 30, 50]);
+            this.app.updateHUD();
+          } else showToast(`Harian: ${t.text} ${t.n}/${t.goal}`, 'flag');
+        });
+        if (!G.daily.bonus && G.daily.tasks.every(t => t.claimed)) {
+          G.daily.bonus = true;
+          G.streak.n = G.streak.last === this._yesterday() ? G.streak.n + 1 : 1;
+          G.streak.last = this._today();
+          const b = 200000 + 25000 * Math.min(G.streak.n, 7);
+          G.cash += b;
+          setTimeout(() => showToast(`SEMUA TANTANGAN HARIAN SELESAI! Bonus ${formatRupiah(b)} • Beruntun ${G.streak.n} hari`, 'trophy'), 1700);
+          this.app.updateHUD();
+        }
+        this.save();
+      }
+
+      count(k, n = 1) { GameState.counters[k] = (GameState.counters[k] || 0) + n; }
+
+      // ---------------- UI ----------------
+      _buildDom() {
+        const btn = document.createElement('button');
+        btn.id = 'btn-hud-progress';
+        btn.type = 'button';
+        btn.className = 'glass-pill rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-[11px] font-extrabold text-yellow-300 flex items-center gap-1.5 shadow';
+        btn.innerHTML = `<span>${GameIcons.svg('star', 'w-3.5 h-3.5')}</span><span>PRESTASI</span>`;
+        const ref = document.getElementById('btn-hud-missions') || document.getElementById('btn-hud-minigames');
+        if (ref && ref.parentElement) ref.parentElement.insertBefore(btn, ref);
+        btn.addEventListener('click', () => this.open());
+        const modal = document.createElement('div');
+        modal.id = 'modal-progress';
+        modal.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2.5 sm:p-6';
+        modal.innerHTML = `
+          <div class="glass-panel rounded-3xl border border-yellow-400/30 w-full max-w-lg max-h-[88vh] overflow-y-auto p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2"><div class="text-base sm:text-lg font-black text-yellow-300">Prestasi & Tantangan Harian</div><button id="btn-close-progress" type="button" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">✕</button></div>
+            <div id="pg-body" class="space-y-3"></div>
+            <div class="flex gap-2"><button id="btn-pg-save" type="button" class="flex-1 rounded-xl bg-emerald-500/20 border border-emerald-400/40 py-2 text-xs font-bold text-emerald-300">Simpan Sekarang</button><button id="btn-pg-reset" type="button" class="flex-1 rounded-xl bg-rose-500/20 border border-rose-400/40 py-2 text-xs font-bold text-rose-300">Hapus Simpanan</button></div>
+            <div class="text-[10px] text-slate-400">Progres tersimpan otomatis di browser ini (uang, level, item, misi, prestasi).</div>
+          </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#btn-close-progress').addEventListener('click', () => this.close());
+        modal.querySelector('#btn-pg-save').addEventListener('click', () => { showToast(this.save() ? 'Progres disimpan' : 'Gagal menyimpan (penyimpanan browser dinonaktifkan)', 'trophy'); });
+        modal.querySelector('#btn-pg-reset').addEventListener('click', () => { if (confirm('Hapus semua progres tersimpan dan mulai dari awal?')) this.reset(); });
+      }
+
+      open() { if (!GameState.started) return; GameState.paused = true; this._render(); document.getElementById('modal-progress').classList.remove('hidden'); }
+      close() { document.getElementById('modal-progress').classList.add('hidden'); GameState.paused = false; }
+
+      _render() {
+        this._rollDaily();
+        const G = GameState;
+        const bar = (a, b, col) => `<div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full ${col}" style="width:${Math.min(100, (a / b) * 100)}%"></div></div>`;
+        const daily = G.daily.tasks.map(t => `<div class="rounded-xl bg-slate-900/70 border ${t.claimed ? 'border-emerald-400/40' : 'border-white/10'} p-2.5"><div class="flex justify-between text-[11px] font-bold ${t.claimed ? 'text-emerald-300' : 'text-slate-200'}"><span>${t.claimed ? '✔ ' : ''}${t.text}</span><span>${t.n}/${t.goal}</span></div>${bar(t.n, t.goal, 'bg-amber-400')}</div>`).join('');
+        const ach = this.defs.map(d => {
+          const done = Boolean(G.achievements[d.id]);
+          const pr = d.prog ? d.prog() : [0, 1];
+          return `<div class="rounded-xl bg-slate-900/70 border ${done ? 'border-yellow-400/50' : 'border-white/10'} p-2.5 ${done ? '' : 'opacity-80'}"><div class="flex justify-between text-[11px] font-black ${done ? 'text-yellow-300' : 'text-slate-300'}"><span>${done ? '★ ' : '☆ '}${d.name}</span><span class="text-[10px] font-bold">${done ? 'Selesai' : `${pr[0]}/${pr[1]}`}</span></div><div class="text-[10px] text-slate-400">${d.desc}</div>${done ? '' : bar(pr[0], pr[1], 'bg-sky-400')}</div>`;
+        }).join('');
+        document.getElementById('pg-body').innerHTML = `
+          <div><div class="text-xs font-black text-amber-300 mb-1">Tantangan Harian • Beruntun ${G.streak.n} hari</div><div class="space-y-1.5">${daily}</div><div class="text-[10px] text-slate-400 mt-1">Selesaikan ketiganya untuk bonus besar. Berganti setiap hari.</div></div>
+          <div><div class="text-xs font-black text-yellow-300 mb-1">Prestasi ${this.unlockedCount()}/${this.defs.length}</div><div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">${ach}</div></div>`;
+      }
+
+      update(dt) {
+        const G = GameState;
+        // merayap
+        const h = this.app.hero;
+        const lp = this._lp || (this._lp = h.pos.clone());
+        const mv = Math.hypot(h.pos.x - lp.x, h.pos.z - lp.z); lp.copy(h.pos);
+        if (h.stance === 2 && mv > 0.002 && mv < 1.5) G.counters.prone_s = (G.counters.prone_s || 0) + dt;
+        this.checkT -= dt;
+        if (this.checkT <= 0) {
+          this.checkT = 1;
+          const f = G.fishCaught || 0; if (f > this.last.fish) { this.bump('fish', f - this.last.fish); this.last.fish = f; }
+          const b = G.boxingWins || 0; if (b > this.last.box) { this.bump('mg', b - this.last.box); this.last.box = b; }
+          this._checkAchievements();
+        }
+        this.saveT -= dt;
+        if (this.saveT <= 0) { this.saveT = 8; this.save(); }
+      }
+    }
+
+    // ==========================================================================
+    // 12E. BENGKEL TUNING: UPGRADE MESIN, GIGI, BAN, NITRO, CAT & LAMPU NEON
+    // ==========================================================================
+    class GarageSystem {
+      static get PAINTS() { return [['Merah Api', 0xef4444], ['Oranye Pantura', 0xf97316], ['Kuning Taksi', 0xfacc15], ['Hijau Sawah', 0x22c55e], ['Biru Laut', 0x0ea5e9], ['Ungu Neon', 0xa855f7], ['Pink Karawang', 0xec4899], ['Hitam Doff', 0x1f2937], ['Putih Mutiara', 0xf1f5f9]]; }
+      static get PARTS() {
+        return [
+          { k: 'eng', name: 'Mesin', desc: '+6% kecepatan maksimum / level', base: 120000 },
+          { k: 'gear', name: 'Gigi & Turbo', desc: '+7% akselerasi / level', base: 100000 },
+          { k: 'tire', name: 'Ban & Suspensi', desc: '+5% kelincahan belok / level', base: 80000 },
+          { k: 'nitro', name: 'Tabung Nitro', desc: 'Nitro lebih awet & lebih kencang', base: 140000 }
+        ];
+      }
+
+      // Terapkan setelan tuning ke kendaraan (dipanggil saat kendaraan dibuat & setelah upgrade)
+      static apply(v) {
+        const t = (GameState.tuning && GameState.tuning[v.name]) || {};
+        if (!v.base) v.base = { maxSpeed: v.maxSpeed, accel: v.accel, turnRate: v.turnRate };
+        v.tune = t;
+        v.maxSpeed = v.base.maxSpeed * (1 + 0.06 * (t.eng || 0));
+        v.accel = v.base.accel * (1 + 0.07 * (t.gear || 0));
+        v.turnRate = v.base.turnRate * (1 + 0.05 * (t.tire || 0));
+        v.nitroLvl = t.nitro || 0;
+        if (t.paint !== undefined && v.bodyMat) v.bodyMat.color.setHex(t.paint);
+        GarageSystem.setNeon(v, t.neon);
+      }
+
+      static setNeon(v, hex) {
+        if (hex === undefined || hex === null) { if (v.neonMesh) v.neonMesh.visible = false; return; }
+        if (!v.neonMesh) {
+          const c = document.createElement('canvas'); c.width = c.height = 64;
+          const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 4, 32, 32, 32);
+          gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+          const tex = new THREE.CanvasTexture(c);
+          const mat = new THREE.MeshBasicMaterial({ map: tex, color: hex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+          const isBike = v.type === 'motorbike';
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(isBike ? 1.8 : 3.0, isBike ? 3.0 : 5.0), mat);
+          m.rotation.x = -Math.PI / 2; m.position.y = 0.06; m.renderOrder = 5;
+          v.mesh.add(m); v.neonMesh = m;
+        }
+        v.neonMesh.material.color.setHex(hex);
+        v.neonMesh.visible = true;
+      }
+
+      constructor(app) {
+        this.app = app;
+        this.sel = 0;
+        const modal = document.createElement('div');
+        modal.id = 'modal-garage';
+        modal.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2.5 sm:p-6';
+        modal.innerHTML = `
+          <div class="glass-panel rounded-3xl border border-orange-400/30 w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2"><div><div class="text-base sm:text-lg font-black text-orange-300">Bengkel Tuning Pantura</div><div id="gg-cash" class="text-[11px] font-bold text-emerald-300"></div></div><button id="btn-close-garage" type="button" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">✕</button></div>
+            <div id="gg-body" class="space-y-3"></div>
+            <button id="btn-gg-shop" type="button" class="w-full rounded-xl bg-sky-500/20 border border-sky-400/40 py-2 text-xs font-bold text-sky-300">Beli Kendaraan Baru (Showroom)</button>
+          </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#btn-close-garage').addEventListener('click', () => this.close());
+        modal.querySelector('#btn-gg-shop').addEventListener('click', () => { this.close(); app.shopCtrl.openShop('vehicle'); });
+        GameState.tuning = GameState.tuning || {};
+        // setelan tersimpan diterapkan ke kendaraan yang sudah ada
+        app.vehicles.list.forEach(v => GarageSystem.apply(v));
+      }
+
+      open() { GameState.paused = true; this._render(); document.getElementById('modal-garage').classList.remove('hidden'); }
+      close() { document.getElementById('modal-garage').classList.add('hidden'); GameState.paused = false; }
+
+      _cost(k, lvl) { return Math.round(GarageSystem.PARTS.find(p => p.k === k).base * (1 + lvl * 0.9) / 1000) * 1000; }
+
+      _render() {
+        const list = this.app.vehicles.list;
+        if (this.sel >= list.length) this.sel = 0;
+        const v = list[this.sel];
+        const t = GameState.tuning[v.name] || (GameState.tuning[v.name] = {});
+        document.getElementById('gg-cash').textContent = `Uang: ${formatRupiah(GameState.cash)}`;
+        const tabs = list.map((x, i) => `<button type="button" data-gv="${i}" class="shrink-0 rounded-lg px-2 py-1 text-[10px] font-extrabold border ${i === this.sel ? 'bg-orange-500 text-slate-950 border-orange-300' : 'bg-slate-800 text-slate-200 border-white/10'}">${x.name}</button>`).join('');
+        const stat = (label, val, base, col) => `<div><div class="flex justify-between text-[10px] font-bold text-slate-300"><span>${label}</span><span>${val}</span></div><div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full ${col}" style="width:${Math.min(100, base)}%"></div></div></div>`;
+        const stats = `<div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5 space-y-1.5">${stat('Kecepatan', Math.round(v.maxSpeed * 3.6) + ' km/j', v.maxSpeed / 45 * 100, 'bg-rose-400')}${stat('Akselerasi', v.accel.toFixed(1), v.accel / 35 * 100, 'bg-amber-400')}${stat('Kelincahan', v.turnRate.toFixed(2), v.turnRate / 4.2 * 100, 'bg-sky-400')}</div>`;
+        const parts = GarageSystem.PARTS.map(p => {
+          const lvl = t[p.k] || 0; const max = lvl >= 5;
+          return `<div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="text-xs font-black text-orange-200">${p.name} <span class="text-[10px] text-slate-400">Lv ${lvl}/5</span></div><div class="text-[10px] text-slate-400">${p.desc}</div><div class="flex gap-0.5 mt-1">${[0, 1, 2, 3, 4].map(i => `<span class="h-1.5 flex-1 rounded-full ${i < lvl ? 'bg-orange-400' : 'bg-slate-700'}"></span>`).join('')}</div></div><button type="button" data-up="${p.k}" class="shrink-0 rounded-xl ${max ? 'bg-slate-700 text-slate-400' : 'bg-orange-500 hover:bg-orange-400 text-slate-950'} font-black text-[11px] px-2.5 py-2">${max ? 'MAKS' : formatRupiah(this._cost(p.k, lvl))}</button></div>`;
+        }).join('');
+        const paints = GarageSystem.PAINTS.map(([n, h]) => `<button type="button" data-paint="${h}" title="${n}" class="w-7 h-7 rounded-full border-2 ${t.paint === h ? 'border-white' : 'border-white/20'}" style="background:#${h.toString(16).padStart(6, '0')}"></button>`).join('');
+        const neons = GarageSystem.PAINTS.map(([n, h]) => `<button type="button" data-neon="${h}" title="${n}" class="w-7 h-7 rounded-full border-2 ${t.neon === h ? 'border-white' : 'border-white/20'}" style="background:#${h.toString(16).padStart(6, '0')}"></button>`).join('');
+        document.getElementById('gg-body').innerHTML = `
+          <div class="flex gap-1.5 overflow-x-auto pb-1">${tabs}</div>${stats}<div class="space-y-1.5">${parts}</div>
+          <div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5"><div class="text-xs font-black text-orange-200 mb-1.5">Cat Body <span class="text-[10px] text-slate-400">Rp 40.000</span></div><div class="flex flex-wrap gap-1.5">${paints}</div></div>
+          <div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5"><div class="text-xs font-black text-orange-200 mb-1.5">Lampu Neon Kolong <span class="text-[10px] text-slate-400">Rp 150.000 • ${t.neon !== undefined ? 'sudah terpasang (ganti warna Rp 20.000)' : 'belum dipasang'}</span></div><div class="flex flex-wrap gap-1.5">${neons}</div></div>`;
+        const body = document.getElementById('gg-body');
+        body.querySelectorAll('[data-gv]').forEach(b => b.addEventListener('click', () => { this.sel = parseInt(b.dataset.gv, 10); this._render(); }));
+        body.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => this._buyPart(v, b.dataset.up)));
+        body.querySelectorAll('[data-paint]').forEach(b => b.addEventListener('click', () => this._buyCosmetic(v, 'paint', parseInt(b.dataset.paint, 10), 40000)));
+        body.querySelectorAll('[data-neon]').forEach(b => b.addEventListener('click', () => this._buyCosmetic(v, 'neon', parseInt(b.dataset.neon, 10), (GameState.tuning[v.name].neon !== undefined) ? 20000 : 150000)));
+      }
+
+      _pay(cost) {
+        if (GameState.cash < cost) { showToast(`Uang kurang! Butuh ${formatRupiah(cost)}`, 'alert'); this.app.sound.playBlock(); return false; }
+        GameState.cash -= cost; this.app.sound.playCoins(); Haptics.buzz(22); this.app.updateHUD();
+        if (this.app.progress) this.app.progress.count('tune_spent', cost);
+        return true;
+      }
+
+      _buyPart(v, k) {
+        const t = GameState.tuning[v.name]; const lvl = t[k] || 0;
+        if (lvl >= 5) { showToast('Sudah level maksimum', 'wrench'); return; }
+        if (!this._pay(this._cost(k, lvl))) return;
+        t[k] = lvl + 1;
+        GarageSystem.apply(v);
+        showToast(`${GarageSystem.PARTS.find(p => p.k === k).name} ${v.name} naik ke Lv ${t[k]}!`, 'wrench');
+        this.app.sound.playLevelUp();
+        this._render();
+        if (this.app.progress) this.app.progress.save();
+      }
+
+      _buyCosmetic(v, k, hex, cost) {
+        const t = GameState.tuning[v.name];
+        if (t[k] === hex) return;
+        if (!this._pay(cost)) return;
+        t[k] = hex; GarageSystem.apply(v);
+        showToast(k === 'paint' ? `${v.name} dicat ulang!` : `Lampu neon ${v.name} menyala!`, 'wrench');
+        this._render();
+        if (this.app.progress) this.app.progress.save();
+      }
+    }
+
     class PanturaGameApp {
       constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -10616,6 +11405,9 @@
         this.mgCtrl = new MiniGamesHubController(this);
         this.life = new LifeSystem(this);
         this.missions = new MissionSystem(this);
+        this.weather = new WeatherSystem(this);
+        this.garage = new GarageSystem(this);
+        this.progress = new ProgressSystem(this);
         this.hero.life = this.life;
         this.citizens.life = this.life;
 
@@ -10753,6 +11545,7 @@
         this.sunLight.intensity = p.sunInt;
         this.world.neonSigns.forEach(mat => { mat.emissiveIntensity = p.neonInt; });
 
+        if (this.weather) this.weather.captureBase();
         const timeIcon = document.getElementById('hud-time-icon');
         if (timeIcon) timeIcon.innerHTML = GameIcons.svg(p.icon, 'w-4 h-4 sm:w-5 sm:h-5');
       }
@@ -10806,6 +11599,17 @@
           showToast(GameState.audioEnabled ? 'Suara & Mesin Aktif' : 'Suara Dimatikan', GameState.audioEnabled ? 'volumeOn' : 'volumeOff');
         });
 
+        // judul tooltip untuk tombol ikon ringkas
+        document.querySelectorAll('.hud-pill-row > button').forEach(b => { const t = b.querySelector('span:nth-child(2)'); if (t && !b.title) b.title = t.textContent.trim(); });
+        const applyMin = (on) => {
+          document.body.classList.toggle('hud-min', on);
+          const ic = document.getElementById('hud-collapse-icon');
+          if (ic) ic.innerHTML = GameIcons.svg(on ? 'panelMax' : 'panelMin', 'w-4 h-4');
+          try { localStorage.setItem('ngabrag_hudmin', on ? '1' : '0'); } catch (e) { /* abaikan */ }
+        };
+        let hm = false; try { hm = localStorage.getItem('ngabrag_hudmin') === '1'; } catch (e) { /* abaikan */ }
+        applyMin(hm);
+        document.getElementById('btn-hud-collapse')?.addEventListener('click', () => applyMin(!document.body.classList.contains('hud-min')));
         const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
         const syncFs = () => {
           const ic = document.getElementById('hud-fs-icon');
@@ -10969,7 +11773,7 @@
           if (act === 'food_warteg' || act === 'food_minimarket') {
             this.shopCtrl.openShop('food');
           } else if (act === 'workshop') {
-            this.shopCtrl.openShop('vehicle');
+            this.garage.open();
           } else if (act === 'boxing_arena') {
             this.mgCtrl.open('boxing');
           } else {
@@ -11145,6 +11949,8 @@
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
             this.missions.update(dt);
+            this.weather.update(dt);
+            this.progress.update(dt);
             if (this.fx) this.fx.update(dt);
             this._updateProximityAndPickups();
           }
@@ -11180,6 +11986,7 @@
     function initNgabragGame() {
       if (window.ngabragApp) return;
       GameIcons.hydrateAll();
+      ProgressSystem.preload();
       window.ngabragApp = new PanturaGameApp();
     }
 
