@@ -337,7 +337,7 @@
       </div></div>
       <h1 class="sr-only">NGABRAG 3D</h1>
       <p class="text-xs sm:text-sm text-slate-300 mb-4 sm:mb-5 leading-relaxed text-center">
-        Jelajahi koridor Pantura hidup! Kendarai mobil & motor sport, buka pintu toko/warteg, belanja makanan & minuman, simpan perlengkapan di Ransel, dan menangkan Turnamen Boxing Pantura.
+        Jelajahi koridor Pantura! Hadapi warga dan petugas saat membuat onar, pulihkan darah lewat makanan atau obat di RS, dan temukan Hutan Terlarang. Grakhor akan bangkit makin besar setiap kali dikalahkan—hingga dapat menerobos dan menghancurkan kota!
       </p>
 
       <!-- Hero Name Input -->
@@ -398,7 +398,7 @@
             <div class="flex items-center gap-1" style="margin-top:2px" title="Energi">
               <span data-icon="heart" data-icon-class="w-2.5 h-2.5 text-rose-400"></span>
               <div class="flex-1 rounded-full bg-slate-800 overflow-hidden" style="height:4px"><div id="hud-health-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div></div>
-              <span id="hud-health-text" class="hidden">100%</span>
+              <span id="hud-health-text" class="text-[8px] font-bold text-rose-200 tabular-nums">100%</span>
             </div>
             <div class="flex items-center gap-1" style="margin-top:2px" title="Stamina / Nitro">
               <span data-icon="bolt" data-icon-class="w-2.5 h-2.5 text-amber-400"></span>
@@ -489,6 +489,8 @@
         <div>
           <div id="hud-veh-name" class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase truncate max-w-[120px] sm:max-w-[160px]">SEDAN PANTURA</div>
           <div id="hud-speed-val" class="text-sm sm:text-lg font-black text-amber-400">0 KM/J</div>
+          <div id="hud-veh-condition" class="text-[9px] font-bold text-emerald-300">Kondisi 100%</div>
+          <div class="mt-1 h-1 rounded-full overflow-hidden bg-slate-800"><div id="hud-veh-condition-bar" class="h-full bg-emerald-400 transition-all duration-150" style="width:100%"></div></div>
         </div>
         <button id="btn-hud-radio" type="button" class="rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-white/15 px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
           <span data-icon="radio" data-icon-class="w-3.5 h-3.5"></span><span id="hud-radio-label" class="truncate max-w-[100px] sm:max-w-none">Pantura Pop Hits FM</span>
@@ -750,7 +752,7 @@
             <span data-icon="backpack" data-icon-class="w-5 h-5 text-emerald-400"></span>
             <span>RANSEL & BEKAL HERO</span>
           </h2>
-          <p class="text-[11px] sm:text-xs text-slate-300">Santap bekal makanan/minuman atau pasang/lepas perlengkapan milikmu</p>
+          <p class="text-[11px] sm:text-xs text-slate-300">Makan, minum, gunakan obat dan P3K, atau ganti perlengkapan Hero</p>
         </div>
         <div class="flex items-center gap-2">
           <button id="btn-ransel-open-shop" type="button" class="rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-black text-amber-300 inline-flex items-center gap-1.5">
@@ -779,7 +781,7 @@
         <div>
           <div class="text-xs font-black uppercase tracking-wider text-amber-300 mb-2.5 flex items-center gap-1.5">
             <span data-icon="food" data-icon-class="w-4 h-4"></span>
-            <span>Bekal Makanan & Minuman</span>
+            <span>Makanan, Minuman & Obat</span>
           </div>
           <div id="ransel-food-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
         </div>
@@ -991,7 +993,7 @@
       quality: 'medium',
       audioEnabled: true,
       timePresetIndex: 0, // 0: Golden Afternoon, 1: Bright Noon, 2: Night Neon
-      clock: 16.5, dark: 0, bossKills: 0,
+      clock: 16.5, dark: 0, bossKills: 0, cityDamage: {},
       cameraMode: 0,      // 0: Standard, 1: Wide, 2: Close, 3: First-Person/Hood
       cameraSensitivity: 1.0,
       cameraDistanceMult: 1.0,
@@ -1856,6 +1858,7 @@
         this.neonSigns = [];
         this.trafficLights = [];
         this.cashPickups = [];
+        this.destructionTargets = [];
         this.worldLimit = 145;
         this.arena = { x: 900, z: 900, r: 60 };
         this.roadCoords = [-70, 0, 70];
@@ -1868,12 +1871,14 @@
       }
 
       addBoxCollider(x, z, w, d) {
-        this.colliders.push({
+        const collider = {
           minX: x - w * 0.5,
           maxX: x + w * 0.5,
           minZ: z - d * 0.5,
           maxZ: z + d * 0.5
-        });
+        };
+        this.colliders.push(collider);
+        return collider;
       }
 
       resolveCircleCollision(pos, radius = 0.58) {
@@ -2063,6 +2068,14 @@
             serviceAction: 'workshop', serviceLabel: 'Buka Showroom & Bengkel [E]'
           },
           {
+            title: 'RS PANTURA SEHAT',
+            subtitle: 'Pelayanan Kesehatan & Obat [E]',
+            x: 36, z: -105, w: 19, d: 15, h: 8,
+            base: '#e2e8f0', win: '#a5f3fc', accent: '#10b981',
+            enterable: true, doorSide: 'south',
+            serviceAction: 'hospital', serviceLabel: 'Beli Obat & Perawatan di RS [E]'
+          },
+          {
             title: 'SUMMARECON MALL BEKASI',
             subtitle: 'Pusat Belanja & Kuliner Bekasi',
             x: -102, z: -38, w: 26, d: 22, h: 18,
@@ -2121,7 +2134,7 @@
             box.castShadow = true;
             box.receiveShadow = true;
             this.scene.add(box);
-            this.addBoxCollider(lm.x, lm.z, lm.w, lm.d);
+            const buildingCollider = this.addBoxCollider(lm.x, lm.z, lm.w, lm.d);
 
             const signTex = TextureFactory.createSignTexture(lm.title, lm.subtitle, '#0f172a', lm.accent);
             const signMat = new THREE.MeshStandardMaterial({
@@ -2134,8 +2147,60 @@
             const sign = new THREE.Mesh(new THREE.BoxGeometry(lm.w * 0.78, 2.6, 0.4), signMat);
             sign.position.set(lm.x, lm.h - 2.2, lm.z + lm.d * 0.5 + 0.25);
             this.scene.add(sign);
+            // Landmark dekoratif dapat hancur tanpa memutus layanan warteg, RS, dan bengkel.
+            const target = {
+              id: lm.title, x: lm.x, z: lm.z, w: lm.w, d: lm.d, h: lm.h,
+              mesh: box, sign, collider: buildingCollider, damage: 0,
+              collapsed: false, collapseTime: 0, rubble: []
+            };
+            this.destructionTargets.push(target);
+            const savedDamage = Number((GameState.cityDamage || {})[target.id] || 0);
+            target.damage = clamp(savedDamage, 0, 100);
+            if (target.damage >= 100) this._collapseLandmark(target, true);
           }
         });
+      }
+
+      _collapseLandmark(target, instant = false) {
+        if (!target || target.collapsed) return;
+        target.collapsed = true;
+        target.collapseTime = instant ? 1 : 0;
+        target.sign.visible = false;
+        const idx = this.colliders.indexOf(target.collider);
+        if (idx >= 0) this.colliders.splice(idx, 1);
+        const stone = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 1, flatShading: true });
+        // Puing ringan, dibuat sekali per landmark agar tetap lancar di HP.
+        for (let i = 0; i < 9; i++) {
+          const width = 1.5 + Math.random() * 3.2;
+          const block = new THREE.Mesh(new THREE.BoxGeometry(width, 0.7 + Math.random() * 1.1, 1.1 + Math.random() * 2.5), stone);
+          const angle = i / 9 * Math.PI * 2;
+          const spread = 4 + Math.random() * 6;
+          block.position.set(target.x + Math.sin(angle) * spread, 0.45, target.z + Math.cos(angle) * spread);
+          block.rotation.set((Math.random() - 0.5) * 0.3, angle, (Math.random() - 0.5) * 0.45);
+          this.scene.add(block);
+          target.rubble.push(block);
+        }
+        if (instant) {
+          target.mesh.scale.y = 0.16;
+          target.mesh.position.y = target.h * 0.08;
+          target.mesh.rotation.z = 0.11;
+        }
+      }
+
+      damageLandmark(target, amount, fx = null) {
+        if (!target || target.collapsed || amount <= 0) return false;
+        target.damage = clamp(target.damage + amount, 0, 100);
+        GameState.cityDamage = GameState.cityDamage || {};
+        GameState.cityDamage[target.id] = Math.round(target.damage);
+        if (fx && Math.random() < 0.5) {
+          fx.dustPuff(new THREE.Vector3(target.x, 1.5, target.z), 4, 1.6);
+        }
+        if (target.damage >= 100) {
+          this._collapseLandmark(target);
+          showToast(`${target.id} RUNTUH akibat kemarahan Grakhor!`, 'alert');
+          return true;
+        }
+        return false;
       }
 
       _createEnterableBuilding(lm) {
@@ -2491,6 +2556,15 @@
       }
 
       update(dt, sound, heroPos = null) {
+        for (const target of this.destructionTargets) {
+          if (!target.collapsed || target.collapseTime >= 1) continue;
+          target.collapseTime = Math.min(1, target.collapseTime + dt * 0.48);
+          const t = target.collapseTime;
+          const h = 1 - 0.84 * (t * t * (3 - 2 * t));
+          target.mesh.scale.y = h;
+          target.mesh.position.y = target.h * h * 0.5;
+          target.mesh.rotation.z = 0.11 * t;
+        }
         // Animate Hinged Doors & close safely after Hero clears doorway
         for (let i = 0; i < this.doors.length; i++) {
           const d = this.doors[i];
@@ -4313,6 +4387,12 @@
           doorPivot: built.doorPivot,
           bodyMat: built.bodyMat,
           animate: built.animate || null,
+          maxIntegrity: spec.type === 'horse' ? 100 : (spec.type === 'bicycle' ? 80 : (spec.type === 'motorbike' ? 130 : 210)),
+          integrity: spec.type === 'horse' ? 100 : (spec.type === 'bicycle' ? 80 : (spec.type === 'motorbike' ? 130 : 210)),
+          disabled: false,
+          impactCooldown: 0,
+          smokeCooldown: 0,
+          conditionWarned: false,
           noEngine: spec.type === 'bicycle' || spec.type === 'horse',
           noTune: spec.type === 'bicycle' || spec.type === 'horse'
         };
@@ -4337,6 +4417,7 @@
         let bestD = maxDist;
         for (let i = 0; i < this.list.length; i++) {
           const v = this.list[i];
+          if (v.disabled) continue;
           const d = pos.distanceTo(v.pos);
           if (d < bestD) {
             bestD = d;
@@ -4346,14 +4427,60 @@
         return best;
       }
 
+      // Kendaraan tidak lagi kebal. Kuda hanya kehilangan kendali/ketakutan.
+      damageVehicle(v, amount, attacker = null) {
+        if (!v || v.disabled || amount <= 0) return;
+        const app = window.ngabragApp;
+        v.integrity = Math.max(0, v.integrity - amount);
+        const pct = v.integrity / v.maxIntegrity;
+        if (app && app.fx) {
+          const hit = v.pos.clone().add(new THREE.Vector3(0, v.type === 'horse' ? 1.2 : 0.9, 0));
+          app.fx.impactBurst(hit, new THREE.Vector3(0, 1, 0), 0.35);
+          if (v.integrity <= 0) app.fx.screenFlash('239,68,68', 0.36, 300);
+        }
+        if (pct <= 0.35 && !v.conditionWarned) {
+          v.conditionWarned = true;
+          showToast(v.type === 'horse' ? 'Kuda mulai panik! Segera cari tempat aman.' : `${v.name} rusak berat! Segera berhenti.`, 'alert');
+        }
+        if (v.integrity > 0) return;
+        v.disabled = true;
+        if (v.type === 'horse') v.recoveryTimer = 22;
+        v.speed = 0;
+        if (v.bodyMat && v.type !== 'horse') {
+          v.bodyMat.emissive = new THREE.Color(0x240300);
+          v.bodyMat.emissiveIntensity = 0.3;
+        }
+        if (GameState.inVehicle && GameState.activeVehicle === v && app && app.citizens) {
+          app.citizens.forceHeroOut(v, attacker, true);
+        }
+        showToast(v.type === 'horse' ? 'Kuda ketakutan dan berhenti! Hero terjatuh.' : `${v.name} tidak bisa digunakan lagi! Hero harus turun.`, 'alert');
+      }
+
       update(dt, input, citizens) {
         if (this.driftSoundCooldown > 0) this.driftSoundCooldown -= dt;
 
         for (let i = 0; i < this.list.length; i++) {
           const v = this.list[i];
+          if (v.type === 'horse' && v.disabled) {
+            v.recoveryTimer -= dt;
+            if (v.recoveryTimer <= 0) {
+              v.integrity = v.maxIntegrity;
+              v.disabled = false;
+              v.conditionWarned = false;
+            }
+          }
+          v.impactCooldown = Math.max(0, v.impactCooldown - dt);
+          v.smokeCooldown = Math.max(0, v.smokeCooldown - dt);
+          if (v.disabled && v.type !== 'horse' && v.smokeCooldown <= 0) {
+            const fx = window.ngabragApp && window.ngabragApp.fx;
+            if (fx && Math.hypot(v.pos.x - window.ngabragApp.hero.pos.x, v.pos.z - window.ngabragApp.hero.pos.z) < 48) {
+              fx.dustPuff(v.pos.clone().add(new THREE.Vector3(0, 1.3, 0)), 2, 1.15);
+            }
+            v.smokeCooldown = 0.65;
+          }
           const isDriven = GameState.inVehicle && GameState.activeVehicle === v;
 
-          if (isDriven) {
+          if (isDriven && !v.disabled) {
             const throttle = -input.moveY; // Forward = +1, Reverse = -1
             const steer = -input.moveX;
             v.steerLean = steer;
@@ -4394,6 +4521,10 @@
 
             const radius = RIDE[v.type] ? RIDE[v.type].r : 1.55;
             if (this.world.resolveCircleCollision(v.pos, radius)) {
+              if (Math.abs(v.speed) > 8 && v.impactCooldown <= 0) {
+                this.damageVehicle(v, Math.min(37, Math.abs(v.speed) * 1.4));
+                v.impactCooldown = 0.65;
+              }
               v.speed *= -0.35;
               this.sound.playBump();
             }
@@ -4620,6 +4751,15 @@
       _heroKO(by) {
         const app = this.life.app;
         const hero = app.hero;
+        if (GameState.inVehicle || GameState.vehicleTransition) {
+          if (GameState.activeVehicle) GameState.activeVehicle.speed = 0;
+          GameState.inVehicle = false;
+          GameState.activeVehicle = null;
+          GameState.vehicleTransition = null;
+          this.sound.stopVehicleEngine();
+          this.sound.syncRadio(false);
+          hero.rig.pelvis.position.y = 0.95;
+        }
         if (this.life.busy) this.life.endHeroActivity();
         if (app.forest && app.forest.active) app.forest.leave(true);
         const cost = Math.min(GameState.cash, 50000);
@@ -4633,6 +4773,76 @@
         hero.velY = 0;
         showToast(`KO dihajar ${by ? by.name : 'jagoan'}! Dibawa warga ke Puskesmas — biaya ${formatRupiah(cost)}.`, 'alert');
         app.updateHUD();
+      }
+
+      // Dapat dipanggil oleh petugas maupun warga yang sangat marah.
+      forceHeroOut(vehicle, actor = null, destroyed = false) {
+        const app = this.life && this.life.app;
+        if (!app || !GameState.inVehicle || GameState.activeVehicle !== vehicle || GameState.vehicleTransition) return false;
+        vehicle.speed = 0;
+        app.hero.startVehicleTransition(vehicle, false);
+        if (GameState.vehicleTransition) {
+          GameState.vehicleTransition.duration = destroyed ? 0.28 : 0.36;
+          GameState.vehicleTransition.forced = true;
+        }
+        const damage = destroyed ? (vehicle.type === 'horse' ? 7 : 18) : (isTwoWheel(vehicle.type) ? 12 : 7);
+        GameState.health = Math.max(0, GameState.health - damage);
+        this.sound.playHitImpact(true, false);
+        if (this.fx) {
+          this.fx.screenFlash('239,68,68', 0.38, 260);
+          this.fx.floatText(app.hero.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), `-${damage} HP`, '#fb7185', 0.9);
+        }
+        showToast(destroyed ? 'Kendaraan lumpuh! Hero terjatuh dan terluka.' : `${actor ? actor.name : 'Warga'} menarik Hero keluar dari kendaraan!`, 'alert');
+        if (GameState.health <= 0) this._heroKO(actor || { name: 'kecelakaan kendaraan' });
+        return true;
+      }
+
+      _interceptVehicle(c, dt, hero) {
+        const vehicle = GameState.activeVehicle;
+        if (!vehicle || !GameState.inVehicle) return false;
+        const stars = this.life && this.life.app.missions ? this.life.app.missions.stars : 0;
+        const enforcer = Boolean(c.enforcer);
+        const dx = vehicle.pos.x - c.pos.x;
+        const dz = vehicle.pos.z - c.pos.z;
+        const dist = Math.hypot(dx, dz) || 0.001;
+        const want = Math.atan2(dx, dz);
+        c.yaw += Math.atan2(Math.sin(want - c.yaw), Math.cos(want - c.yaw)) * Math.min(1, dt * 9);
+        c.hostile = Math.max(0, c.hostile - dt * (dist > 25 && !enforcer ? 2 : 0.3));
+        c._vehicleAttackCd = Math.max(0, (c._vehicleAttackCd || 0) - dt);
+
+        const speed = Math.abs(vehicle.speed);
+        const canPull = dist < (isTwoWheel(vehicle.type) ? 2.65 : 3.2) && speed < 3.5;
+        if (canPull && c._vehicleAttackCd <= 0 && !vehicle.disabled) {
+          c._pullAttempts = (c._pullAttempts || 0) + 1;
+          c._vehicleAttackCd = 1.8;
+          if ((enforcer && stars >= 2) || (!enforcer && stars >= 4 && c._pullAttempts % 2 === 0)) {
+            if (this.forceHeroOut(vehicle, c)) {
+              if (this.life) this.life.say(c, enforcer ? 'Keluar dari kendaraan! Kamu diamankan!' : 'Turun! Jangan bikin rusuh lagi!', 2.3);
+              return true;
+            }
+          }
+        }
+
+        const range = enforcer && c.tier === 'polisi' && stars >= 3 ? 20 : (enforcer && stars >= 3 ? 11 : 3.5);
+        if (dist < range && c._vehicleAttackCd <= 0) {
+          c._vehicleAttackCd = enforcer ? 1.15 : 2.2;
+          const damage = enforcer ? (c.tier === 'polisi' ? 12 + stars * 3 : 9 + stars * 2) : 9;
+          this.life.app.vehicles.damageVehicle(vehicle, damage, c);
+          if (this.fx) this.fx.floatText(vehicle.pos.clone().add(new THREE.Vector3(0, 2.1, 0)), `KENDARAAN -${damage}`, '#fda4af', 0.8);
+          this.sound.playBump();
+          if (!c._vehicleShout || c._vehicleShout <= 0) {
+            if (this.life) this.life.say(c, enforcer ? 'Hentikan kendaraan! Jangan melawan!' : 'Jangan lari! Kami hentikan!', 2.2);
+            c._vehicleShout = 7;
+          }
+        }
+
+        if (dist > 2.8 && c.hostile > 0 && dist < 35) {
+          const chaseSpeed = enforcer ? (stars >= 4 ? 8 : 6) : 4.7;
+          c.pos.x += (dx / dist) * chaseSpeed * dt;
+          c.pos.z += (dz / dist) * chaseSpeed * dt;
+          c.walkCycle += dt * 14;
+        }
+        return true;
       }
 
       _fightPose(c, dt) {
@@ -4667,6 +4877,7 @@
       }
 
       _fight(c, dt, hero) {
+        if (GameState.inVehicle && this._interceptVehicle(c, dt, hero)) return;
         const T = CitizenManager.TIERS[c.tier];
         const dx = hero.pos.x - c.pos.x;
         const dz = hero.pos.z - c.pos.z;
@@ -5105,7 +5316,22 @@
           if (c.staggerTimer > 0) c.staggerTimer -= dt;
           if (c.truce > 0) c.truce -= dt;
           if (c._taunt > 0) c._taunt -= dt;
+          if (c._vehicleShout > 0) c._vehicleShout -= dt;
           if (c.flee > 0) c.flee -= dt;
+          const stars = this.life && this.life.app.missions ? this.life.app.missions.stars : 0;
+          const heroPos = GameState.inVehicle && GameState.activeVehicle ? GameState.activeVehicle.pos : hero.pos;
+          const dangerDist = Math.hypot(heroPos.x - c.pos.x, heroPos.z - c.pos.z);
+          // Saksi berlindung; warga pemberani membantu menghentikan kerusuhan besar.
+          if (stars >= 4 && !c.enforcer && !c.mission && c.downTimer <= 0 && dangerDist < 17) {
+            if (!c.tier || c.tier === 'biasa') {
+              if (c.flee <= 0) {
+                c.flee = 5;
+                if (this.life && Math.random() < 0.12) this.life.say(c, 'Tolong! Ada kerusuhan! Panggil polisi!', 2.4);
+              }
+            } else if ((c.tier === 'tangguh' || c.tier === 'jagoan') && !(c.truce > 0)) {
+              c.hostile = Math.max(c.hostile || 0, 12);
+            }
+          }
           // Preman memalak: menantang Hero yang lewat dekat
           if (c.tier === 'preman' && !(c.hostile > 0) && !(c.truce > 0) && c.downTimer <= 0 && !GameState.inVehicle && !(hero.life && hero.life.busy)
               && Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 8) {
@@ -5816,6 +6042,18 @@
             statBoost: { kekuatan: 3 }, icon: 'coffee', desc: 'Bangun otot! Kekuatan +3, +40% Stamina.'
           },
           {
+            id: 'med_perban', name: 'Perban & Antiseptik', category: 'medicine', consumeType: 'drink', price: 18000,
+            hpGain: 25, nitroGain: 0, icon: 'heart', desc: 'Obat dari Rumah Sakit. Pulihkan +25% darah Hero.'
+          },
+          {
+            id: 'med_obat', name: 'Obat Pemulihan', category: 'medicine', consumeType: 'drink', price: 45000,
+            hpGain: 55, nitroGain: 0, icon: 'heart', desc: 'Obat dari Rumah Sakit. Pulihkan +55% darah Hero.'
+          },
+          {
+            id: 'med_kit', name: 'Kotak P3K Lengkap', category: 'medicine', consumeType: 'drink', price: 85000,
+            hpGain: 100, nitroGain: 0, icon: 'heart', desc: 'Perlengkapan medis. Pulihkan darah sampai 100%.'
+          },
+          {
             id: 'tool_joran', name: 'Joran Pancing Fiber', category: 'tool', price: 150000, icon: 'store',
             desc: 'Wajib untuk mancing di Empang Pantura. Hasil ikan bisa dijual langsung!'
           },
@@ -5989,7 +6227,7 @@
         if (!grid) return;
         const filtered = this.filterIds
           ? this.catalog.filter(it => this.filterIds.includes(it.id))
-          : (this.activeTab === 'all' ? this.catalog : this.catalog.filter(it => it.category === this.activeTab));
+          : (this.activeTab === 'all' ? this.catalog.filter(it => it.category !== 'medicine') : this.catalog.filter(it => it.category === this.activeTab));
 
         grid.innerHTML = filtered.map(item => {
           const isOwned = (item.equipKey || item.category === 'tool') && GameState.ownedItems.has(item.id);
@@ -6008,9 +6246,9 @@
                 <div class="text-[11px] text-slate-400 mt-1">${item.desc}</div>
               </div>
               <div class="flex gap-1.5 pt-1">
-                ${item.category === 'food' ? `
+                ${item.category === 'food' || item.category === 'medicine' ? `
                   <button type="button" data-buy-eat="${item.id}" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition">
-                    Santap Langsung
+                    ${item.category === 'medicine' ? 'Gunakan Sekarang' : 'Santap Langsung'}
                   </button>
                   <button type="button" data-buy-store="${item.id}" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/15 text-emerald-300 font-bold text-xs transition">
                     + Ransel
@@ -6108,17 +6346,20 @@
       }
 
       consumeFoodItem(item) {
+        const before = GameState.health;
         GameState.health = Math.min(100, GameState.health + item.hpGain);
-        GameState.nitro = Math.min(100, GameState.nitro + item.nitroGain);
-        if (this.app.extras) this.app.extras.onEat(item);
-        if (item.consumeType === 'drink') {
+        GameState.nitro = Math.min(100, GameState.nitro + (item.nitroGain || 0));
+        if (this.app.extras && item.category === 'food') this.app.extras.onEat(item);
+        if (item.category === 'medicine') {
+          this.app.sound.playPickup();
+        } else if (item.consumeType === 'drink') {
           this.app.sound.playDrinkSip();
         } else {
           this.app.sound.playEatCrunch();
         }
         this.app.hero.startConsumeAnimation(item.consumeType);
         if (item.statBoost) Object.keys(item.statBoost).forEach(k => GameStats.add(k, item.statBoost[k] * 2));
-        showToast(`Menikmati ${item.name}! Energi +${item.hpGain}%`, item.icon);
+        showToast(`${item.category === 'medicine' ? 'Menggunakan' : 'Menikmati'} ${item.name}! Darah +${Math.round(GameState.health - before)}%`, item.icon);
       }
 
       openRansel() {
@@ -6139,18 +6380,18 @@
 
         const foodGrid = document.getElementById('ransel-food-grid');
         if (foodGrid) {
-          const foods = this.catalog.filter(c => c.category === 'food' && (GameState.foodInventory[c.id] || 0) > 0);
+          const foods = this.catalog.filter(c => (c.category === 'food' || c.category === 'medicine') && (GameState.foodInventory[c.id] || 0) > 0);
           if (!foods.length) {
-            foodGrid.innerHTML = `<div class="col-span-full text-xs text-slate-400 bg-slate-900/60 rounded-2xl p-4 border border-white/10">Belum ada bekal makanan/minuman di Ransel. Beli di Warteg atau Indomart!</div>`;
+            foodGrid.innerHTML = `<div class="col-span-full text-xs text-slate-400 bg-slate-900/60 rounded-2xl p-4 border border-white/10">Belum ada bekal atau obat. Beli makanan di Warteg/Indomart atau obat di RS Pantura Sehat.</div>`;
           } else {
             foodGrid.innerHTML = foods.map(f => `
               <div class="bg-slate-900/85 border border-white/10 rounded-2xl p-3 flex items-center justify-between gap-2">
                 <div class="min-w-0">
                   <div class="text-xs font-black text-white truncate">${f.name} (x${GameState.foodInventory[f.id]})</div>
-                  <div class="text-[11px] text-slate-400">+${f.hpGain}% Energi • +${f.nitroGain}% Stamina</div>
+                  <div class="text-[11px] text-slate-400">+${f.hpGain}% Darah • +${f.nitroGain || 0}% Stamina</div>
                 </div>
                 <button type="button" data-use-food="${f.id}" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0">
-                  Santap
+                  ${f.category === 'medicine' ? 'Gunakan' : 'Santap'}
                 </button>
               </div>
             `).join('');
@@ -10038,8 +10279,8 @@
         this._updatePanel();
         this._updateStatsPill();
         this._updateEdges(dt);
-        // pemulihan perlahan jika tidak sedang berkelahi
-        if (GameState.health < 100 && !this.citizens.list.some(c => c.hostile > 0)) GameState.health = Math.min(100, GameState.health + 0.6 * dt);
+        // Luka pulih perlahan ketika aman; makanan dan obat menjadi sumber pemulihan utama.
+        if (GameState.health < 100 && !(this.app.missions && this.app.missions.stars > 0) && !this.citizens.list.some(c => c.hostile > 0)) GameState.health = Math.min(100, GameState.health + 0.12 * dt);
       }
 
       _updateLine(tip, bob) {
@@ -10675,7 +10916,7 @@
         wrap.style.top = '2.2rem';
         wrap.innerHTML = `
           <div id="hud-wanted" class="hidden glass-panel rounded-2xl px-3 py-1 border border-rose-500/60 text-center shadow-lg">
-            <div class="flex items-center justify-center gap-2"><span id="wanted-stars" class="text-base sm:text-lg font-black tracking-wider text-rose-400"></span><span class="text-[10px] sm:text-[11px] font-black text-rose-300">DICARI SATPOL PP</span></div>
+            <div class="flex items-center justify-center gap-2"><span id="wanted-stars" class="text-base sm:text-lg font-black tracking-wider text-rose-400"></span><span id="wanted-label" class="text-[10px] sm:text-[11px] font-black text-rose-300">DICARI PETUGAS</span></div>
             <div class="h-1.5 w-40 rounded-full bg-slate-800 overflow-hidden mt-0.5"><div id="wanted-bar" class="h-full bg-rose-500" style="width:0%"></div></div>
             <div id="wanted-hint" class="text-[9px] sm:text-[10px] text-slate-300 font-bold mt-0.5">Kabur! Tiarap jauh dari mereka atau masuk bangunan.</div>
           </div>
@@ -10873,9 +11114,15 @@
           this._complete();
           return;
         }
-        if (c.tier && c.tier !== 'biasa') return;
         if (c.mission) return;
-        this.addHeat(fromVehicle ? 24 : 16);
+        if (m && m.type === 'bounty' && c === m.target) return;
+        if (c.enforcer || c.tier === 'satpol' || c.tier === 'polisi') {
+          this.addHeat(fromVehicle ? 26 : 20);
+        } else if (c.tier && c.tier !== 'biasa') {
+          this.addHeat(fromVehicle ? 14 : 7);
+        } else {
+          this.addHeat(fromVehicle ? 24 : 16);
+        }
       }
 
       onCitizenKO(c) {
@@ -10955,6 +11202,21 @@
         const seePos = GameState.inVehicle && GameState.activeVehicle ? GameState.activeVehicle.pos : hero.pos;
         // pasukan Satpol yang masih hidup
         this.enforcers = this.enforcers.filter(e => cm.list.indexOf(e) >= 0);
+        // Pada tingkat kerusuhan puncak, polisi menyiapkan cegatan di depan jalan.
+        const chaseVehicle = GameState.inVehicle ? GameState.activeVehicle : null;
+        if (this.stars >= 4 && chaseVehicle && Math.abs(chaseVehicle.speed) > 8) {
+          this.enforcers.forEach(e => {
+            if (e.downTimer > 0 || Math.hypot(e.pos.x - seePos.x, e.pos.z - seePos.z) < 68) return;
+            const lead = 17 + Math.random() * 10;
+            const side = (Math.random() - 0.5) * 13;
+            const sign = chaseVehicle.speed >= 0 ? 1 : -1;
+            e.pos.x = clamp(seePos.x + Math.sin(chaseVehicle.yaw) * lead * sign + Math.cos(chaseVehicle.yaw) * side, -135, 135);
+            e.pos.z = clamp(seePos.z + Math.cos(chaseVehicle.yaw) * lead * sign - Math.sin(chaseVehicle.yaw) * side, -135, 135);
+            this.app.world.resolveCircleCollision(e.pos, 0.65);
+            e.pos.y = this.app.world.getGroundHeight(e.pos.x, e.pos.z);
+            e._vehicleAttackCd = 0.3;
+          });
+        }
         let nearest = 1e9;
         this.enforcers.forEach(e => { nearest = Math.min(nearest, Math.hypot(e.pos.x - seePos.x, e.pos.z - seePos.z)); });
         if (this.heat > 0) {
@@ -10999,7 +11261,17 @@
         if (this.stars > 0 && (needPol || satCount < want) && this.spawnT <= 0) {
           this.spawnT = needPol ? 4.5 : 5.5;
           const ang = Math.random() * Math.PI * 2;
-          let x = seePos.x + Math.sin(ang) * (24 + Math.random() * 8); let z = seePos.z + Math.cos(ang) * (24 + Math.random() * 8);
+          let x, z;
+          if (chaseVehicle && this.stars >= 4 && Math.abs(chaseVehicle.speed) > 8) {
+            const lead = 17 + Math.random() * 9;
+            const side = (Math.random() - 0.5) * 13;
+            const sign = chaseVehicle.speed >= 0 ? 1 : -1;
+            x = seePos.x + Math.sin(chaseVehicle.yaw) * lead * sign + Math.cos(chaseVehicle.yaw) * side;
+            z = seePos.z + Math.cos(chaseVehicle.yaw) * lead * sign - Math.sin(chaseVehicle.yaw) * side;
+          } else {
+            x = seePos.x + Math.sin(ang) * (24 + Math.random() * 8);
+            z = seePos.z + Math.cos(ang) * (24 + Math.random() * 8);
+          }
           x = Math.max(-115, Math.min(115, x)); z = Math.max(-115, Math.min(115, z));
           const p = new THREE.Vector3(x, 0, z);
           for (let k = 0; k < 4; k++) this.app.world.resolveCircleCollision(p, 0.8);
@@ -11042,9 +11314,10 @@
           if (this.stars > 0) {
             wEl.classList.remove('hidden');
             document.getElementById('wanted-stars').textContent = '★'.repeat(this.stars) + '☆'.repeat(5 - this.stars);
+            document.getElementById('wanted-label').textContent = this.stars >= 4 ? 'KERUSUHAN MAKSIMUM!' : (this.stars >= 2 ? 'DIKEJAR POLISI' : 'DICARI SATPOL PP');
             document.getElementById('wanted-bar').style.width = `${Math.min(100, this.heat / 1.1)}%`;
             const near = this.enforcers.some(e => Math.hypot(e.pos.x - this.app.hero.pos.x, e.pos.z - this.app.hero.pos.z) < 18);
-            document.getElementById('wanted-hint').textContent = near ? 'Petugas dekat! Jauhi mereka agar bintang turun.' : (this.app.hero.stance >= 1 || GameState.currentBuilding ? 'Bersembunyi... bintang menurun.' : 'Menjauh & tiarap/jongkok untuk sembunyi.');
+            document.getElementById('wanted-hint').textContent = GameState.inVehicle && this.stars >= 3 ? 'Kendaraan bisa dirusak! Saat berhenti, Hero bisa ditarik keluar.' : (near ? 'Petugas dekat! Jauhi mereka agar bintang turun.' : (this.app.hero.stance >= 1 || GameState.currentBuilding ? 'Bersembunyi... bintang menurun.' : 'Menjauh & tiarap/jongkok untuk sembunyi.'));
           } else wEl.classList.add('hidden');
         }
         const mEl = document.getElementById('hud-mission');
@@ -11352,6 +11625,7 @@
         try {
           const G = GameState;
           ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat', 'clock', 'bossKills'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
+          if (d.cityDamage && typeof d.cityDamage === 'object') G.cityDamage = d.cityDamage;
           if (d.foodInventory) G.foodInventory = d.foodInventory;
           if (d.stats) G.stats = Object.assign({ kekuatan: 0, dayaTahan: 0, kelincahan: 0 }, d.stats);
           if (d.ownedItems) G.ownedItems = new Set(d.ownedItems);
@@ -11399,7 +11673,7 @@
           const m = this.app.missions;
           const d = {
             v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
-            timePresetIndex: G.timePresetIndex, clock: G.clock, bossKills: G.bossKills || 0, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
+            timePresetIndex: G.timePresetIndex, clock: G.clock, bossKills: G.bossKills || 0, cityDamage: G.cityDamage || {}, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
             appearance: G.appearance, equipped: G.equipped, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
             audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
           };
@@ -11644,6 +11918,8 @@
         const tabs = list.map((x, i) => `<button type="button" data-gv="${i}" class="shrink-0 rounded-lg px-2 py-1 text-[10px] font-extrabold border ${i === this.sel ? 'bg-orange-500 text-slate-950 border-orange-300' : 'bg-slate-800 text-slate-200 border-white/10'}">${x.name}</button>`).join('');
         const stat = (label, val, base, col) => `<div><div class="flex justify-between text-[10px] font-bold text-slate-300"><span>${label}</span><span>${val}</span></div><div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full ${col}" style="width:${Math.min(100, base)}%"></div></div></div>`;
         const stats = `<div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5 space-y-1.5">${stat('Kecepatan', Math.round(v.maxSpeed * 3.6) + ' km/j', v.maxSpeed / 45 * 100, 'bg-rose-400')}${stat('Akselerasi', v.accel.toFixed(1), v.accel / 35 * 100, 'bg-amber-400')}${stat('Kelincahan', v.turnRate.toFixed(2), v.turnRate / 4.2 * 100, 'bg-sky-400')}</div>`;
+        const repairCost = Math.ceil((v.maxIntegrity - v.integrity) * 450 / 1000) * 1000;
+        const repairPanel = `<div class="rounded-xl bg-emerald-500/10 border border-emerald-400/30 p-2.5 flex items-center justify-between gap-2"><div><div class="text-xs font-black text-emerald-200">Perbaikan Kendaraan</div><div class="text-[10px] text-slate-300">Kondisi ${Math.round(v.integrity / v.maxIntegrity * 100)}% ${v.disabled ? '• RUSAK / MOGOK' : ''}</div></div><button type="button" data-repair="1" ${repairCost === 0 ? 'disabled' : ''} class="rounded-xl px-3 py-2 text-[11px] font-black ${repairCost ? 'bg-emerald-500 text-slate-950' : 'bg-slate-700 text-slate-400'}">${repairCost ? 'Perbaiki ' + formatRupiah(repairCost) : 'Sudah Baik'}</button></div>`;
         const parts = GarageSystem.PARTS.map(p => {
           const lvl = t[p.k] || 0; const max = lvl >= 5;
           return `<div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="text-xs font-black text-orange-200">${p.name} <span class="text-[10px] text-slate-400">Lv ${lvl}/5</span></div><div class="text-[10px] text-slate-400">${p.desc}</div><div class="flex gap-0.5 mt-1">${[0, 1, 2, 3, 4].map(i => `<span class="h-1.5 flex-1 rounded-full ${i < lvl ? 'bg-orange-400' : 'bg-slate-700'}"></span>`).join('')}</div></div><button type="button" data-up="${p.k}" class="shrink-0 rounded-xl ${max ? 'bg-slate-700 text-slate-400' : 'bg-orange-500 hover:bg-orange-400 text-slate-950'} font-black text-[11px] px-2.5 py-2">${max ? 'MAKS' : formatRupiah(this._cost(p.k, lvl))}</button></div>`;
@@ -11651,11 +11927,20 @@
         const paints = GarageSystem.PAINTS.map(([n, h]) => `<button type="button" data-paint="${h}" title="${n}" class="w-7 h-7 rounded-full border-2 ${t.paint === h ? 'border-white' : 'border-white/20'}" style="background:#${h.toString(16).padStart(6, '0')}"></button>`).join('');
         const neons = GarageSystem.PAINTS.map(([n, h]) => `<button type="button" data-neon="${h}" title="${n}" class="w-7 h-7 rounded-full border-2 ${t.neon === h ? 'border-white' : 'border-white/20'}" style="background:#${h.toString(16).padStart(6, '0')}"></button>`).join('');
         document.getElementById('gg-body').innerHTML = `
-          <div class="flex gap-1.5 overflow-x-auto pb-1">${tabs}</div>${stats}<div class="space-y-1.5">${parts}</div>
+          <div class="flex gap-1.5 overflow-x-auto pb-1">${tabs}</div>${stats}${repairPanel}<div class="space-y-1.5">${parts}</div>
           <div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5"><div class="text-xs font-black text-orange-200 mb-1.5">Cat Body <span class="text-[10px] text-slate-400">Rp 40.000</span></div><div class="flex flex-wrap gap-1.5">${paints}</div></div>
           <div class="rounded-xl bg-slate-900/70 border border-white/10 p-2.5"><div class="text-xs font-black text-orange-200 mb-1.5">Lampu Neon Kolong <span class="text-[10px] text-slate-400">Rp 150.000 • ${t.neon !== undefined ? 'sudah terpasang (ganti warna Rp 20.000)' : 'belum dipasang'}</span></div><div class="flex flex-wrap gap-1.5">${neons}</div></div>`;
         const body = document.getElementById('gg-body');
         body.querySelectorAll('[data-gv]').forEach(b => b.addEventListener('click', () => { this.sel = parseInt(b.dataset.gv, 10); this._render(); }));
+        body.querySelector('[data-repair]')?.addEventListener('click', () => {
+          if (repairCost <= 0 || !this._pay(repairCost)) return;
+          v.integrity = v.maxIntegrity;
+          v.disabled = false;
+          v.conditionWarned = false;
+          if (v.bodyMat) { v.bodyMat.emissive.setHex(0x000000); v.bodyMat.emissiveIntensity = 0; }
+          showToast(`${v.name} berhasil diperbaiki dan bisa digunakan kembali.`, 'wrench');
+          this._render();
+        });
         body.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => this._buyPart(v, b.dataset.up)));
         body.querySelectorAll('[data-paint]').forEach(b => b.addEventListener('click', () => this._buyCosmetic(v, 'paint', parseInt(b.dataset.paint, 10), 40000)));
         body.querySelectorAll('[data-neon]').forEach(b => b.addEventListener('click', () => this._buyCosmetic(v, 'neon', parseInt(b.dataset.neon, 10), (GameState.tuning[v.name].neon !== undefined) ? 20000 : 150000)));
@@ -12392,10 +12677,13 @@
         this.EX = -128; this.EZ = 118;
         this.active = false; this.cool = 0; this.t = 0; this.hinted = false;
         this.boss = null; this.rings = []; this.portals = []; this.fireflies = null;
+        this.cityRampage = false; this.cityRageTimer = 6; this.cityAssaults = 0;
+        this.arenaPillars = []; this.arenaDamage = 0; this.roadScars = [];
         const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.92 }, o || {}));
         this.M = M;
         this._buildEntrance();
         this._buildArena();
+        if (GameState.bossKills > 0) this._damageArena(Math.min(10, GameState.bossKills * 2), true);
         this._buildHud();
       }
 
@@ -12461,7 +12749,8 @@
           const a = i / 10 * Math.PI * 2 + 0.3, x = Math.cos(a) * 24.5, z = Math.sin(a) * 24.5;
           const s = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5.5 + rnd() * 1.5, 1.6), sm); s.position.set(x, 2.9, z); s.rotation.y = a; s.castShadow = true; A.add(s);
           const r = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.6, 0.06), rm); r.position.set(x - Math.cos(a) * 0.82, 3.2, z - Math.sin(a) * 0.82); r.rotation.y = a; A.add(r);
-          this.world.addBoxCollider(this.AX + x, this.AZ + z, 1.7, 1.7);
+          const collider = this.world.addBoxCollider(this.AX + x, this.AZ + z, 1.7, 1.7);
+          this.arenaPillars.push({ stone: s, rune: r, collider });
         }
         // pohon (instanced)
         const N = 120, spots = [];
@@ -12502,14 +12791,16 @@
         d.id = 'boss-hud';
         d.style.cssText = 'position:fixed;top:5rem;left:50%;transform:translateX(-50%);z-index:25;width:min(300px,68vw);pointer-events:none;display:none;text-align:center;font-family:inherit';
         d.innerHTML = '<div id="boss-name" style="font-weight:900;font-size:11px;letter-spacing:.06em;color:#fecaca;text-shadow:0 1px 3px #000">RAKSASA HUTAN — GRAKHOR</div>'
-          + '<div style="margin-top:3px;height:10px;border-radius:6px;background:rgba(2,6,23,.85);border:1px solid rgba(248,113,113,.6);overflow:hidden"><div id="boss-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#b91c1c,#f97316)"></div></div>';
+          + '<div style="margin-top:3px;height:10px;border-radius:6px;background:rgba(2,6,23,.85);border:1px solid rgba(248,113,113,.6);overflow:hidden"><div id="boss-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#b91c1c,#f97316)"></div></div>'
+          + '<div id="boss-rage-level" style="font-size:10px;font-weight:900;margin-top:4px;color:#fca5a5">TAHAP 1 • KEMARAHAN RENDAH</div>';
         document.body.appendChild(d);
-        this.hudEl = d; this.hudFill = d.querySelector('#boss-hp-fill'); this.hudName = d.querySelector('#boss-name');
+        this.hudEl = d; this.hudFill = d.querySelector('#boss-hp-fill'); this.hudName = d.querySelector('#boss-name'); this.hudRage = d.querySelector('#boss-rage-level');
       }
 
       // ---------------- masuk / keluar ----------------
       enter() {
         const app = this.app, hero = app.hero;
+        if (this.cityRampage) { showToast('Grakhor sedang menyerang kota! Hentikan monster dahulu.', 'alert'); return; }
         this.active = true; this.cool = 3;
         if (app.fx) app.fx.screenFlash('10,5,25', 0.95, 900);
         app.sound.playTone(90, 1.2, 'sine', 0.16, 45);
@@ -12537,7 +12828,7 @@
         if (!ko) showToast('Kembali ke Pantura...', 'route');
       }
 
-      isBossActive() { return this.active && this.boss && this.boss.state !== 'dead'; }
+      isBossActive() { return (this.active || this.cityRampage) && this.boss && this.boss.state !== 'dead'; }
 
       // ---------------- boss ----------------
       _clearBoss() {
@@ -12546,13 +12837,137 @@
         this.boss = null; this.hudEl.style.display = 'none';
       }
 
+      _damageArena(count = 2, silent = false) {
+        const previous = this.arenaDamage;
+        this.arenaDamage = Math.min(this.arenaPillars.length, this.arenaDamage + count);
+        for (let i = previous; i < this.arenaDamage; i++) {
+          const pillar = this.arenaPillars[i];
+          pillar.stone.rotation.z = (i % 2 ? -1 : 1) * 1.15;
+          pillar.stone.position.y = 1.4;
+          pillar.rune.visible = false;
+          const ci = this.world.colliders.indexOf(pillar.collider);
+          if (ci >= 0) this.world.colliders.splice(ci, 1);
+          const angle = i / this.arenaPillars.length * Math.PI * 2;
+          const crack = new THREE.Mesh(new THREE.BoxGeometry(11, 0.03, 0.3), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+          crack.position.set(Math.cos(angle) * 14, 0.08, Math.sin(angle) * 14);
+          crack.rotation.y = angle;
+          this.arenaG.add(crack);
+        }
+        this.glyph.material.opacity = Math.max(0.13, 0.55 - this.arenaDamage * 0.05);
+        if (!silent) {
+          if (this.app.fx) this.app.fx.screenFlash('249,115,22', 0.35, 350);
+          showToast('GRRAAK! Arena Hutan Terlarang retak dan pilar batu runtuh!', 'alert');
+        }
+      }
+
+      _spawnCityScar(x, z) {
+        const mark = new THREE.Group();
+        const dark = new THREE.MeshBasicMaterial({ color: 0x1c1917, depthWrite: false });
+        const embers = new THREE.MeshBasicMaterial({ color: 0xfb923c });
+        for (let i = 0; i < 3; i++) {
+          const length = 5 + Math.random() * 6;
+          const line = new THREE.Mesh(new THREE.BoxGeometry(length, 0.03, 0.25), i === 0 ? embers : dark);
+          line.position.set((Math.random() - 0.5) * 3, 0.12 + i * 0.001, (Math.random() - 0.5) * 3);
+          line.rotation.y = Math.random() * Math.PI;
+          mark.add(line);
+        }
+        mark.position.set(clamp(x, -135, 135), 0, clamp(z, -135, 135));
+        this.scene.add(mark);
+        this.roadScars.push(mark);
+        if (this.roadScars.length > 24) {
+          const old = this.roadScars.shift();
+          this.scene.remove(old);
+          const materials = new Set();
+          old.children.forEach(mesh => { mesh.geometry.dispose(); materials.add(mesh.material); });
+          materials.forEach(mat => mat.dispose());
+        }
+      }
+
+      _breachCity() {
+        const app = this.app, hero = app.hero;
+        this.active = false;
+        this.cityRampage = true;
+        this.cityRageTimer = 3;
+        this.cool = 5;
+        GameState.currentBuilding = null;
+        hero.pos.set(this.EX + 14, this.world.getGroundHeight(this.EX + 14, this.EZ - 8), this.EZ - 8);
+        hero.velY = 0;
+        hero.yaw = Math.PI / 2;
+        if (app.camCtrl) { app.camCtrl.yaw = Math.PI / 2; app.camCtrl.currentLookAt.set(hero.pos.x, 2, hero.pos.z); }
+        this._spawnBoss();
+        const b = this.boss;
+        b.pos.set(-92, this.world.getGroundHeight(-92, 105), 105);
+        b.root.position.copy(b.pos);
+        b.state = 'intro'; b.st = 2.8;
+        this._spawnCityScar(-105, 108);
+        app.clock.apply();
+        if (app.fx) app.fx.screenFlash('239,68,68', 0.8, 1000);
+        this._roar(1.8);
+        showToast('GRAKHOR MENEMBUS GERBANG! Monster raksasa kini menyerang kota Pantura!', 'alert');
+      }
+
+      _respawnCityBoss() {
+        const hero = this.app.hero;
+        this._spawnBoss();
+        const b = this.boss;
+        b.pos.set(clamp(hero.pos.x + 20, -130, 130), 0, clamp(hero.pos.z + 16, -130, 130));
+        b.pos.y = this.world.getGroundHeight(b.pos.x, b.pos.z);
+        b.root.position.copy(b.pos);
+        this.cityRageTimer = 3;
+        showToast(`GRAKHOR BANGKIT LAGI! Tahap ${b.level + 1}, tubuh makin besar dan serangannya makin kuat!`, 'alert');
+      }
+
+      _cityRageTick(dt) {
+        const b = this.boss;
+        if (!this.cityRampage || !b || b.state === 'dead') return;
+        // Warga sekitar menjauhi raksasa; NPC tidak dihapus dari sistem semula.
+        for (const c of this.app.citizens.list) {
+          if (c.downTimer > 0 || c.enforcer || c.mission || c.fixed || c.act) continue;
+          const distance = Math.hypot(c.pos.x - b.pos.x, c.pos.z - b.pos.z);
+          if (distance < 23 * b.sizeMult) {
+            c.flee = Math.max(c.flee || 0, 2.2);
+            c.yaw = Math.atan2(c.pos.x - b.pos.x, c.pos.z - b.pos.z);
+            c.pos.x += Math.sin(c.yaw) * 3.5 * dt;
+            c.pos.z += Math.cos(c.yaw) * 3.5 * dt;
+          }
+        }
+        this.cityRageTimer -= dt;
+        if (this.cityRageTimer > 0) return;
+        this.cityRageTimer = Math.max(4.5, 9 - b.level * 0.65);
+        this.cityAssaults++;
+        for (const vehicle of this.app.vehicles.list) {
+          if (vehicle.disabled || Math.hypot(vehicle.pos.x - b.pos.x, vehicle.pos.z - b.pos.z) > 18 * b.sizeMult) continue;
+          this.app.vehicles.damageVehicle(vehicle, 12 + b.level * 4, { name: 'Gelombang Grakhor' });
+        }
+        const candidates = this.world.destructionTargets.filter(t => !t.collapsed);
+        if (candidates.length) {
+          const target = candidates[(this.cityAssaults - 1) % candidates.length];
+          const collapsed = this.world.damageLandmark(target, 40 + b.level * 4, this.app.fx);
+          if (!collapsed && this.cityAssaults % 2 === 0) showToast(`${target.id} rusak akibat gelombang kemarahan Grakhor!`, 'alert');
+          this._spawnCityScar(target.x + (Math.random() - 0.5) * 17, target.z + 12);
+        } else if (this.cityAssaults % 3 === 0) {
+          showToast('KOTA PANTURA PORAK-PORANDA! Semua landmark besar telah runtuh.', 'alert');
+        }
+        this._spawnCityScar(b.pos.x + Math.sin(b.yaw) * 4, b.pos.z + Math.cos(b.yaw) * 4);
+        const total = this.world.destructionTargets.length;
+        this.hudRage.textContent = `TAHAP ${b.level + 1} • AMUK KOTA • BANGUNAN RUNTUH ${total - candidates.filter(t => !t.collapsed).length}/${total}`;
+        if (this.app.fx) this.app.fx.screenFlash('250,113,22', 0.2, 210);
+        if (this.app.camCtrl && Math.hypot(b.pos.x - this.app.hero.pos.x, b.pos.z - this.app.hero.pos.z) < 75) this.app.camCtrl.addShake(0.25, 0.3);
+        this.app.sound.playTone(65, 0.55, 'sawtooth', 0.08, 32);
+        if (this.app.progress && this.app.progress.save) this.app.progress.save();
+      }
+
       _spawnBoss() {
         this._clearBoss();
+        const level = Math.min(5, Math.max(0, GameState.bossKills || 0));
+        const sizeMult = 1 + level * 0.29;
+        const targetScale = 0.8 * sizeMult;
+        const maxHealth = Math.round(3200 * (1 + level * 0.4));
         const M = this.M, B = (w, h, d, mat) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
         const skin = M(0x4a5d34), dark = M(0x2f3b22), bark = M(0x5a3f2a), bone = M(0xe3dcc3), moss = M(0x2f7a3a);
         const eyeM = new THREE.MeshBasicMaterial({ color: 0xff3b1a }), coreM = new THREE.MeshBasicMaterial({ color: 0xfb923c });
         const mats = [skin, dark, bark, moss];
-        const root = new THREE.Group(); root.scale.setScalar(0.8);
+        const root = new THREE.Group(); root.scale.setScalar(targetScale * 0.6);
         const body = new THREE.Group(); root.add(body);
         const part = (mesh) => { mesh.castShadow = true; return mesh; };
         const leg = (sx) => {
@@ -12589,12 +13004,14 @@
         this.scene.add(root);
         this.boss = {
           root, body, torso, head, L, R, AL, AR, mats, eyeM,
-          pos: new THREE.Vector3(this.AX, 0, this.AZ - 8), yaw: 0, hp: 3200, max: 3200,
+          pos: new THREE.Vector3(this.AX, 0, this.AZ - 8), yaw: 0, hp: maxHealth, max: maxHealth,
+          level, sizeMult, targetScale, growTimer: 2.8,
           state: 'intro', st: 2.2, atk: null, cd: 1.5, t: 0, flash: 0, poise: 0, enraged: false, walk: 0, stepT: 0,
           tele: [], dir: new THREE.Vector3(), hitDone: false, dead: 0, y: 0,
           pose: { shL: 0, shR: 0, elL: -0.25, elR: -0.25, tx: 0, ty: 0, hx: 0, crouch: 0 }
         };
-        this.hudEl.style.display = 'block'; this.hudFill.style.width = '100%'; this.hudName.textContent = 'RAKSASA HUTAN — GRAKHOR';
+        this.hudEl.style.display = 'block'; this.hudFill.style.width = '100%'; this.hudName.textContent = this.cityRampage ? 'GRAKHOR — PENGHANCUR PANTURA' : 'RAKSASA HUTAN — GRAKHOR';
+        this.hudRage.textContent = `TAHAP ${level + 1} • KEMARAHAN ${Math.min(100, 15 + level * 20)}% • UKURAN ${Math.round(sizeMult * 100)}%`;
         this.hudFill.style.background = 'linear-gradient(90deg,#b91c1c,#f97316)';
         this._roar(1);
       }
@@ -12643,16 +13060,16 @@
 
       // ----- serangan Hero ke boss -----
       bossMelee(hero, fwd, reach, combo) {
-        const b = this.boss; if (!this.active || !b || b.state === 'dead') return false;
+        const b = this.boss; if ((!this.active && !this.cityRampage) || !b || b.state === 'dead') return false;
         const dx = b.pos.x - hero.pos.x, dz = b.pos.z - hero.pos.z, d = Math.hypot(dx, dz);
-        if (d - 3.2 > reach + 0.5) return false;
+        if (d - 3.2 * b.sizeMult > reach + 0.5) return false;
         if ((dx * fwd.x + dz * fwd.z) / (d || 1) < 0.2 && d > 4.4) return false;
         const baseDmg = (GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult();
         const dmg = Math.round(baseDmg * [0, 1.0, 1.2, 1.45, 1.8][combo]);
         const heavy = combo >= 3, fin = combo === 4;
         hero.sound.playHitImpact(heavy, fin);
         if (combo >= 2) hero.sound.playComboChime(combo - 1);
-        const hp = hero.pos.clone(); hp.x += dx / (d || 1) * Math.max(0, d - 3.2); hp.z += dz / (d || 1) * Math.max(0, d - 3.2); hp.y = 1.6;
+        const hp = hero.pos.clone(); hp.x += dx / (d || 1) * Math.max(0, d - 3.2 * b.sizeMult); hp.z += dz / (d || 1) * Math.max(0, d - 3.2 * b.sizeMult); hp.y = 1.6;
         if (hero.fx) {
           hero.fx.impactBurst(hp, fwd, 0.7 + combo * 0.3);
           hero.fx.floatText(hp.clone().setY(hp.y + 0.6), ['', 'JAB!', 'CROSS!', 'HOOK!', 'UPPERCUT!'][combo], ['', '#fde047', '#fdba74', '#fb7185', '#f472b6'][combo], 0.9 + combo * 0.1);
@@ -12665,9 +13082,9 @@
       }
 
       bossShot(hero, fwd) {
-        const b = this.boss; if (!this.active || !b || b.state === 'dead') return false;
+        const b = this.boss; if ((!this.active && !this.cityRampage) || !b || b.state === 'dead') return false;
         const dx = b.pos.x - hero.pos.x, dz = b.pos.z - hero.pos.z, d = Math.hypot(dx, dz);
-        if (d > 34 || (dx * fwd.x + dz * fwd.z) / (d || 1) < 0.9) return false;
+        if (d > 34 + b.sizeMult * 2 || (dx * fwd.x + dz * fwd.z) / (d || 1) < 0.9) return false;
         const dmg = Math.round(32 * GameStats.dmgMult());
         hero.sound.playHitImpact(true);
         if (hero.fx) { const p = b.pos.clone(); p.y = 4; hero.fx.impactBurst(p, fwd, 1.0); hero.fx.floatText(p.clone().setY(6), '-' + dmg, '#7dd3fc', 0.9); }
@@ -12697,9 +13114,10 @@
         GameState.bossKills = (GameState.bossKills || 0) + 1;
         GameState.cash += reward;
         GameState.health = Math.min(100, GameState.health + 40);
+        if (this.active) this._damageArena();
         app.sound.playLevelUp(); this._roar(1.4);
         if (app.fx) { const p = b.pos.clone(); p.y = 5; app.fx.floatText(p, '+' + formatRupiah(reward), '#fde047', 1.6); app.fx.screenFlash('255,230,150', 0.6, 900); app.fx.impactBurst(p, new THREE.Vector3(0, 1, 0), 2.0); }
-        showToast('GRAKHOR TUMBANG! ' + (first ? 'Hadiah perdana ' : 'Hadiah ') + formatRupiah(reward) + '. Kembali lewat gerbang hijau.', 'trophy');
+        showToast('GRAKHOR TUMBANG! Hadiah ' + formatRupiah(reward) + '. Namun monster akan bangkit lebih besar! Kembali lewat gerbang hijau untuk menghindari amukannya.', 'trophy');
         if (app.progress && app.progress.save) try { app.progress.save(); } catch (e) { /* abaikan */ }
         app.updateHUD();
         setTimeout(() => { if (this.boss === b) this.hudEl.style.display = 'none'; }, 1800);
@@ -12752,6 +13170,7 @@
         if (app.fx) app.fx.impactBurst(new THREE.Vector3(b.pos.x, 0.4, b.pos.z), new THREE.Vector3(0, 1, 0), 2.0);
         this._ring(b.pos.x, b.pos.z, 28, 19, 26, 0);
         if (b.enraged) this._ring(b.pos.x, b.pos.z, 28, 19, 26, 0.55);
+        if (this.cityRampage) this._spawnCityScar(b.pos.x, b.pos.z);
       }
 
       update(dt) {
@@ -12761,19 +13180,26 @@
         this.portals.forEach((p, i) => { const k = this.t * 1.6 + p.ph; p.planes[0].material.opacity = 0.42 + Math.sin(k) * 0.14; p.planes[1].material.opacity = 0.3 + Math.cos(k * 1.3) * 0.12; p.planes[1].scale.set(1 + Math.sin(k * 0.7) * 0.06, 1, 1); });
         if (!this.active) {
           this.wisps.forEach(w => { const u = w.userData, a = u.a + this.t * 0.6; w.position.set(this.EX + 1.5 + Math.cos(a) * u.r * 0.5, u.y + Math.sin(a * 1.7) * 0.5, this.EZ + Math.sin(a) * u.r); });
-          const dx = hero.pos.x - this.EX, dz = hero.pos.z - this.EZ, d = Math.hypot(dx, dz);
-          if (d < 16 && !this.hinted) { this.hinted = true; showToast('Ada cahaya ungu aneh di balik pepohonan...', 'alert'); }
-          if (d < 1.7 && this.cool <= 0 && !GameState.currentBuilding) {
-            if (GameState.inVehicle || (app.life && app.life.busy)) { showToast('Turun dari kendaraan / hentikan aktivitas dulu untuk masuk gerbang.', 'alert'); this.cool = 2.5; }
-            else this.enter();
+          if (this.cityRampage) {
+            if (this.boss) this._bossUpdate(dt);
+            this._cityRageTick(dt);
+          } else {
+            const dx = hero.pos.x - this.EX, dz = hero.pos.z - this.EZ, d = Math.hypot(dx, dz);
+            if (d < 16 && !this.hinted) { this.hinted = true; showToast('Ada cahaya ungu aneh di balik pepohonan...', 'alert'); }
+            if (d < 1.7 && this.cool <= 0 && !GameState.currentBuilding) {
+              if (GameState.inVehicle || (app.life && app.life.busy)) { showToast('Turun dari kendaraan / hentikan aktivitas dulu untuk masuk gerbang.', 'alert'); this.cool = 2.5; }
+              else this.enter();
+            }
           }
-          return;
+          if (!this.cityRampage) return;
         }
-        // di dalam hutan
-        if (this.glyph) this.glyph.rotation.z += dt * 0.25;
-        if (this.fireflies) { const arr = this.fireflies.geometry.attributes.position.array; for (let i = 0; i < this.ffSeed.length; i++) { arr[i * 3 + 1] += Math.sin(this.t * 0.8 + this.ffSeed[i]) * dt * 0.5; arr[i * 3] += Math.cos(this.t * 0.4 + this.ffSeed[i] * 2) * dt * 0.4; } this.fireflies.geometry.attributes.position.needsUpdate = true; }
-        if (this.cool <= 0 && Math.hypot(hero.pos.x - this.exitX, hero.pos.z - this.exitZ) < 1.7) { this.leave(false); return; }
-        if (this.boss) this._bossUpdate(dt);
+        if (this.active) {
+          // di dalam hutan
+          if (this.glyph) this.glyph.rotation.z += dt * 0.25;
+          if (this.fireflies) { const arr = this.fireflies.geometry.attributes.position.array; for (let i = 0; i < this.ffSeed.length; i++) { arr[i * 3 + 1] += Math.sin(this.t * 0.8 + this.ffSeed[i]) * dt * 0.5; arr[i * 3] += Math.cos(this.t * 0.4 + this.ffSeed[i] * 2) * dt * 0.4; } this.fireflies.geometry.attributes.position.needsUpdate = true; }
+          if (this.cool <= 0 && Math.hypot(hero.pos.x - this.exitX, hero.pos.z - this.exitZ) < 1.7) { this.leave(false); return; }
+          if (this.boss) this._bossUpdate(dt);
+        }
         // cincin kejut
         for (let i = this.rings.length - 1; i >= 0; i--) {
           const r = this.rings[i];
@@ -12787,7 +13213,12 @@
       _bossUpdate(dt) {
         const b = this.boss, app = this.app, hero = app.hero, P = b.pose;
         b.t += dt; b.cd -= dt; b.poise = Math.max(0, b.poise - dt * 25);
-        const en = b.enraged ? 1.35 : 1;
+        if (b.growTimer > 0) {
+          b.growTimer = Math.max(0, b.growTimer - dt);
+          const progress = 1 - b.growTimer / 2.8;
+          b.root.scale.setScalar(b.targetScale * (0.6 + 0.4 * (progress * progress * (3 - 2 * progress))));
+        }
+        const en = (b.enraged ? 1.35 : 1) * (1 + b.level * 0.07);
         let dx = hero.pos.x - b.pos.x, dz = hero.pos.z - b.pos.z; const d = Math.hypot(dx, dz) || 0.001;
         const turn = (rate) => { const want = Math.atan2(dx, dz); let df = want - b.yaw; while (df > Math.PI) df -= Math.PI * 2; while (df < -Math.PI) df += Math.PI * 2; b.yaw += clamp(df, -rate * dt, rate * dt); };
         let walking = 0, k = 7;
@@ -12800,11 +13231,11 @@
             break;
           case 'chase':
             turn(2.4 * en);
-            if (d > 6.2) { const sp = 3.3 * en; b.pos.x += dx / d * sp * dt; b.pos.z += dz / d * sp * dt; walking = 1; }
+            if (d > 6.2 * b.sizeMult) { const sp = 3.3 * en; b.pos.x += dx / d * sp * dt; b.pos.z += dz / d * sp * dt; walking = 1; }
             if (b.cd <= 0) {
               const r = Math.random(); let a = null;
-              if (d < 9.5) a = r < 0.6 ? 'slam' : 'sweep';
-              else if (d < 32) a = r < 0.4 ? 'stomp' : (r < 0.4 + (b.enraged ? 0.45 : 0.25) ? 'charge' : null);
+              if (d < 9.5 * b.sizeMult) a = r < 0.6 ? 'slam' : 'sweep';
+              else if (d < 32 * b.sizeMult) a = r < 0.4 ? 'stomp' : (r < 0.4 + (b.enraged ? 0.45 : 0.25) ? 'charge' : null);
               if (a) this._begin(a); else b.cd = 0.45;
             }
             break;
@@ -12832,7 +13263,7 @@
               b.pos.x += b.dir.x * 22 * dt; b.pos.z += b.dir.z * 22 * dt;
               if (!b.hitDone && Math.hypot(hero.pos.x - b.pos.x, hero.pos.z - b.pos.z) < 3.8) { b.hitDone = true; if (this._hurt(34, b.pos.x, b.pos.z)) hero.pos.addScaledVector(b.dir, 5); }
               const ex = b.pos.x - this.AX, ez = b.pos.z - this.AZ;
-              if (Math.hypot(ex, ez) > this.R - 9) { b.state = 'stagger'; b.st = 1.7; b.atk = null; if (app.camCtrl) app.camCtrl.addShake(0.5, 0.4); app.sound.playTone(50, 0.5, 'sine', 0.3, 26); showToast('Grakhor menabrak batas hutan! Serang sekarang!', 'bolt'); }
+              if (!this.cityRampage && Math.hypot(ex, ez) > this.R - 9) { b.state = 'stagger'; b.st = 1.7; b.atk = null; if (app.camCtrl) app.camCtrl.addShake(0.5, 0.4); app.sound.playTone(50, 0.5, 'sine', 0.3, 26); showToast('Grakhor menabrak batas hutan! Serang sekarang!', 'bolt'); }
               else if (b.st <= 0) { b.state = 'recover'; b.st = 1.3; }
             }
             break;
@@ -12847,7 +13278,11 @@
           case 'dead': {
             b.dead += dt; b.root.rotation.x = -Math.min(1.45, b.dead * 0.9);
             if (b.dead > 4) b.root.position.y = -(b.dead - 4) * 1.2;
-            if (b.dead > 9) { this._clearBoss(); }
+            if (b.dead > 7) {
+              if (this.cityRampage) this._respawnCityBoss();
+              else if (GameState.bossKills >= 3) this._breachCity();
+              else { this._spawnBoss(); showToast(`Grakhor bangkit semakin besar! Tahap ${this.boss.level + 1}.`, 'alert'); }
+            }
             return;
           }
         }
@@ -12867,9 +13302,12 @@
         b.torso.scale.y = 1 + breathe; b.body.position.y = -P.crouch * 1.0 + Math.abs(sw) * 0.12 * (walking ? 1 : 0);
         // pembatas arena + dorong Hero keluar badan boss
         const ex = b.pos.x - this.AX, ez = b.pos.z - this.AZ, er = Math.hypot(ex, ez);
-        if (er > this.R - 8) { b.pos.x = this.AX + ex / er * (this.R - 8); b.pos.z = this.AZ + ez / er * (this.R - 8); }
+        if (this.cityRampage) {
+          b.pos.x = clamp(b.pos.x, -132, 132);
+          b.pos.z = clamp(b.pos.z, -132, 132);
+        } else if (er > this.R - 8) { b.pos.x = this.AX + ex / er * (this.R - 8); b.pos.z = this.AZ + ez / er * (this.R - 8); }
         dx = hero.pos.x - b.pos.x; dz = hero.pos.z - b.pos.z; const d2 = Math.hypot(dx, dz) || 0.001;
-        if (d2 < 3.4 && b.state !== 'dead') { hero.pos.x = b.pos.x + dx / d2 * 3.4; hero.pos.z = b.pos.z + dz / d2 * 3.4; }
+        if (d2 < 3.4 * b.sizeMult && b.state !== 'dead' && !GameState.inVehicle) { hero.pos.x = b.pos.x + dx / d2 * 3.4 * b.sizeMult; hero.pos.z = b.pos.z + dz / d2 * 3.4 * b.sizeMult; }
         b.root.position.set(b.pos.x, b.y, b.pos.z); b.root.rotation.y = b.yaw;
         // kilatan terkena pukulan
         b.flash = Math.max(0, b.flash - dt);
@@ -13280,6 +13718,8 @@
           const act = GameState.nearestServiceZone.action;
           if (act === 'food_warteg' || act === 'food_minimarket') {
             this.shopCtrl.openShop('food');
+          } else if (act === 'hospital') {
+            this.shopCtrl.openShop('medicine', ['med_perban', 'med_obat', 'med_kit']);
           } else if (act === 'workshop') {
             this.garage.open();
           } else if (act === 'boxing_arena') {
@@ -13389,6 +13829,7 @@
       _getZoneName(x, z) {
         if (x > 500) return 'HUTAN TERLARANG';
         if (GameState.currentBuilding) return GameState.currentBuilding.title.toUpperCase();
+        if (x > 22 && x < 52 && z > -120 && z < -90) return 'RS PANTURA SEHAT';
         if (x > 18 && x < 56 && z > 90 && z < 128) return 'KOLAM RENANG TIRTA PANTURA';
         if (x > -54 && x < -16 && z > 90 && z < 128) return 'KANDANG KUDA PANTURA';
         if (x > 6 && x < 24 && z > 76 && z < 88) return 'SEWA SEPEDA';
@@ -13462,6 +13903,11 @@
             const rLab = document.getElementById('hud-radio-label');
             if (vName) vName.textContent = GameState.activeVehicle.name;
             if (vSpd) vSpd.textContent = `${Math.round(Math.abs(GameState.activeVehicle.speed) * 4.2)} KM/J`;
+            const hpPct = Math.round(GameState.activeVehicle.integrity / GameState.activeVehicle.maxIntegrity * 100);
+            const hpDisplay = document.getElementById('hud-veh-condition');
+            const hpProgress = document.getElementById('hud-veh-condition-bar');
+            if (hpDisplay) { hpDisplay.textContent = `Kondisi ${hpPct}%`; hpDisplay.className = `text-[9px] font-bold ${hpPct <= 35 ? 'text-rose-300' : 'text-emerald-300'}`; }
+            if (hpProgress) { hpProgress.style.width = `${hpPct}%`; hpProgress.className = `h-full transition-all duration-150 ${hpPct <= 35 ? 'bg-rose-500' : hpPct <= 65 ? 'bg-amber-400' : 'bg-emerald-400'}`; }
             if (rLab) rLab.textContent = RADIO_STATIONS[GameState.radioIndex];
           } else {
             speedo.classList.add('hidden');
