@@ -331,48 +331,21 @@
     <text x="210" y="301" text-anchor="middle" font-family="'Arial Black',Impact,sans-serif" font-size="12" letter-spacing="4" fill="#fde68a">PANTURA OPEN WORLD</text>
   </g>
 </svg>
-      <div class="flex justify-center"><div class="inline-flex items-center gap-2 rounded-full bg-amber-500/15 border border-amber-400/30 px-3 py-1 text-[10px] sm:text-xs font-bold text-amber-300 mb-2.5">
-        <span data-icon="route" data-icon-class="w-3.5 h-3.5 text-amber-400"></span>
-        <span>BEKASI • CIKARANG • KARAWANG PANTURA</span>
-      </div></div>
       <h1 class="sr-only">NGABRAG 3D</h1>
-      <p class="text-xs sm:text-sm text-slate-300 mb-4 sm:mb-5 leading-relaxed text-center">
-        Jelajahi koridor Pantura! Hadapi warga dan petugas saat membuat onar, pulihkan darah lewat makanan atau obat di RS, dan temukan Hutan Terlarang. Grakhor akan bangkit makin besar setiap kali dikalahkan—hingga dapat menerobos dan menghancurkan kota!
-      </p>
-
-      <!-- Hero Name Input -->
-      <div class="mb-4 sm:mb-5">
-        <label for="start-hero-name" class="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Nama Karakter Hero Kamu
-        </label>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <input
-            id="start-hero-name"
-            type="text"
-            maxlength="18"
-            value="Kang Raka"
-            placeholder="Ketik nama karakter..."
-            class="w-full rounded-2xl bg-slate-900/90 border border-slate-700 focus:border-amber-400 focus:outline-none px-4 py-2.5 sm:py-3 text-sm font-bold text-white"
-          />
-          <button id="btn-start-customize" type="button" class="rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 px-4 py-2.5 sm:py-3 text-xs font-bold text-amber-300 whitespace-nowrap transition inline-flex items-center justify-center gap-1.5">
-            <span data-icon="shirt" data-icon-class="w-4 h-4"></span>
-            <span>Atur Gaya</span>
-          </button>
-        </div>
+      <p class="mb-6 text-center text-base sm:text-lg font-bold text-amber-100">Apa yang terbangun di balik Hutan Terlarang?</p>
+      <div>
+        <label for="start-hero-name" class="mb-1.5 block text-xs font-bold text-slate-200">Nama Hero</label>
+        <input id="start-hero-name" type="text" maxlength="18" autocomplete="off" enterkeyhint="go" placeholder="Nama Hero"
+          class="mb-3 w-full rounded-2xl border border-slate-600 bg-slate-950/70 px-4 py-2.5 text-base font-bold text-white focus:border-amber-300 focus:outline-none">
+        <button id="btn-start-game" type="button" class="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm py-3.5 shadow-lg shadow-amber-500/25 inline-flex items-center justify-center gap-2">
+          <span data-icon="play" data-icon-class="w-5 h-5"></span>
+          <span>Mulai Bermain</span>
+        </button>
+        <button id="btn-start-customize" type="button" class="mt-2 w-full rounded-2xl px-4 py-2.5 text-sm font-bold text-amber-100 hover:bg-white/10 inline-flex items-center justify-center gap-2">
+          <span data-icon="shirt" data-icon-class="w-4 h-4"></span>
+          <span>Atur Gaya</span>
+        </button>
       </div>
-
-      <!-- Quick Controls Guide -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] sm:text-xs text-slate-300 bg-slate-950/60 rounded-2xl p-3 sm:p-3.5 border border-white/10 mb-5">
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300 shrink-0">WASD / Tuas</span> Jalan & Setir</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300 shrink-0">F / Pukul</span> Kombo Jab-Cross-Hook-Uppercut</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300 shrink-0">G / E</span> Naik Mobil, Gaya & Aksi</div>
-        <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-slate-800 font-bold text-amber-300 shrink-0">B / I / K / M</span> Toko, Ransel & Lomba</div>
-      </div>
-
-      <button id="btn-start-game" type="button" class="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm sm:text-base py-3.5 sm:py-4 shadow-lg shadow-amber-500/25 transition transform active:scale-98 inline-flex items-center justify-center gap-2">
-        <span data-icon="play" data-icon-class="w-5 h-5"></span>
-        <span>MULAI NGABRAG SEKARANG</span>
-      </button>
     </div>
   </div>
 
@@ -431,6 +404,9 @@
           <button id="btn-hud-customize" type="button" class="glass-pill rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-[11px] font-extrabold text-purple-300 flex items-center gap-1.5 shadow">
             <span data-icon="shirt" data-icon-class="w-3.5 h-3.5"></span><span>KOSTUM</span>
           </button>
+          <button id="btn-hud-jurus" type="button" class="glass-pill rounded-xl px-2 py-1 text-[11px] font-extrabold text-cyan-200 flex items-center gap-1.5">
+            <span data-icon="bolt" data-icon-class="w-3.5 h-3.5"></span><span>JURUS</span>
+          </button>
         </div>
       </div>
 
@@ -483,6 +459,12 @@
         <span id="context-prompt-icon" class="text-emerald-300 shrink-0"></span>
         <span id="context-prompt-text" class="text-[11px] sm:text-xs font-bold text-emerald-300">Tekan [E] untuk berinteraksi</span>
       </button>
+
+      <div id="hud-jurus-actions" class="hidden pointer-events-auto flex items-center gap-1.5">
+        <button id="btn-use-jurus" type="button" class="glass-pill rounded-xl px-3 py-2 text-xs font-bold text-cyan-100" title="Gunakan jurus [X]">Jurus [X]</button>
+        <button id="btn-use-petir" type="button" class="hidden glass-pill rounded-xl px-3 py-2 text-xs font-bold text-cyan-200" title="Aktifkan Mode Petir [V]">Petir [V]</button>
+        <button id="btn-fly-jurus" type="button" class="hidden glass-pill rounded-xl px-3 py-2 text-xs font-bold text-sky-100" title="Terbang atau mendarat [Y]">Terbang [Y]</button>
+      </div>
 
       <!-- Vehicle Speedo & Radio -->
       <div id="hud-speedo" class="hidden pointer-events-auto glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-2.5 sm:gap-3 border border-amber-400/35">
@@ -708,6 +690,22 @@
   <!-- ===================================================================== -->
   <!-- MODAL 3: TOKO & SHOWROOM PANTURA                                      -->
   <!-- ===================================================================== -->
+  <div id="modal-jurus" aria-labelledby="jurus-title" role="dialog" aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3">
+    <div class="glass-panel w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl border border-cyan-400/30 p-4 sm:p-6">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 id="jurus-title" class="text-lg font-black text-cyan-100">Jurus Hero</h2>
+        <button id="btn-close-jurus" type="button" aria-label="Tutup" class="rounded-xl bg-slate-800 px-3 py-2 font-bold">
+          <span data-icon="close" data-icon-class="w-4 h-4"></span>
+        </button>
+      </div>
+      <p id="jurus-milestones" class="mb-3 text-xs text-slate-300"></p>
+      <div id="jurus-options" class="grid gap-2"></div>
+      <button id="btn-consume-pil-kuat" type="button" class="hidden mt-3 w-full rounded-xl bg-cyan-200 px-3 py-2.5 text-sm font-black text-slate-950"></button>
+      <p id="jurus-petir-info" class="mt-3 text-xs text-cyan-200"></p>
+      <p id="jurus-flight-info" class="mt-2 text-xs text-sky-200"></p>
+    </div>
+  </div>
+
   <div id="modal-shop" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2.5 sm:p-6">
     <div class="glass-panel w-full max-w-4xl max-h-[90dvh] rounded-3xl flex flex-col overflow-hidden border border-amber-400/35">
       <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-white/10">
@@ -994,6 +992,7 @@
       audioEnabled: true,
       timePresetIndex: 0, // 0: Golden Afternoon, 1: Bright Noon, 2: Night Neon
       clock: 16.5, dark: 0, bossKills: 0, cityDamage: {},
+      jurus: { ibadah: 0, doa: 0, pills: 0, forest: false, selected: null, playedDays: 0, lastPlayDay: null, flightEarned: false },
       cameraMode: 0,      // 0: Standard, 1: Wide, 2: Close, 3: First-Person/Hood
       cameraSensitivity: 1.0,
       cameraDistanceMult: 1.0,
@@ -3125,11 +3124,12 @@
       }
 
       triggerAttack(citizens) {
-        if (GameState.inVehicle || GameState.vehicleTransition || GameState.roomTransition) return;
+        if (GameState.inVehicle || GameState.vehicleTransition || GameState.roomTransition || this.power?.flying) return;
         if (this.attackTimer > 0.14) return;
 
         this.isCrouching = false;
         this.emoteTimer = 0;
+        this.attackTechnique = null;
         // 4-hit boxing combo: Jab -> Cross -> Left Hook -> Uppercut finisher
         this.attackCombo = (this.attackCombo % 4) + 1;
         this.comboResetTimer = 1.5;
@@ -3185,8 +3185,50 @@
         this.pendingHit = { t: this.attackDuration * impactAt, combo: this.attackCombo };
       }
 
-      _resolveHit(citizens, combo) {
+      startTechnique(move) {
+        this.isCrouching = false;
+        this.stance = 0;
+        GameState.heroStance = 0;
+        this.emoteTimer = 0;
+        this.attackTechnique = move;
+        this.attackTimer = this.attackDuration = move.duration;
+        this.guardTimer = 1.45;
+        this.lungeVel = move.lunge;
+        this.pendingHit = { t: move.duration * move.impact, combo: move.combo, technique: move };
+        this.sound.playPunchSwing(move.combo);
+        this.sound.playHeroAttackVoice(move.combo);
+      }
+
+      _resolveTechnique(citizens, move, fwd) {
+        if (this.forest?.bossMelee(this, fwd, move.reach, move.combo, move) && !move.splash) return;
+        const targets = move.splash
+          ? citizens.list.filter(c => {
+            if (c.atHome || c.offShift || c.downTimer > 0 || Math.abs(c.pos.y - this.pos.y) > 1.35) return false;
+            const dx = c.pos.x - this.pos.x, dz = c.pos.z - this.pos.z;
+            const d = Math.hypot(dx, dz);
+            return d > 0.08 && d <= move.reach && (dx * fwd.x + dz * fwd.z) / d >= move.cone;
+          })
+          : [citizens.findInCone(this.pos, fwd, move.reach, move.cone)].filter(Boolean);
+        if (!targets.length) { this.life?.tryHitBag(this, move.combo); return; }
+        const dmg = Math.round((GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult() * move.damage * this.power.damageFactor);
+        for (const target of targets) {
+          const dir = move.splash ? target.pos.clone().sub(this.pos).setY(0).normalize() : fwd;
+          citizens.onHitCitizen(target, dmg, dir, false, move.combo);
+          this.power.scorch(target);
+          if (this.fx) {
+            const hit = target.pos.clone().add(new THREE.Vector3(0, 1.35, 0));
+            this.fx.impactBurst(hit, dir, 0.9 + move.damage * 0.3);
+            this.fx.floatText(hit.clone().add(new THREE.Vector3(0, 0.5, 0)), move.name, move.color, 1);
+          }
+        }
+        this.sound.playHitImpact(true, move.combo === 4);
+        this.fx?.hitStop(0.055);
+        this.camCtrl?.addShake(0.21, 0.28);
+      }
+
+      _resolveHit(citizens, combo, technique) {
         const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+        if (technique) { this._resolveTechnique(citizens, technique, fwd); return; }
         const reach = (GameState.equipped.gloves ? 2.6 : 2.15) + 0.3;
         if (this.forest && this.forest.bossMelee(this, fwd, reach, combo)) return;
         const target = citizens.findInCone(this.pos, fwd, reach, 0.4);
@@ -3194,12 +3236,13 @@
 
         const baseDmg = (GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult();
         const comboMult = [0, 1.0, 1.2, 1.45, 1.8][combo];
-        const dmg = Math.round(baseDmg * comboMult);
-        const heavy = combo >= 3;
+        const dmg = Math.round(baseDmg * comboMult * (this.power?.damageFactor || 1));
+        const heavy = combo >= 3 || this.power?.surge > 0;
         const finisher = combo === 4;
 
         this.sound.playHitImpact(heavy, finisher);
         citizens.onHitCitizen(target, dmg, fwd, false, combo);
+        this.power?.scorch(target);
         if (combo >= 2) this.sound.playComboChime(combo - 1);
 
         const hp = target.pos.clone();
@@ -3615,9 +3658,9 @@
         if (this.pendingHit) {
           this.pendingHit.t -= dt;
           if (this.pendingHit.t <= 0) {
-            const hitCombo = this.pendingHit.combo;
+            const { combo, technique } = this.pendingHit;
             this.pendingHit = null;
-            this._resolveHit(citizens, hitCombo);
+            this._resolveHit(citizens, combo, technique);
           }
         }
         if (this.comboResetTimer > 0) {
@@ -3646,6 +3689,10 @@
         const rightZ = Math.sin(cameraYaw);
         const worldX = fwdX * forwardAmt + rightX * rightAmt;
         const worldZ = fwdZ * forwardAmt + rightZ * rightAmt;
+        if (this.power?.flying) {
+          this.power.updateFlight(dt, worldX, worldZ, inputMag, input.sprint);
+          return;
+        }
 
         if (inputMag > 0.08 && this.emoteTimer > 0) {
           this.emoteTimer = 0;
@@ -3873,7 +3920,34 @@
           lsX = guardLeft[0]; lsY = guardLeft[1]; lsZ = guardLeft[2]; leX = -1.85;
           rsX = guardRight[0]; rsY = guardRight[1]; rsZ = guardRight[2]; reX = -1.85;
 
-          if (this.attackCombo === 1) {
+          if (this.attackTechnique?.id === 'telapak') {
+            lsX = rsX = -0.94 - 0.68 * ext;
+            lsY = 0.20 - ext * 0.22;
+            rsY = -lsY;
+            leX = reX = -1.72 + 1.64 * ext;
+            hipL -= 0.34 * ext;
+            torsoPitch += 0.21 * ext;
+          } else if (this.attackTechnique?.id === 'sapuan') {
+            const kick = Math.sin(p * Math.PI);
+            torsoYaw -= 1.48 * kick;
+            hipL -= 1.15 * kick;
+            kneeL += 0.48 * wn;
+            kneeR += 0.24 * kick;
+            zL += 0.66 * kick;
+            lsX = -0.8 - 0.36 * kick;
+            rsX = -0.62 + 1.05 * kick;
+            lsZ = 0.22 + 0.79 * kick;
+            rsZ = -0.39 - 0.82 * kick;
+            leX = reX = -1.21 + 0.95 * kick;
+          } else if (this.attackTechnique?.id === 'palu') {
+            const raise = Math.sin(Math.min(1, p / 0.42) * Math.PI / 2) * (1 - ext);
+            lsX = rsX = -1.0 - 1.85 * raise - 0.33 * ext;
+            leX = reX = -1.30 + 0.90 * ext;
+            torsoPitch += 0.39 * ext;
+            pelvisDrop += 0.15 * ext;
+            kneeL += 0.26 * ext;
+            kneeR += 0.3 * ext;
+          } else if (this.attackCombo === 1) {
             // Lead Jab: quick straight left, lead foot slides in
             torsoYaw = -ext * 0.24 + wn * 0.1;
             lsX = -0.95 - 0.62 * ext + 0.22 * wn;
@@ -4004,11 +4078,13 @@
 
         // Punch motion trail from the active glove
         if (this.fx && this.attackTimer > 0 && p > 0.2 && p < 0.62 && !GameState.equipped.blaster) {
-          const useLeft = this.attackCombo === 1 || this.attackCombo === 3;
+          const useLeft = this.attackTechnique?.id === 'telapak' || (!this.attackTechnique && (this.attackCombo === 1 || this.attackCombo === 3));
           const elbow = useLeft ? this.rig.leftElbowPivot : this.rig.rightElbowPivot;
           this._tmpV.set(0, -0.32, 0);
           elbow.localToWorld(this._tmpV);
-          this.fx.trail(this._tmpV, this.attackCombo >= 3 ? 0xffb0c0 : 0xffe9a0, 0.3 + ext * 0.12);
+          const color = this.power?.surge > 0 ? 0x67e8f9
+            : (this.attackTechnique ? parseInt(this.attackTechnique.color.slice(1), 16) : (this.attackCombo >= 3 ? 0xffb0c0 : 0xffe9a0));
+          this.fx.trail(this._tmpV, color, 0.3 + ext * 0.12);
         }
 
         this.rig.torso.rotation.set(torsoPitch, torsoYaw - pelvisYaw, 0);
@@ -4185,13 +4261,13 @@
         }
       }
 
-      dustPuff(pos, count = 4, scale = 1) {
+      dustPuff(pos, count = 4, scale = 1, color = 0xb8ae9c) {
         for (let i = 0; i < count; i++) {
           const a = Math.random() * Math.PI * 2;
           const v = new THREE.Vector3(Math.cos(a) * 0.9 * scale, 0.35 + Math.random() * 0.5, Math.sin(a) * 0.9 * scale);
           const p = pos.clone();
           p.y += 0.06;
-          this._spawn('smoke', p, { color: 0xb8ae9c, vel: v, s0: 0.25 * scale, s1: (0.9 + Math.random() * 0.5) * scale, life: 0.45 + Math.random() * 0.4, opacity: 0.5, drag: 2.4 });
+          this._spawn('smoke', p, { color, vel: v, s0: 0.25 * scale, s1: (0.9 + Math.random() * 0.5) * scale, life: 0.45 + Math.random() * 0.4, opacity: 0.5, drag: 2.4 });
         }
       }
 
@@ -4294,7 +4370,11 @@
 
       _spawnTraffic() {
         const makeRoute = ([left, right, north, south], reverse) => {
-          const corners = [[left, north], [right, north], [right, south], [left, south]]
+          const lane = reverse ? -3 : 3;
+          const corners = [
+            [left - lane, north - lane], [right + lane, north - lane],
+            [right + lane, south + lane], [left - lane, south + lane],
+          ]
             .map(([x, z]) => new THREE.Vector3(x, 0, z));
           if (reverse) corners.reverse();
           const around = (corner, adjacent) => corner.clone().lerp(adjacent, 5 / corner.distanceTo(adjacent));
@@ -4308,13 +4388,15 @@
           return route;
         };
         const colors = [0x2563eb, 0xffffff, 0x0d9488, 0x64748b, 0xbe123c, 0xf2c34d];
+        const [outerWest, west, center, east, outerEast] = this.world.roadCoords;
+        // Jalan di tengah tertutup lapangan Alun-Alun. Rute pendek berputar di pendekat barat dan timur.
         const routes = [
-          [[-73, 73, -73, 73], false, 3, 0.42],
-          [[-67, 67, -67, 67], true, 3, 0.66],
-          [[-73, 73, -73, 3], false, 3, 0.05],
-          [[-67, 67, -67, -3], true, 3, 0.47],
-          [[-153, 153, -153, 153], false, 4, 0.18],
-          [[-147, 147, -147, 147], true, 4, 0.51],
+          [[west, east, west, east], false, 3, 0.42],
+          [[west, east, west, east], true, 3, 0.66],
+          [[outerWest, west, west, center], false, 3, 0.05],
+          [[east, outerEast, west, center], true, 3, 0.47],
+          [[outerWest, outerEast, outerWest, outerEast], false, 4, 0.18],
+          [[outerWest, outerEast, outerWest, outerEast], true, 4, 0.51],
         ];
         for (const [bounds, reverse, count, offset] of routes) {
           const route = makeRoute(bounds, reverse);
@@ -4976,6 +5058,7 @@
       _hurtHero(c, dmg) {
         const app = this.life.app;
         const hero = app.hero;
+        if (app.power?.flying && hero.pos.y - c.pos.y > 3) return;
         const up = hero.pos.clone();
         up.y += 2.2;
         if (hero.rollTimer > 0) {
@@ -5016,17 +5099,28 @@
           hero.rig.pelvis.position.y = 0.95;
         }
         if (this.life.busy) this.life.endHeroActivity();
+        if (app.power?.flying) app.power.stopFlight();
+        if (app.power) app.power.surge = 0;
         if (app.forest && app.forest.active) app.forest.leave(true);
         const cost = Math.min(GameState.cash, 50000);
         GameState.cash -= cost;
-        GameState.health = 45;
+        GameState.health = 100;
         this.list.forEach(c => { c.hostile = 0; c.atk = null; c.truce = 25; });
         if (app.missions) app.missions.onHeroKO();
         if (this.fx) this.fx.screenFlash('0,0,0', 0.95, 1100);
         this.sound.playKnockdown();
         hero.pos.set(0, this.world.getGroundHeight(0, 16), 16);
         hero.velY = 0;
-        showToast(`KO dihajar ${by ? by.name : 'jagoan'}! Dibawa warga ke Puskesmas — biaya ${formatRupiah(cost)}.`, 'alert');
+        hero.isGrounded = true;
+        hero.jumpCount = 0;
+        hero.pendingHit = null;
+        hero.attackTimer = 0;
+        hero.lungeVel = 0;
+        hero.rollTimer = 0;
+        hero.stance = GameState.heroStance = 0;
+        hero.isCrouching = false;
+        hero.rig.root.position.copy(hero.pos);
+        showToast(`Hero pulih dengan 100% HP setelah K.O. Biaya perawatan ${formatRupiah(cost)}.`, 'heart');
         app.updateHUD();
       }
 
@@ -6011,6 +6105,15 @@
           ctx.textAlign = 'center';
           ctx.fillText(area.name, x, z - 10);
         }
+        if (world.prayerSpot) {
+          const x = cx + (world.prayerSpot.x - heroPos.x) * scale;
+          const z = cy + (world.prayerSpot.z - heroPos.z) * scale;
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.fillStyle = '#a7f3d0';
+          ctx.fillText('Musala', x, z - 4);
+          ctx.fillRect(x - 2, z - 1, 4, 4);
+        }
         ctx.textAlign = 'start';
 
         // Buildings
@@ -6092,6 +6195,12 @@
             else this.cb.onJump();
           } else if (code === 'KeyF') {
             if (!GameState.inVehicle) this.cb.onAttack();
+          } else if (code === 'KeyX') {
+            this.cb.onTechnique();
+          } else if (code === 'KeyV') {
+            this.cb.onSurge();
+          } else if (code === 'KeyY') {
+            this.cb.onFlight();
           } else if (code === 'KeyQ') {
             if (GameState.inVehicle) this.cb.onVehicleToggle();
             else this.cb.onRoll();
@@ -6295,7 +6404,11 @@
           }
           setSlot('bot1', 'F', GameState.equipped.blaster ? 'blaster' : 'punch', GameState.equipped.blaster ? 'TEMBAK' : 'PUKUL');
           setSlot('bot2', '⇧', 'bolt', 'LARI');
-          setSlot('bot3', '␣', 'jump', 'LOMPAT');
+          setSlot('bot3', '␣', 'jump', this.cb.isFlying() ? 'NAIK' : 'LOMPAT');
+          if (this.cb.isFlying()) {
+            setSlot('top2', 'Z', 'crouch', 'TURUN');
+            setSlot('bot2', '⇧', 'bolt', 'BOOST');
+          }
         }
       }
 
@@ -6525,8 +6638,8 @@
           const nameInp = document.getElementById('custom-hero-name');
           if (nameInp && nameInp.value.trim()) {
             GameState.heroName = nameInp.value.trim();
-            const startInp = document.getElementById('start-hero-name');
-            if (startInp) startInp.value = GameState.heroName;
+            const startName = document.getElementById('start-hero-name');
+            if (startName) startName.value = GameState.heroName;
           }
           Object.assign(GameState.appearance, this.customAppearance);
           Object.assign(GameState.equipped, this.customEquipment);
@@ -6849,13 +6962,13 @@
         this.prevRenderer.render(this.prevScene, this.prevCamera);
       }
 
-      openCustomizer() {
+      openCustomizer(heroName = GameState.heroName) {
         this.customAppearance = { ...GameState.appearance };
         this.customEquipment = { ...GameState.equipped };
         GameState.paused = true;
         document.getElementById('modal-customize')?.classList.remove('hidden');
         const nameInp = document.getElementById('custom-hero-name');
-        if (nameInp) nameInp.value = GameState.heroName;
+        if (nameInp) nameInp.value = heroName;
         this._renderCustomizerControls();
       }
 
@@ -9113,6 +9226,12 @@
               hl: [S(t * 2.2) * 0.2, 0, 0], hr: [-S(t * 2.2) * 0.2, 0, 0]
             };
           }
+          case 'musala':
+            return {
+              py: 0.39, torso: [0.12 + S(t * 1.15) * 0.045, 0, 0], head: [0.30, 0, 0],
+              hl: [-1.45, 0, 0.42], hr: [-1.45, 0, -0.42], kl: 1.9, kr: 1.9,
+              ls: [-0.70, 0.30, 0.18], rs: [-0.70, -0.30, -0.18], le: -1.55, re: -1.55,
+            };
           case 'garden':
             return {
               torso: [0.32 + S(t * 1.8) * 0.12, 0, 0],
@@ -9249,6 +9368,7 @@
         this._buildDecor();
         this._buildEdges();
         this._buildDistricts();
+        this._buildMusala();
         this._spawnActors();
         this._initRoutines();
         this._buildUI();
@@ -9700,7 +9820,7 @@
           }
         }
         [24, 60].forEach(px => this._cyl(g, 0.09, 0.09, 4.1, this._mat(0x475569, 0.6), px, 2.0, 23.6, 8));
-        this._sign(g, 'JAJAN MALAM PANTURA', 'Kuliner Kaki Lima • Buka Terus', '#f472b6', 9, 1.5, 42, 5.0, 22.6, Math.PI);
+        this._sign(g, 'JAJAN MALAM PANTURA', 'Warkop Buka sampai Tengah Malam', '#f472b6', 9, 1.5, 42, 5.0, 22.6, Math.PI);
 
         // parked ojek motorbikes
         [[24.5, 45.5, 0.3], [25.8, 46.2, 0.5]].forEach(([mx, mz, ry]) => {
@@ -10160,7 +10280,8 @@
       _spawnDistrictActors(mk) {
         const colors = ['#d97706', '#0891b2', '#7c3aed', '#16a34a', '#be123c'];
         const market = [[173, -29], [177, -31], [182, -29], [186, -31], [191, -29], [195, -31], [181, -24], [190, -25]];
-        market.forEach(([x, z], i) => mk(i % 2 === 0, x, z, { type: 'shift', morning: 'chat', afternoon: 'market' },
+        market.forEach(([x, z], i) => mk(i % 2 === 0, x, z, { type: 'shift', morning: 'chat', afternoon: 'market',
+          rainShelter: { x: 199 + (i % 3) * 1.65, z: -29 + Math.floor(i / 3) * 1.65 } },
           { yaw: Math.PI, shirt: colors[i % colors.length], lines: ['Mau belanja di Pasar Timur?'] }));
         [[-174, 37], [-184, 36], [-171, 32]].forEach(([x, z], i) =>
           mk(i === 0, x, z, { type: 'shift', morning: 'sweep', afternoon: 'chat' }, { shirt: colors[i + 1] }));
@@ -10227,7 +10348,7 @@
             r.returning = false;
             r.elapsed = 0;
             r.retry = 0;
-            if (initial && night) this._enterHome(c, false);
+            if (initial && night && !(slot === 3 && c.eveningOut)) this._enterHome(c, false);
             if (!night && c.atHome) {
               c.atHome = false;
               r.home.arrived = Math.max(0, r.home.arrived - 1);
@@ -10261,19 +10382,22 @@
         const r = c.routine;
         const slot = this.routineSlot;
         const night = slot === 0 || slot === 3;
-        const returning = night && (slot === 0 || this.shiftTime >= r.stagger);
+        const staysOut = slot === 3 && c.eveningOut;
+        const returning = night && !staysOut && (slot === 0 || this.shiftTime >= r.stagger);
         const existingActivity = c.act && c.act.type !== 'shift';
-        const usesOriginal = existingActivity && (r.primary === -1 || r.primary === slot);
+        const usesOriginal = existingActivity && (r.primary === -1 || r.primary === slot || staysOut);
         const task = c.act?.type === 'shift'
           ? (slot === 1 ? c.act.morning : c.act.afternoon)
           : (slot === 1 ? ['stretch', 'chat', 'sweep'][r.index % 3] : ['chat', 'phone', 'market'][r.index % 3]);
-        if (r.returning !== returning) {
+        const takesShelter = !returning && Boolean(this.app.marketRain?.active && c.act?.rainShelter);
+        const goal = returning ? r.home : (takesShelter ? c.act.rainShelter : r.anchor);
+        if (r.goal !== goal) {
+          r.goal = goal;
           r.returning = returning;
           r.path = null;
           r.retry = 0;
           r.elapsed = 0;
         }
-        const goal = returning ? r.home : r.anchor;
         const distance = Math.hypot(goal.x - c.pos.x, goal.z - c.pos.z);
         const arrived = distance < 0.85;
         const near = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 92;
@@ -10311,7 +10435,7 @@
             const length = Math.hypot(dx, dz);
             if (length < 0.68 && r.path.length > 1) r.path.shift();
             else if (length > 0.01) {
-              const walk = Math.min(length, (returning ? 2.45 : 1.85) * dt);
+              const walk = Math.min(length, (takesShelter ? 3.3 : (returning ? 2.45 : 1.85)) * dt);
               const x = c.pos.x + dx * walk / length;
               const z = c.pos.z + dz * walk / length;
               if (!this.world.isCircleBlocked(x, z, 0.54)) {
@@ -10330,7 +10454,7 @@
           };
         } else {
           const t = this.t + r.phase;
-          if (task === 'market') {
+          if (takesShelter || task === 'market') {
             pose = LifePoses.pose('chat', t, { speaking: Math.sin(t * 0.75) > 0 });
           } else {
             pose = LifePoses.pose(task, t, { speaking: Math.sin(t) > 0 });
@@ -10344,6 +10468,32 @@
         c.rig.materials.shirtMat.emissive.setRGB(0, 0, 0);
         c.rig.materials.skinMat.emissive.setRGB(0, 0, 0);
         LifePoses.apply(c.rig, pose);
+      }
+
+      _buildMusala() {
+        const x = 18, z = -32;
+        const walls = this._mat(0xe7efdf);
+        const roof = this._mat(0x1c775c);
+        this._box(this.scene, 8.8, 3.4, 6.2, walls, x, 1.7, z);
+        this._box(this.scene, 9.4, 0.27, 6.7, roof, x, 3.45, z);
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(1.77, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), roof);
+        dome.position.set(x, 3.62, z);
+        dome.castShadow = true;
+        this.scene.add(dome);
+        this._cyl(this.scene, 0.08, 0.12, 0.55, this._mat(0xfbbf24), x, 5.64, z, 8);
+        this._box(this.scene, 9.4, 0.12, 3.4, this._mat(0xbfccba), x, 0.04, z + 4.55, false);
+        this._box(this.scene, 1.36, 2.35, 0.1, this._mat(0x285347), x, 1.17, z + 3.11, false);
+        for (const offset of [-2.12, 2.12]) {
+          this._box(this.scene, 1.18, 1.18, 0.12, this._mat(0xb5e9ce), x + offset, 2.08, z + 3.12, false);
+        }
+        this._sign(this.scene, 'MUSALA PANTURA', 'Ibadah & Doa', '#a7f3d0', 5.0, 0.85, x, 3.12, z + 3.35, 0);
+        this.world.addBoxCollider(x, z, 8.8, 6.2);
+        [[-1.6, 'ibadah', 0x235a50], [1.6, 'doa', 0x344e70]].forEach(([offset, kind, color]) => {
+          this._box(this.scene, 1.30, 0.035, 1.64, this._mat(color), x + offset, 0.12, z + 4.5, false);
+          const label = kind === 'ibadah' ? 'Ibadah di Musala Pantura [E]' : 'Berdoa di Musala Pantura [E]';
+          this._zone(x + offset, z + 4.5, 1.5, 'musala', label, { kind });
+        });
+        this.world.prayerSpot = { x, z };
       }
 
       _buildDecor() {
@@ -10412,7 +10562,10 @@
         const seat = (bench, i) => { bench.slots[i].taken = true; return bench.slots[i]; };
 
         // 1) Standing chat pairs around the plaza
-        pair(false, [-8, 13], true, [-6.8, 12.2], Math.atan2(-1.2, -0.8) + 0, { lines: ['Eh, ngobrol dulu yuk, Bang!', 'Santai aja, kita lagi ngerumpi.'] });
+        const plazaYouth = pair(false, [-8, 13], true, [-6.8, 12.2], 0,
+          { name: 'Dimas', lines: ['Enak juga ngobrol di alun-alun malam begini.'] },
+          { name: 'Sinta', lines: ['Sebentar lagi aku pulang, kok.'] });
+        plazaYouth.a.eveningOut = plazaYouth.b.eveningOut = true;
         pair(true, [8, 13], false, [9.2, 12.2], 0, { cap: false }, { cap: true });
         pair(false, [-20, -6], false, [-18.8, -6.8], 0, { cap: true }, {});
         pair(true, [34, 31], true, [35.2, 30.4], 0, {}, {});
@@ -10451,6 +10604,7 @@
             cap: !female && i % 2 === 0, fixed: true, lines: ['Silakan mampir, Bang!', 'Pesan apa hari ini?', 'Masih panas, baru matang!']
           });
           s.vendorActor = v;
+          if (s.type === 'warkop') v.eveningOut = true;
         });
         const tbl = [[36, 42], [46, 42]];
         const bT0 = B.find(b => Math.abs(b.pos.x - 36) < 0.1 && Math.abs(b.pos.z - 41) < 0.1);
@@ -10459,7 +10613,10 @@
           mk(false, 0, 0, { type: 'sit', sitKind: 'coffee', bench: bT0, slot: seat(bT0, 0), eat: true }, { fixed: true, yaw: bT0.yaw, lines: ['Baksonya juara!'] });
         }
         if (bT1) {
-          pair(true, [0, 0], false, [0, 0], bT1.yaw, { bench: bT1, slot: seat(bT1, 0) }, { bench: bT1, slot: seat(bT1, 1) }, 'sit');
+          const warkopYouth = pair(true, [0, 0], false, [0, 0], bT1.yaw,
+            { bench: bT1, slot: seat(bT1, 0), name: 'Putri', lines: ['Ngopi dulu sebelum pulang.'] },
+            { bench: bT1, slot: seat(bT1, 1), name: 'Bagas', lines: ['Besok nongkrong lagi, yuk.'] }, 'sit');
+          warkopYouth.a.eveningOut = warkopYouth.b.eveningOut = true;
         }
 
         // 5) Toko alat owner
@@ -10737,6 +10894,15 @@
             c.pos.x = A.home.x;
             c.pos.z = A.home.z;
             if (A.serveT > 0) A.serveT -= dt;
+            const marketRain = this.app.marketRain;
+            if (A.stall.dayMarket && marketRain?.active) {
+              const lift = 1 - clamp(marketRain.age / 2.8, 0, 1);
+              pose = lift > 0
+                ? { ls: [-1.25 - 0.92 * lift, 0.17, 0.1], rs: [-1.25 - 0.92 * lift, -0.17, -0.1],
+                  le: -0.8, re: -0.8, head: [-0.17 * lift, 0, 0], torso: [0.12, 0, 0] }
+                : LifePoses.pose('owner', t, { serveT: 0 });
+              break;
+            }
             if (A.fan && dh < 40 && Math.random() < dt * 4) this.sizzleT = Math.max(this.sizzleT, 0);
             pose = this.routineSlot === 1 && A.serveT <= 0
               ? LifePoses.pose('owner', t, { serveT: 0 })
@@ -10820,7 +10986,7 @@
           if (pr.timer <= 0) {
             pr.speaker ^= 1;
             const who = pr.speaker ? pr.b : pr.a;
-            const pool = who.lines && Math.random() < 0.35 ? who.lines : LIFE_CHAT;
+          const pool = who.lines && (this.routineSlot === 3 || Math.random() < 0.35) ? who.lines : LIFE_CHAT;
             this.say(who, pool[Math.floor(Math.random() * pool.length)], 3.4);
             pr.timer = 3.6 + Math.random() * 2.2;
             if (d < 10 && Math.random() < 0.5) this.sound.playNpcVoice('greet', who.female);
@@ -11231,6 +11397,17 @@
         const T = A.t + 3;
 
         switch (A.type) {
+          case 'musala':
+            yaw = Math.PI;
+            hero.yaw = yaw;
+            lerpTo(A.spot.x, A.spot.y + 0.13, A.spot.z);
+            pose = LifePoses.pose('musala', T, {});
+            if (A.t >= 6) {
+              this.app.power.recordSession(A.kind);
+              this.endHeroActivity();
+              return false;
+            }
+            break;
           case 'garden':
             yaw = -Math.PI / 2;
             hero.yaw = yaw;
@@ -11414,10 +11591,21 @@
       handleZone(z) {
         switch (z.action) {
           case 'bench_sit': this.startSit(z.bench); return true;
+          case 'musala':
+            this._begin({ type: 'musala', spot: z.pos, kind: z.kind });
+            return true;
           case 'garden_tend':
             this._begin({ type: 'garden', spot: z.pos });
             return true;
           case 'stall': {
+            if (z.stall.dayMarket && this.app.marketRain?.active) {
+              this.app.marketRain.offerFromStall(z.stall);
+              return true;
+            }
+            if (z.stall.type === 'warkop' && this.routineSlot === 0) {
+              showToast('Warkop tutup sampai pukul 06.00.', 'store');
+              return true;
+            }
             if (z.stall.dayMarket && this.routineSlot !== 1 && this.routineSlot !== 2) {
               showToast('Pasar Timur buka pukul 06.00–18.00.', 'store');
               return true;
@@ -11486,6 +11674,11 @@
         let info = '';
         const stat = k => `${GameStats.names[k]} Lv${GameStats.level(k)}`;
         switch (A.type) {
+          case 'musala':
+            title = A.kind === 'ibadah' ? 'IBADAH' : 'DOA';
+            sub = '[E] atau bergerak untuk berhenti';
+            bar = A.t / 6;
+            break;
           case 'garden':
             title = 'MERAWAT TANAMAN';
             sub = '[E] atau bergerak untuk berhenti';
@@ -11555,6 +11748,8 @@
     // 12B. MISI SAMBILAN + SISTEM DICARI (SATPOL PP)
     // ==========================================================================
     class MissionSystem {
+      static OFFER_INTERVAL = 120;
+
       constructor(app) {
         this.app = app;
         this.active = null;
@@ -11566,7 +11761,7 @@
         this.done = 0;
         this.earned = 0;
         this.t = 0;
-        this.hintShown = false;
+        this.offerIn = 45;
         this._buildDom();
         this._buildBeacon();
       }
@@ -11587,8 +11782,11 @@
             <div id="ms-title" class="text-[10px] sm:text-[11px] font-black text-amber-300"></div>
             <div id="ms-obj" class="text-[10px] sm:text-xs font-bold text-slate-100"></div>
             <div id="ms-info" class="text-[10px] font-extrabold text-emerald-300"></div>
-          </div>`;
+          </div>
+          <button id="hud-new-mission" type="button" class="hidden pointer-events-auto glass-pill rounded-xl border border-amber-400/50 px-3 py-2 text-xs font-bold text-amber-200">Misi Baru</button>`;
         document.body.appendChild(wrap);
+        this.newOfferButton = wrap.querySelector('#hud-new-mission');
+        this.newOfferButton.addEventListener('click', () => this.openBoard());
 
         const btn = document.createElement('button');
         btn.id = 'btn-hud-missions';
@@ -11611,11 +11809,11 @@
             </div>
             <div id="ms-list" class="space-y-2"></div>
             <div class="flex gap-2"><button id="btn-ms-refresh" type="button" class="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/15 py-2 text-xs font-bold text-slate-200">Acak Misi Baru</button><button id="btn-ms-cancel" type="button" class="flex-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 py-2 text-xs font-bold text-rose-300">Batalkan Misi Aktif</button></div>
-            <div class="text-[10px] text-slate-400 leading-snug">Tip: memukul warga biasa membuatmu DICARI Satpol PP. Kabur sejauh mungkin, tiarap/jongkok, atau masuk bangunan agar bintangmu hilang.</div>
+            <div class="text-[10px] text-slate-400 leading-snug">Tawaran baru setiap 2 menit bermain. Pilih Terima untuk memulai misi.</div>
           </div>`;
         document.body.appendChild(modal);
         modal.querySelector('#btn-close-missions').addEventListener('click', () => this.closeBoard());
-        modal.querySelector('#btn-ms-refresh').addEventListener('click', () => { this._genOffers(); this._renderBoard(); });
+        modal.querySelector('#btn-ms-refresh').addEventListener('click', () => { this._genOffers(); this.offerIn = MissionSystem.OFFER_INTERVAL; this._renderBoard(); });
         modal.querySelector('#btn-ms-cancel').addEventListener('click', () => { if (this.active) { this._clearActive(); showToast('Misi dibatalkan', 'alert'); } this._renderBoard(); });
       }
 
@@ -11640,18 +11838,20 @@
         const w = this.app.world;
         const arr = (w.buildings || []).filter(b => b.title).map(b => ({ name: b.title, x: b.x, z: b.z + (b.d || 8) * 0.5 + 3.2 }));
         arr.push({ name: 'Alun-Alun Pantura', x: 0, z: 14 }, { name: 'Sasana Tinju', x: 0, z: 53 });
-        return arr;
+        arr.push({ name: 'Pasar Timur', x: 183, z: -20 }, { name: 'Kampung Barat', x: -175, z: 39 },
+          { name: 'Kebun Selatan', x: 34, z: 183 }, { name: 'Warkop Pantura', x: 54, z: 40 });
+        return arr.filter(spot => !w.isCircleBlocked(spot.x, spot.z, 0.65));
       }
 
       _genOffers() {
         const spots = this._spots();
         const pick = (a) => a[Math.floor(Math.random() * a.length)];
         const offers = [];
-        // paket
-        for (let k = 0; k < 6 && offers.filter(o => o.type === 'paket').length < 1; k++) {
-          const a = pick(spots); const b = pick(spots);
+        const origins = spots.filter(a => spots.some(b => Math.hypot(a.x - b.x, a.z - b.z) >= 45));
+        if (origins.length) {
+          const a = pick(origins);
+          const b = pick(spots.filter(spot => Math.hypot(a.x - spot.x, a.z - spot.z) >= 45));
           const d = Math.hypot(a.x - b.x, a.z - b.z);
-          if (a === b || d < 45) continue;
           offers.push({ type: 'paket', title: 'Antar Paket Kilat', desc: `Ambil paket di ${a.name}, antar ke ${b.name}.`, a, b, time: Math.round(30 + d * 0.5), reward: Math.round((40000 + d * 900) / 1000) * 1000, xp: ['kelincahan', 1] });
         }
         offers.push({ type: 'copet', title: 'Kejar Copet!', desc: 'Ada copet kabur bawa dompet warga. Kejar dan pukul dia sebelum hilang (50 detik).', time: 50, reward: 120000, xp: ['kelincahan', 2] });
@@ -11664,8 +11864,11 @@
       }
 
       openBoard() {
-        if (!GameState.started || GameState.inVehicle) { showToast('Turun dari kendaraan dulu untuk membuka Papan Misi', 'flag'); return; }
+        if (!GameState.started || GameState.paused) return;
+        if (GameState.inVehicle || GameState.vehicleTransition) { showToast('Turun dari kendaraan dulu untuk membuka Papan Misi', 'flag'); return; }
+        this.offers = this.offers.filter(o => !o.event && (o.type !== 'bounty' || !o.target.atHome));
         if (!this.offers.length) this._genOffers();
+        this.newOfferButton.classList.add('hidden');
         GameState.paused = true;
         this._renderBoard();
         document.getElementById('modal-missions').classList.remove('hidden');
@@ -11677,6 +11880,8 @@
       }
 
       _renderBoard() {
+        this.offers = this.offers.filter(o => !o.event);
+        this._addLocalOffer();
         const st = document.getElementById('ms-stats');
         if (st) st.textContent = `Selesai: ${this.done} misi • Total penghasilan: ${formatRupiah(this.earned)}${this.active ? ' • 1 misi sedang berjalan' : ''}`;
         const list = document.getElementById('ms-list');
@@ -11688,13 +11893,22 @@
         list.querySelectorAll('[data-ms]').forEach(b => b.addEventListener('click', () => this.accept(parseInt(b.dataset.ms, 10))));
       }
 
+      _addLocalOffer() {
+        if (!this.active && this.app.marketRain?.available) {
+          this.offers.unshift(this.app.marketRain.makeOffer());
+        }
+      }
+
       accept(i) {
         if (this.active) { showToast('Selesaikan atau batalkan misi yang sedang berjalan dulu', 'alert'); return; }
         const o = this.offers[i];
         if (!o) return;
+        if (o.event === 'marketRain' && !this.app.marketRain.available) { this._renderBoard(); return; }
         this.closeBoard();
-        const m = Object.assign({}, o, { stage: 0, timeLeft: o.time || 0 });
+        const extraTime = o.type === 'paket' ? Math.hypot(this.app.hero.pos.x - o.a.x, this.app.hero.pos.z - o.a.z) / 4 : 0;
+        const m = Object.assign({}, o, { stage: 0, timeLeft: (o.time || 0) + Math.ceil(extraTime) });
         this.active = m;
+        this.newOfferButton.classList.add('hidden');
         this.offers.splice(i, 1);
         if (m.type === 'paket') m.target = { x: m.a.x, z: m.a.z, r: 4.6, label: m.a.name };
         if (m.type === 'copet') this._spawnThief(m);
@@ -11756,6 +11970,10 @@
           setTimeout(() => showToast(`Bonus beruntun ${this.done} misi! +${formatRupiah(150000)}`, 'trophy'), 1800);
         }
         if (m.thief) { m.thief.thief = false; m.thief.mission = false; m.thief.flee = 5; m.thief = null; }
+        if (m.event === 'marketRain') {
+          this.app.marketRain.delivered = true;
+          this.app.life.say(this.app.life.marketStalls[0].vendorActor, 'Terima kasih! Petinya aman.', 3.2);
+        }
         this._clearActive();
         this._genOffers();
         this.app.updateHUD();
@@ -11824,9 +12042,15 @@
       update(dt) {
         this.t += dt;
         const hero = this.app.hero;
-        if (!this.hintShown && this.t > 8) { this.hintShown = true; showToast('Tekan tombol MISI untuk cari kerja sampingan di Pantura', 'flag'); }
         this._updateMission(dt, hero);
         this._updateWanted(dt, hero);
+        this.offerIn = Math.max(0, this.offerIn - dt);
+        if (this.offerIn <= 0 && !this.active && !this.stars && !this.app.forest?.active) {
+          this._genOffers();
+          this.offerIn = MissionSystem.OFFER_INTERVAL;
+          this.newOfferButton.classList.remove('hidden');
+          showToast('Tawaran misi tersedia. Ketuk Misi Baru untuk melihatnya.', 'flag');
+        }
         this._updateHud();
       }
 
@@ -11853,7 +12077,9 @@
           const d = Math.hypot(hero.pos.x - tp.x, hero.pos.z - tp.z);
           const inV = GameState.inVehicle && GameState.activeVehicle;
           const px = inV ? GameState.activeVehicle.pos.x : hero.pos.x; const pz = inV ? GameState.activeVehicle.pos.z : hero.pos.z;
-          if (Math.hypot(px - tp.x, pz - tp.z) < tp.r + (inV ? 1.5 : 0)) {
+          const canHandleCrate = m.event !== 'marketRain' ||
+            (!inV && Math.abs(hero.pos.y - this.app.world.getGroundHeight(px, pz)) < 1.1);
+          if (canHandleCrate && Math.hypot(px - tp.x, pz - tp.z) < tp.r + (inV ? 1.5 : 0)) {
             if (m.stage === 0) { m.stage = 1; m.target = { x: m.b.x, z: m.b.z, r: 4.6, label: m.b.name }; showToast(`Paket diambil! Antar ke ${m.b.name}`, 'backpack'); this.app.sound.playPickup(); Haptics.buzz(30); }
             else this._complete(m.timeLeft > m.time * 0.4 ? ' (bonus cepat!)' : '');
           }
@@ -12274,9 +12500,225 @@
       }
     }
 
-    // ==========================================================================
+    // Hujan di Pasar Timur: interaksi pedagang dan visual permukaan basah.
+    class MarketRain {
+      constructor(app) {
+        this.app = app;
+        this.center = app.world.districts.find(district => district.name === 'Pasar Timur');
+        this.stalls = app.life.marketStalls;
+        this.firstShower = true;
+        this.recovery = 0;
+        this.approachTime = 0;
+        this.active = false;
+        this.age = 0;
+        this.drizzleTimer = 0;
+        this.shutters = [];
+        this._buildShelter();
+        this._buildShutters();
+        this._buildWetSurfaces();
+        const first = this.stalls[0];
+        this.pickup = { name: first.vendor, x: first.zone.pos.x, z: first.zone.pos.z };
+        this.shelter = { name: 'Pos Teduh Pasar Timur', x: 201, z: -26 };
+        this.zoneLabels = this.stalls.map(stall => stall.zone.label);
+      }
+
+      _buildShelter() {
+        const { life, scene } = this.app;
+        const c = new THREE.Group();
+        c.position.set(201, 0.03, -27);
+        scene.add(c);
+        const mat = (color, roughness = 0.7) => new THREE.MeshStandardMaterial({ color, roughness });
+        const tile = mat(0x626d78);
+        const metal = mat(0x485867);
+        const roof = mat(0x147d77);
+        life._box(c, 5.8, 0.06, 5.7, tile, 0, 0.04, 0, false);
+        for (const x of [-2.55, 2.55]) {
+          for (const z of [-2.45, 2.45]) life._box(c, 0.14, 3.25, 0.14, metal, x, 1.63, z);
+        }
+        life._box(c, 6.2, 0.18, 6.1, roof, 0, 3.28, 0);
+        life._box(c, 6.25, 0.22, 0.24, mat(0xf9c76d), 0, 3.19, 2.95, false);
+        life._sign(c, 'POS TEDUH', 'PASAR TIMUR', '#a7f3d0', 3.4, 0.62, 0, 3.55, 3.06, 0);
+        life._light(201, 2.85, -27, 0xfde2b4, 0.9, 0.06, 12);
+
+        this.crate = new THREE.Group();
+        const wood = mat(0xc39259);
+        life._box(this.crate, 0.75, 0.49, 0.52, wood, 0, 0, 0);
+        const strap = mat(0x805632);
+        for (const x of [-0.26, 0.26]) life._box(this.crate, 0.07, 0.51, 0.54, strap, x, 0, 0, false);
+        scene.add(this.crate);
+        this.crate.visible = false;
+      }
+
+      _buildShutters() {
+        const { life } = this.app;
+        this.stalls.forEach(stall => {
+          const c = new THREE.Group();
+          c.position.set(0, 2.57, 0.7);
+          stall.group.add(c);
+          const canopy = new THREE.MeshStandardMaterial({ color: stall.awning, roughness: 0.71, side: THREE.DoubleSide });
+          life._box(c, 2.55, 1.32, 0.06, canopy, 0, -0.66, 0, false);
+          life._box(c, 2.6, 0.07, 0.08, life._mat(0xd6c4a1), 0, -1.30, 0, false);
+          c.scale.y = 0.01;
+          c.visible = false;
+          this.shutters.push(c);
+        });
+      }
+
+      _buildWetSurfaces() {
+        const { scene, world } = this.app;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(32, 32, 1, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255,255,255,.94)');
+        gradient.addColorStop(.5, 'rgba(255,255,255,.56)');
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        const map = new THREE.CanvasTexture(canvas);
+        this.wetGroup = new THREE.Group();
+        scene.add(this.wetGroup);
+        this.wetGroup.visible = false;
+        const decal = (material, w, d, x, y, z) => {
+          const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), material);
+          patch.rotation.x = -Math.PI / 2;
+          patch.position.set(x, y, z);
+          this.wetGroup.add(patch);
+          return patch;
+        };
+        this.wetMaterial = new THREE.MeshBasicMaterial({ map, color: 0x45647c, transparent: true, opacity: 0, depthWrite: false });
+        [[175, -29, 7, 3], [185, -32, 8, 2.2], [193, -29, 7, 3], [195, -18, 8, 3.4],
+          [153, -46, 3, 20], [147, -22, 3.8, 21], [153, -11, 3, 13], [147, -58, 2.8, 15]]
+          .forEach(([x, z, w, d]) => decal(this.wetMaterial, w, d, x, 0.051, z));
+        this.reflectionMaterial = new THREE.MeshBasicMaterial({
+          map, color: 0xffdfa3, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+        });
+        [[175, -31, 2, 6], [184, -32, 2, 4.5], [193, -31, 2, 5]].forEach(([x, z, w, d]) =>
+          decal(this.reflectionMaterial, w, d, x, 0.055, z));
+        const road = world.roadCoords.at(-1);
+        this.carReflections = Array.from({ length: 4 }, () => decal(this.reflectionMaterial, 2.6, 7.6, road, 0.054, 0));
+        const ripples = new THREE.RingGeometry(0.82, 1, 18);
+        const count = isMobileDevice ? 5 : 8;
+        this.ripples = Array.from({ length: count }, (_, i) => {
+          const material = new THREE.MeshBasicMaterial({ color: 0x9dd6f5, transparent: true, opacity: 0, depthWrite: false });
+          const ring = new THREE.Mesh(ripples, material);
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.set(173 + (i * 13.1) % 25, 0.058, -31 + (i * 5.2) % 13);
+          this.wetGroup.add(ring);
+          return ring;
+        });
+      }
+
+      get available() { return this.active && !this.delivered; }
+
+      makeOffer() {
+        return {
+          type: 'paket', event: 'marketRain', title: 'Selamatkan Barang Pasar',
+          desc: 'Ambil peti Mang Darsa dan antarkan ke Pos Teduh Pasar Timur.',
+          a: this.pickup, b: this.shelter, time: 70, reward: 85000, xp: ['kelincahan', 1],
+        };
+      }
+
+      offerFromStall(stall) {
+        const { missions } = this.app;
+        if (stall === this.stalls[0] && this.available && !missions.active) {
+          missions.openBoard();
+          return;
+        }
+        if (missions.active?.event === 'marketRain') {
+          showToast(missions.active.stage === 0 ? 'Ambil peti di lapak Mang Darsa.' : 'Bawa peti ke Pos Teduh Pasar Timur.', 'flag');
+          return;
+        }
+        showToast('Pedagang menutup lapak sementara karena hujan.', 'cloudRain');
+      }
+
+      update(dt) {
+        const { weather, hero, life, forest } = this.app;
+        const distance = Math.hypot(hero.pos.x - this.center.x, hero.pos.z - this.center.z);
+        const day = life.routineSlot === 1 || life.routineSlot === 2;
+        const nearby = distance <= 73 && !forest.active;
+        if (this.firstShower && weather.mode === 'auto' && nearby && day && weather.target < 0.6) {
+          this.approachTime += dt;
+          if (this.approachTime >= 5) {
+            this.firstShower = false;
+            weather.timer = 68;
+            this.ownShower = true;
+            weather.setState('hujan');
+          }
+        }
+        if (this.ownShower && (weather.mode !== 'auto' || weather.state !== 'hujan')) this.ownShower = false;
+        if (this.ownShower && weather.timer <= 3) {
+          this.ownShower = false;
+          weather.setState('cerah');
+        }
+
+        const next = day && weather.target >= 0.6;
+        if (next !== this.active) {
+          this.active = next;
+          this.age = 0;
+          this.announced = false;
+          if (next) this.delivered = false;
+          this.stalls.forEach((stall, i) => {
+            stall.zone.label = next ? (i === 0 ? 'Bicara dengan Mang Darsa [E]' : 'Lapak berteduh karena hujan [E]') : this.zoneLabels[i];
+          });
+          if (!next && nearby && day) showToast('Pasar Timur kembali buka.', 'store');
+        }
+        this.age += dt;
+        if (this.active && nearby && !this.announced) {
+          this.announced = true;
+          showToast('Hujan di Pasar Timur. Mang Darsa perlu bantuan memindahkan barang.', 'cloudRain');
+          life.say(this.stalls[0].vendorActor, 'Tolong angkat peti ini ke pos teduh!', 4.5);
+        }
+
+        this.recovery += ((this.active ? 1 : 0) - this.recovery) * Math.min(1, dt * 2.4);
+        this.shutters.forEach(shutter => {
+          shutter.visible = this.recovery > 0.025;
+          shutter.scale.y = Math.max(0.01, this.recovery);
+        });
+        this._updateCrate();
+        this._updateWetSurfaces(nearby);
+      }
+
+      _updateCrate() {
+        const m = this.app.missions.active;
+        const carrying = m?.event === 'marketRain' && m.stage === 1;
+        this.crate.visible = Boolean(carrying || m?.event === 'marketRain' || this.available);
+        if (!this.crate.visible) return;
+        if (carrying) {
+          const hero = this.app.hero;
+          this.crate.position.set(hero.pos.x + Math.sin(hero.yaw) * 0.56, hero.pos.y + 1.03, hero.pos.z + Math.cos(hero.yaw) * 0.56);
+          this.crate.rotation.y = hero.yaw;
+        } else {
+          this.crate.position.set(this.pickup.x + 0.6, 0.31, this.pickup.z - 0.57);
+          this.crate.rotation.y = 0;
+        }
+      }
+
+      _updateWetSurfaces(nearby) {
+        const { weather, vehicles } = this.app;
+        const wet = clamp((weather.level - 0.12) / 0.5, 0, 1);
+        this.wetGroup.visible = nearby && wet > 0.02;
+        if (!this.wetGroup.visible) return;
+        this.wetMaterial.opacity = wet * 0.60;
+        this.reflectionMaterial.opacity = wet * 0.44;
+        const cars = vehicles.list.filter(v => v.mesh.visible && Math.abs(v.pos.x - 150) < 5.5 && v.pos.z > -65 && v.pos.z < 3);
+        this.carReflections.forEach((reflection, i) => {
+          const car = cars[i];
+          reflection.visible = Boolean(car);
+          if (car) {
+            reflection.position.set(car.pos.x, 0.054, car.pos.z + Math.cos(car.yaw) * 4.8);
+            reflection.rotation.z = car.yaw;
+          }
+        });
+        this.ripples.forEach((ring, i) => {
+          const phase = (weather.t * 1.65 + i * 0.37) % 1;
+          ring.scale.setScalar(0.08 + phase * 0.74);
+          ring.material.opacity = wet * (1 - phase) * 0.55;
+        });
+      }
+    }
+
     // 12D. SIMPAN OTOMATIS + PRESTASI + TANTANGAN HARIAN
-    // ==========================================================================
     class ProgressSystem {
       static get KEY() { return 'ngabrag_save_v1'; }
 
@@ -12290,6 +12732,18 @@
           const G = GameState;
           ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat', 'clock', 'bossKills'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
           if (d.cityDamage && typeof d.cityDamage === 'object') G.cityDamage = d.cityDamage;
+          if (d.jurus && typeof d.jurus === 'object') {
+            for (const key of ['ibadah', 'doa', 'pills']) {
+              if (Number.isFinite(d.jurus[key])) G.jurus[key] = Math.max(0, Math.floor(d.jurus[key]));
+            }
+            G.jurus.forest = d.jurus.forest === true;
+            G.jurus.selected = typeof d.jurus.selected === 'string' ? d.jurus.selected : null;
+            G.jurus.playedDays = Number.isInteger(d.jurus.playedDays) ? clamp(d.jurus.playedDays, 0, 7) : 0;
+            G.jurus.lastPlayDay = Number.isInteger(d.jurus.lastPlayDay) ? d.jurus.lastPlayDay : null;
+            G.jurus.flightEarned = d.jurus.flightEarned === true || G.jurus.playedDays >= 7;
+          } else if (G.bossKills > 0) {
+            G.jurus.pills = 1;
+          }
           if (d.foodInventory) G.foodInventory = d.foodInventory;
           if (d.stats) G.stats = Object.assign({ kekuatan: 0, dayaTahan: 0, kelincahan: 0 }, d.stats);
           if (d.ownedItems) G.ownedItems = new Set(d.ownedItems);
@@ -12321,8 +12775,6 @@
         this._defs();
         this._rollDaily();
         this._buildDom();
-        const inp = document.getElementById('start-hero-name');
-        if (inp && p) inp.value = G.heroName;
         if (p) setTimeout(() => showToast(`Progres dimuat — ${formatRupiah(G.cash)}, ${this.unlockedCount()} prestasi`, 'trophy'), 600);
         window.addEventListener('pagehide', () => this.save());
         document.addEventListener('visibilitychange', () => { if (document.hidden) this.save(); });
@@ -12338,7 +12790,7 @@
           const d = {
             v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
             timePresetIndex: G.timePresetIndex, clock: G.clock, bossKills: G.bossKills || 0, cityDamage: G.cityDamage || {}, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
-            appearance: G.appearance, equipped: G.equipped, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
+            appearance: G.appearance, equipped: G.equipped, jurus: G.jurus, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
             audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
           };
           localStorage.setItem(ProgressSystem.KEY, JSON.stringify(d));
@@ -13727,24 +14179,25 @@
       }
 
       // ----- serangan Hero ke boss -----
-      bossMelee(hero, fwd, reach, combo) {
+      bossMelee(hero, fwd, reach, combo, move = null) {
         const b = this.boss; if ((!this.active && !this.cityRampage) || !b || b.state === 'dead') return false;
         const dx = b.pos.x - hero.pos.x, dz = b.pos.z - hero.pos.z, d = Math.hypot(dx, dz);
         if (d - 3.2 * b.sizeMult > reach + 0.5) return false;
         if ((dx * fwd.x + dz * fwd.z) / (d || 1) < 0.2 && d > 4.4) return false;
         const baseDmg = (GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult();
-        const dmg = Math.round(baseDmg * [0, 1.0, 1.2, 1.45, 1.8][combo]);
+        const dmg = Math.round(baseDmg * (move?.damage || [0, 1.0, 1.2, 1.45, 1.8][combo]) * (hero.power?.damageFactor || 1));
         const heavy = combo >= 3, fin = combo === 4;
         hero.sound.playHitImpact(heavy, fin);
         if (combo >= 2) hero.sound.playComboChime(combo - 1);
         const hp = hero.pos.clone(); hp.x += dx / (d || 1) * Math.max(0, d - 3.2 * b.sizeMult); hp.z += dz / (d || 1) * Math.max(0, d - 3.2 * b.sizeMult); hp.y = 1.6;
         if (hero.fx) {
           hero.fx.impactBurst(hp, fwd, 0.7 + combo * 0.3);
-          hero.fx.floatText(hp.clone().setY(hp.y + 0.6), ['', 'JAB!', 'CROSS!', 'HOOK!', 'UPPERCUT!'][combo], ['', '#fde047', '#fdba74', '#fb7185', '#f472b6'][combo], 0.9 + combo * 0.1);
+          hero.fx.floatText(hp.clone().setY(hp.y + 0.6), move?.name || ['', 'JAB!', 'CROSS!', 'HOOK!', 'UPPERCUT!'][combo], move?.color || ['', '#fde047', '#fdba74', '#fb7185', '#f472b6'][combo], 0.9 + combo * 0.1);
           hero.fx.floatText(hp.clone().add(new THREE.Vector3(0.5, 0.1, 0)), '-' + dmg, '#ffffff', 0.75);
           hero.fx.hitStop(0.03 + combo * 0.012);
         }
         if (hero.camCtrl) { hero.camCtrl.addShake(0.08 + combo * 0.03, 0.1 + combo * 0.06); hero.camCtrl.kickFov(1.5 + combo * 1.4); }
+        hero.power?.scorch(b);
         this.damageBoss(dmg, fin);
         return true;
       }
@@ -13780,12 +14233,14 @@
         const first = (GameState.bossKills || 0) === 0;
         const reward = first ? 500000 : 150000;
         GameState.bossKills = (GameState.bossKills || 0) + 1;
+        const foundPill = !GameState.jurus.forest && GameState.jurus.pills === 0;
+        if (foundPill) GameState.jurus.pills++;
         GameState.cash += reward;
         GameState.health = Math.min(100, GameState.health + 40);
         if (this.active) this._damageArena();
         app.sound.playLevelUp(); this._roar(1.4);
         if (app.fx) { const p = b.pos.clone(); p.y = 5; app.fx.floatText(p, '+' + formatRupiah(reward), '#fde047', 1.6); app.fx.screenFlash('255,230,150', 0.6, 900); app.fx.impactBurst(p, new THREE.Vector3(0, 1, 0), 2.0); }
-        showToast('GRAKHOR TUMBANG! Hadiah ' + formatRupiah(reward) + '. Namun monster akan bangkit lebih besar! Kembali lewat gerbang hijau untuk menghindari amukannya.', 'trophy');
+        showToast('GRAKHOR TUMBANG! Hadiah ' + formatRupiah(reward) + (foundPill ? ' dan Pil Kuat (Menu → Jurus).' : '.') + ' Monster akan bangkit lebih besar! Kembali lewat gerbang hijau untuk menghindari amukannya.', 'trophy');
         if (app.progress && app.progress.save) try { app.progress.save(); } catch (e) { /* abaikan */ }
         app.updateHUD();
         setTimeout(() => { if (this.boss === b) this.hudEl.style.display = 'none'; }, 1800);
@@ -13854,7 +14309,7 @@
           } else {
             const dx = hero.pos.x - this.EX, dz = hero.pos.z - this.EZ, d = Math.hypot(dx, dz);
             if (d < 16 && !this.hinted) { this.hinted = true; showToast('Ada cahaya ungu aneh di balik pepohonan...', 'alert'); }
-            if (d < 1.7 && this.cool <= 0 && !GameState.currentBuilding) {
+            if (d < 1.7 && this.cool <= 0 && !GameState.currentBuilding && !app.power?.flying && hero.pos.y < 2.2) {
               if (GameState.inVehicle || (app.life && app.life.busy)) { showToast('Turun dari kendaraan / hentikan aktivitas dulu untuk masuk gerbang.', 'alert'); this.cool = 2.5; }
               else this.enter();
             }
@@ -13984,6 +14439,378 @@
       }
     }
 
+    class JurusSystem {
+      static techniques = [
+        { id: 'telapak', name: 'Telapak Tenang', description: 'Dorongan dua telapak ke satu lawan.', requirement: 'Selesaikan 3 sesi ibadah.',
+          unlocked: s => s.ibadah >= 3, stamina: 13, cooldown: 1.4, duration: 0.54, impact: 0.46, lunge: 2.5, reach: 3.25, cone: 0.42, damage: 1.95, combo: 3, color: '#99f6e4' },
+        { id: 'sapuan', name: 'Sapuan Angin', description: 'Tendangan berputar yang mengenai beberapa lawan dalam jangkauan.', requirement: 'Selesaikan 3 sesi ibadah dan 3 sesi doa.',
+          unlocked: s => s.ibadah >= 3 && s.doa >= 3, stamina: 20, cooldown: 2.1, duration: 0.67, impact: 0.44, lunge: 1.4, reach: 3.5, cone: -0.08, damage: 1.52, combo: 3, color: '#93c5fd', splash: true },
+        { id: 'palu', name: 'Palu Grakhor', description: 'Hantaman berat dari atas dengan jangkauan pendek.', requirement: 'Gunakan Pil Kuat dari Grakhor.',
+          unlocked: s => s.forest, stamina: 24, cooldown: 2.4, duration: 0.79, impact: 0.54, lunge: 1.3, reach: 2.9, cone: 0.45, damage: 2.65, combo: 4, color: '#facc15' },
+      ];
+
+      constructor(app) {
+        this.app = app;
+        this.hero = app.hero;
+        this.cooldown = 0;
+        this.surge = 0;
+        this.surgeCooldown = 0;
+        this.sparkTime = 0;
+        this.scorched = new Map();
+        this.sootColor = new THREE.Color(0x211a1b);
+        this.flying = false;
+        this.flightHeight = 8;
+        this.playCheck = 2;
+        this.dayFormat = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' });
+        this.modal = document.getElementById('modal-jurus');
+        this.actions = document.getElementById('hud-jurus-actions');
+        this.moveButton = document.getElementById('btn-use-jurus');
+        this.surgeButton = document.getElementById('btn-use-petir');
+        this.flightButton = document.getElementById('btn-fly-jurus');
+        this.consumeButton = document.getElementById('btn-consume-pil-kuat');
+        this.arcs = this._createElectricArcs();
+
+        document.getElementById('btn-hud-jurus').addEventListener('click', () => this.open());
+        document.getElementById('btn-close-jurus').addEventListener('click', () => {
+          this.modal.classList.add('hidden');
+          GameState.paused = false;
+        });
+        this.moveButton.addEventListener('click', () => this.useTechnique());
+        this.surgeButton.addEventListener('click', () => this.activateSurge());
+        this.flightButton.addEventListener('click', () => this.toggleFlight());
+        this.consumeButton.addEventListener('click', () => this.consumePill());
+      }
+
+      get selected() {
+        const state = GameState.jurus;
+        const unlocked = JurusSystem.techniques.filter(move => move.unlocked(state));
+        return unlocked.find(move => move.id === state.selected) || unlocked[0];
+      }
+
+      get surgeUnlocked() {
+        const state = GameState.jurus;
+        return state.forest || (state.ibadah >= 3 && state.doa >= 3);
+      }
+
+      get damageFactor() { return this.surge > 0 ? 1.75 : 1; }
+      get flightUnlocked() { return GameState.jurus.forest && GameState.jurus.flightEarned; }
+
+      open() {
+        if (!GameState.started || GameState.paused) return;
+        GameState.paused = true;
+        this.modal.classList.remove('hidden');
+        this.renderMenu();
+      }
+
+      renderMenu() {
+        const state = GameState.jurus;
+        const selected = this.selected?.id;
+        document.getElementById('jurus-milestones').textContent =
+          `Musala Pantura, utara alun-alun · Ibadah ${Math.min(3, state.ibadah)}/3 · Doa ${Math.min(3, state.doa)}/3`;
+        const list = document.getElementById('jurus-options');
+        list.replaceChildren();
+        for (const move of JurusSystem.techniques) {
+          const allowed = move.unlocked(state);
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.jurus = move.id;
+          button.disabled = !allowed;
+          button.setAttribute('aria-pressed', String(selected === move.id));
+          button.className = 'rounded-xl border px-3 py-2.5 text-left text-sm ' +
+            (selected === move.id ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' :
+              'border-white/10 bg-slate-900 text-slate-200 disabled:text-slate-400');
+          const title = document.createElement('strong');
+          title.textContent = selected === move.id ? `${move.name} · Dipakai` : move.name;
+          const detail = document.createElement('span');
+          detail.className = 'mt-0.5 block text-xs';
+          detail.textContent = allowed ? move.description : move.requirement;
+          button.append(title, detail);
+          button.addEventListener('click', () => {
+            state.selected = move.id;
+            this.app.progress.save();
+            this.renderMenu();
+          });
+          list.append(button);
+        }
+        this.consumeButton.classList.toggle('hidden', state.pills === 0 || state.forest);
+        this.consumeButton.textContent = `Gunakan Pil Kuat (${state.pills})`;
+        document.getElementById('jurus-petir-info').textContent = this.surgeUnlocked
+          ? 'Mode Petir siap dipakai dengan V atau tombol Petir. Aktif selama 18 detik.'
+          : 'Mode Petir terbuka setelah 3 sesi ibadah dan 3 sesi doa, atau dengan Pil Kuat.';
+        const today = this._playDate();
+        const streak = state.flightEarned ? 7 : (state.lastPlayDay >= today - 1 ? state.playedDays : 0);
+        document.getElementById('jurus-flight-info').textContent = this.flightUnlocked
+          ? 'Terbang [Y] · Naik [Spasi] · Turun [Z] · Boost [Shift]'
+          : `Terbang Super memerlukan Pil Kuat dan 7 hari bermain berturut-turut (${streak}/7 hari).`;
+      }
+
+      recordSession(kind) {
+        const state = GameState.jurus;
+        const before = JurusSystem.techniques.filter(move => move.unlocked(state));
+        state[kind]++;
+        const unlocked = JurusSystem.techniques.find(move => move.unlocked(state) && !before.includes(move));
+        if (unlocked) {
+          this.app.sound.playLevelUp();
+          const extra = this.surgeUnlocked && unlocked.id === 'sapuan' ? ' dan Mode Petir' : '';
+          showToast(`${unlocked.name}${extra} terbuka!`, 'bolt');
+        } else {
+          showToast(kind === 'ibadah' ? 'Sesi ibadah selesai.' : 'Sesi doa selesai.', 'check');
+        }
+        this.app.progress.save();
+      }
+
+      consumePill() {
+        const state = GameState.jurus;
+        if (state.forest || state.pills < 1) return;
+        state.pills--;
+        state.forest = true;
+        state.selected = 'palu';
+        this.app.sound.playLevelUp();
+        showToast(this.flightUnlocked ? 'Palu Grakhor, Mode Petir, dan Terbang Super terbuka!' : 'Palu Grakhor dan Mode Petir terbuka!', 'bolt');
+        this.app.progress.save();
+        this.renderMenu();
+      }
+
+      canUse() {
+        return GameState.started && !GameState.paused && !GameState.inVehicle
+          && !GameState.vehicleTransition && !GameState.roomTransition && !this.app.life.busy
+          && this.hero.rollTimer <= 0 && !(this.hero.consumeTimer > 0) && !this.flying;
+      }
+
+      useTechnique() {
+        if (!this.canUse()) return;
+        const move = this.selected;
+        if (!move) { this.open(); return; }
+        if (this.cooldown > 0 || this.hero.attackTimer > 0.12) return;
+        if (GameState.nitro < move.stamina) {
+          showToast('Stamina belum cukup untuk memakai jurus.', 'bolt');
+          return;
+        }
+        GameState.nitro -= move.stamina;
+        this.cooldown = move.cooldown;
+        this.hero.startTechnique(move);
+      }
+
+      activateSurge() {
+        if (!this.canUse()) return;
+        if (!this.surgeUnlocked) { this.open(); return; }
+        if (this.surge > 0 || this.surgeCooldown > 0) return;
+        this.surge = 18;
+        this.surgeCooldown = 46;
+        this.app.sound.playTone(260, 0.35, 'triangle', 0.12, 780);
+        showToast('Mode Petir aktif!', 'bolt');
+        this.update(0);
+      }
+
+      _playDate(now = new Date()) {
+        return Math.floor(Date.parse(this.dayFormat.format(now) + 'T00:00:00Z') / 86400000);
+      }
+
+      recordPlayDay(now = new Date()) {
+        const state = GameState.jurus;
+        const today = this._playDate(now);
+        const last = state.lastPlayDay;
+        if (state.flightEarned || (last !== null && today <= last)) return;
+        state.playedDays = last === today - 1 ? Math.min(7, state.playedDays + 1) : 1;
+        state.lastPlayDay = today;
+        if (state.playedDays >= 7) {
+          state.flightEarned = true;
+          if (this.flightUnlocked) showToast('Terbang Super terbuka! Tekan Y atau tombol Terbang.', 'bolt');
+        }
+        this.app.progress.save();
+      }
+
+      toggleFlight() {
+        if (!GameState.started || GameState.paused) return;
+        if (this.flying) {
+          const p = this.hero.pos;
+          if (this.app.world.isCircleBlocked(p.x, p.z, 0.58)) {
+            showToast('Cari tempat terbuka untuk mendarat.', 'bolt');
+            return;
+          }
+          this.stopFlight();
+          this.update(0);
+          return;
+        }
+        if (!this.canUse()) return;
+        if (!this.flightUnlocked) { this.open(); return; }
+        const { hero, world, forest } = this.app;
+        if (forest.active || world.getBuildingAt(hero.pos.x, hero.pos.z)) {
+          showToast('Terbang Super tersedia di area terbuka Pantura.', 'bolt');
+          return;
+        }
+        this.flying = true;
+        const ground = world.getGroundHeight(hero.pos.x, hero.pos.z);
+        this.flightHeight = clamp(Math.max(8, hero.pos.y - ground), 6, 28);
+        hero.pendingHit = null;
+        hero.attackTimer = 0;
+        hero.lungeVel = 0;
+        hero.stance = GameState.heroStance = 0;
+        hero.isCrouching = false;
+        hero.isGrounded = false;
+        hero.velY = 0;
+        this.app.sound.playTone(190, 0.23, 'triangle', 0.12, 630);
+        this.update(0);
+      }
+
+      adjustFlight(amount) {
+        this.flightHeight = clamp(this.flightHeight + amount, 6, 28);
+      }
+
+      stopFlight() {
+        this.flying = false;
+        const hero = this.hero;
+        hero.rig.root.rotation.set(0, hero.yaw, 0);
+        LifePoses.apply(hero.rig, {});
+        hero.velY = 0;
+        hero.isGrounded = false;
+      }
+
+      updateFlight(dt, dx, dz, inputMag, boost) {
+        const hero = this.hero;
+        const { world, fx } = this.app;
+        const length = Math.hypot(dx, dz) || 1;
+        const distance = dt * (boost ? 44 : 26) * inputMag;
+        const limit = world.worldLimit - 0.65;
+        hero.pos.x = clamp(hero.pos.x + dx / length * distance, -limit, limit);
+        hero.pos.z = clamp(hero.pos.z + dz / length * distance, -limit, limit);
+        if (hero.pos.y < 14) world.resolveCircleCollision(hero.pos, 0.58);
+        const elevation = world.getGroundHeight(hero.pos.x, hero.pos.z);
+        const overBuilding = world.getBuildingAt(hero.pos.x, hero.pos.z);
+        const altitude = overBuilding ? Math.max(14.5, this.flightHeight) : this.flightHeight;
+        hero.pos.y += clamp(altitude + elevation - hero.pos.y, -12 * dt, 13 * dt);
+        if (inputMag > 0.08) {
+          const offset = Math.atan2(dx, dz) - hero.yaw;
+          hero.yaw += Math.atan2(Math.sin(offset), Math.cos(offset)) * Math.min(1, dt * 11);
+        }
+        GameState.currentBuilding = null;
+        hero.rig.root.position.copy(hero.pos);
+        hero.rig.root.rotation.set(inputMag * (boost ? 0.84 : 0.57), hero.yaw, 0);
+        LifePoses.apply(hero.rig, {
+          ls: [-1.95, 0.12, 0.21], rs: [-2.12, -0.13, -0.19], le: -0.22, re: -0.16,
+          hl: [0.14, 0, 0.06], hr: [0.04, 0, -0.06], kl: 0.12, kr: 0.10, head: [-0.18, 0, 0],
+        });
+        if (boost && inputMag > 0.1 && this.sparkTime <= 0) fx.trail(hero.pos.clone().add(new THREE.Vector3(0, 0.72, 0)), 0x38bdf8, 0.8);
+      }
+
+      scorch(target) {
+        if (this.surge <= 0) return;
+        let mark = this.scorched.get(target);
+        if (!mark) {
+          const mats = target.mats || [target.rig.materials.skinMat, target.rig.materials.shirtMat, target.rig.materials.pantsMat];
+          mark = { mats: [...new Set(mats)].map(mat => [mat, mat.color.clone()]), time: 0, smoke: 0 };
+          this.scorched.set(target, mark);
+        }
+        mark.time = 4.2;
+        mark.smoke = 0.25;
+        mark.mats.forEach(([mat, original]) => mat.color.copy(original).lerp(this.sootColor, 0.91));
+        const where = target.pos.clone().add(new THREE.Vector3(0, target.mats ? 3.4 : 1.55, 0));
+        this.app.fx.dustPuff(where, 8, target.mats ? 1.3 : 0.85, 0x29272b);
+        this.app.fx.floatText(where.clone().add(new THREE.Vector3(0, 0.5, 0)), 'GOSONG!', '#a5f3fc', 0.72);
+      }
+
+      _updateScorched(dt) {
+        for (const [target, mark] of this.scorched) {
+          mark.time -= dt;
+          mark.smoke -= dt;
+          const strength = 0.91 * clamp(mark.time / 0.85, 0, 1);
+          mark.mats.forEach(([mat, original]) => mat.color.copy(original).lerp(this.sootColor, strength));
+          if (mark.time <= 0) this.scorched.delete(target);
+          else if (mark.smoke <= 0 && (target.root || target.rig.root).visible) {
+            mark.smoke = 0.43;
+            const where = target.pos.clone().add(new THREE.Vector3(0, target.mats ? 3.6 : 1.85, 0));
+            this.app.fx.dustPuff(where, 2, 0.7, 0x39363c);
+          }
+        }
+      }
+
+      _createElectricArcs() {
+        const rig = this.hero.rig;
+        const sites = [
+          [rig.head, 0.41, 0.26],
+          [rig.leftElbowPivot, -0.28, 0.18],
+          [rig.rightElbowPivot, -0.28, 0.18],
+        ];
+        const lightCore = new THREE.LineBasicMaterial({ color: 0xd9fbff, transparent: true, opacity: 0.94, blending: THREE.AdditiveBlending, depthWrite: false });
+        const outerArc = new THREE.LineBasicMaterial({ color: 0x41d9ff, transparent: true, opacity: 0.86, blending: THREE.AdditiveBlending, depthWrite: false });
+        const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false });
+        const sparkGeometry = new THREE.OctahedronGeometry(0.034, 0);
+        return sites.map(([anchor, y, radius]) => {
+          const group = new THREE.Group();
+          group.position.y = y;
+          anchor.add(group);
+          group.visible = false;
+          const lines = [lightCore, outerArc, outerArc].map(material => {
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(18), 3).setUsage(THREE.DynamicDrawUsage));
+            const line = new THREE.Line(geometry, material);
+            line.frustumCulled = false;
+            group.add(line);
+            return line;
+          });
+          const sparks = Array.from({ length: 3 }, () => {
+            const spark = new THREE.Mesh(sparkGeometry, sparkMaterial);
+            group.add(spark);
+            return spark;
+          });
+          return { group, lines, sparks, radius };
+        });
+      }
+
+      _scatterArcs() {
+        this.arcs.forEach(({ lines, sparks, radius }) => {
+          lines.forEach((line, i) => {
+            const attr = line.geometry.attributes.position;
+            const base = Math.random() * Math.PI * 2 + i * 2;
+            for (let n = 0; n < attr.count; n++) {
+              const angle = base + n * 0.46;
+              const r = radius * (0.64 + Math.random() * 0.55);
+              attr.setXYZ(n, Math.cos(angle) * r, (Math.random() - 0.35) * radius * 1.45, Math.sin(angle) * r);
+            }
+            attr.needsUpdate = true;
+          });
+          sparks.forEach((spark, i) => {
+            const angle = Math.random() * Math.PI * 2 + i;
+            spark.position.set(Math.cos(angle) * radius, (Math.random() - 0.2) * radius, Math.sin(angle) * radius);
+            spark.scale.setScalar(0.5 + Math.random() * 0.8);
+          });
+        });
+      }
+
+      update(dt) {
+        this.cooldown = Math.max(0, this.cooldown - dt);
+        this.surge = Math.max(0, this.surge - dt);
+        this.surgeCooldown = Math.max(0, this.surgeCooldown - dt);
+        this.sparkTime -= dt;
+        this._updateScorched(dt);
+        this.playCheck -= dt;
+        if (this.playCheck <= 0) {
+          this.playCheck = 2;
+          const input = this.app.input;
+          if (input && Math.hypot(input.moveX, input.moveY) > 0.1) this.recordPlayDay();
+        }
+        const charged = (this.surge > 0 || this.flying) && !GameState.inVehicle;
+        this.arcs.forEach(({ group }) => { group.visible = charged; });
+        if (charged && this.sparkTime <= 0) { this._scatterArcs(); this.sparkTime = 0.085; }
+        const show = Boolean(this.selected) && !GameState.inVehicle && !this.app.life.busy;
+        this.actions.classList.toggle('hidden', !show);
+        this.moveButton.classList.toggle('hidden', this.flying);
+        this.surgeButton.classList.toggle('hidden', !this.surgeUnlocked || this.flying);
+        this.flightButton.classList.toggle('hidden', !this.flightUnlocked);
+        const flightLabel = this.flying ? 'Mendarat [Y]' : 'Terbang [Y]';
+        if (this.flightButton.textContent !== flightLabel) this.flightButton.textContent = flightLabel;
+        const labels = [
+          this.cooldown > 0 ? `Jurus ${Math.ceil(this.cooldown)} dtk` : 'Jurus [X]',
+          this.surge > 0 ? `⚡ ${Math.ceil(this.surge)} dtk` :
+            (this.surgeCooldown > 0 ? `Petir ${Math.ceil(this.surgeCooldown)} dtk` : 'Petir [V]'),
+        ];
+        if (this.moveButton.textContent !== labels[0]) this.moveButton.textContent = labels[0];
+        if (this.surgeButton.textContent !== labels[1]) this.surgeButton.textContent = labels[1];
+        this.moveButton.disabled = this.cooldown > 0;
+        this.surgeButton.disabled = this.surgeCooldown > 0;
+      }
+    }
+
     class PanturaGameApp {
       constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -14013,8 +14840,11 @@
         this.life = new LifeSystem(this);
         this.missions = new MissionSystem(this);
         this.weather = new WeatherSystem(this);
+        this.marketRain = new MarketRain(this);
         this.garage = new GarageSystem(this);
         this.progress = new ProgressSystem(this);
+        this.power = new JurusSystem(this);
+        this.hero.power = this.power;
         this.extras = new ExtrasSystem(this);
         this.forest = new ForestSystem(this);
         this.hero.forest = this.forest;
@@ -14025,16 +14855,22 @@
 
         this.input = new InputManager({
           onJump: () => {
+            if (this.power.flying) { this.power.adjustFlight(5); return; }
             if (this.life.busy) { this.life.pressAction('jump'); return; }
             this.hero.triggerJump();
           },
           onAttack: () => {
+            if (this.power.flying) return;
             if (this.life.busy) { this.life.pressAction('attack'); return; }
             this.hero.triggerAttack(this.citizens);
             if (GameState.equipped.blaster) this.camCtrl.addShake(0.08);
           },
-          onRoll: () => { if (this.life.busy) { this.life.pressAction('roll'); return; } this.hero.triggerRoll(this.input, this.camCtrl.yaw); },
-          onCrouch: () => { if (this.life.busy) { this.life.pressAction('crouch'); return; } this.hero.toggleCrouch(); },
+          onTechnique: () => this.power.useTechnique(),
+          onSurge: () => this.power.activateSurge(),
+          onFlight: () => this.power.toggleFlight(),
+          isFlying: () => this.power.flying,
+          onRoll: () => { if (this.power.flying) return; if (this.life.busy) { this.life.pressAction('roll'); return; } this.hero.triggerRoll(this.input, this.camCtrl.yaw); },
+          onCrouch: () => { if (this.power.flying) { this.power.adjustFlight(-5); return; } if (this.life.busy) { this.life.pressAction('crouch'); return; } this.hero.toggleCrouch(); },
           onContextOrEmote: () => this.handleContextOrEmote(),
           onVehicleToggle: () => this.handleVehicleToggle(),
           onHorn: () => {
@@ -14052,7 +14888,6 @@
         });
 
         this._bindUIEvents();
-        this._applyTimePreset(0);
         this._syncTouchVisibility();
         this.updateGearBadge();
         this.updateHUD();
@@ -14164,21 +14999,30 @@
       }
 
       _bindUIEvents() {
-        document.getElementById('btn-start-game')?.addEventListener('click', () => {
-          const inp = document.getElementById('start-hero-name');
-          if (inp && inp.value.trim()) GameState.heroName = inp.value.trim();
+        const startName = document.getElementById('start-hero-name');
+        if (startName) startName.value = GameState.heroName;
+        const startGame = () => {
+          if (GameState.started || GameState.paused) return;
+          GameState.heroName = startName?.value.trim() || GameState.heroName;
           GameState.started = true;
           GameState.paused = false;
+          this.power.recordPlayDay();
+          this.power.update(0);
+          this.progress.save();
           document.getElementById('start-screen')?.classList.add('hidden');
           document.getElementById('hud-root')?.classList.remove('hidden');
           this.updateHUD();
           showToast(`Selamat datang di Pantura, ${GameState.heroName}!`, 'route');
+        };
+        document.getElementById('btn-start-game')?.addEventListener('click', startGame);
+        startName?.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' || event.isComposing) return;
+          event.preventDefault();
+          startGame();
         });
 
         document.getElementById('btn-start-customize')?.addEventListener('click', () => {
-          const inp = document.getElementById('start-hero-name');
-          if (inp && inp.value.trim()) GameState.heroName = inp.value.trim();
-          this.shopCtrl.openCustomizer();
+          this.shopCtrl.openCustomizer(startName?.value.trim() || GameState.heroName);
         });
 
         document.getElementById('btn-hud-shop')?.addEventListener('click', () => this.shopCtrl.openShop('all'));
@@ -14361,6 +15205,7 @@
       }
 
       handleVehicleToggle() {
+        if (this.power.flying) return;
         if (this.life && this.life.busy) return;
         if (GameState.vehicleTransition || GameState.roomTransition) return;
         if (GameState.inVehicle && GameState.activeVehicle) {
@@ -14373,6 +15218,7 @@
       }
 
       handleContextOrEmote() {
+        if (this.power.flying) return;
         if (GameState.inVehicle) return;
         if (this.life.busy) { this.life.pressAction('e'); return; }
         if (GameState.nearestVehicle) {
@@ -14499,6 +15345,8 @@
       _getZoneName(x, z) {
         if (x > 500) return 'HUTAN TERLARANG';
         if (GameState.currentBuilding) return GameState.currentBuilding.title.toUpperCase();
+        const district = this.world.districts.find(d => Math.abs(x - d.x) <= d.w / 2 && Math.abs(z - d.z) <= d.d / 2);
+        if (district) return district.name.toUpperCase();
         if (x > 22 && x < 52 && z > -120 && z < -90) return 'RS PANTURA SEHAT';
         if (x > 18 && x < 56 && z > 90 && z < 128) return 'KOLAM RENANG TIRTA PANTURA';
         if (x > -54 && x < -16 && z > 90 && z < 128) return 'KANDANG KUDA PANTURA';
@@ -14600,7 +15448,9 @@
           if (GameState.started) {
             this.clock.update(dt);
             this.life.updateRoutines(dt);
+            this.marketRain.update(dt);
             this.hero.update(dt, this.input, this.camCtrl.yaw, this.citizens);
+            this.power.update(dt);
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
