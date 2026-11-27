@@ -11397,6 +11397,21 @@
         const T = A.t + 3;
 
         switch (A.type) {
+          case 'repair_motor':
+            yaw = Math.PI;
+            hero.yaw = yaw;
+            lerpTo(A.spot.x, this.world.getGroundHeight(A.spot.x, A.spot.z), A.spot.z);
+            pose = {
+              py: 0.54, hl: [-0.64, 0, 0.16], hr: [-0.74, 0, -0.16], kl: 1.38, kr: 1.5,
+              torso: [0.3, 0, 0], head: [0.25, 0, 0], ls: [-0.74, 0.16, 0.15], le: -0.8,
+              rs: [-0.9 + Math.sin(T * 10) * 0.20, -0.12, -0.13], re: -1.06,
+            };
+            if (A.t >= RoadsideBreakdown.REPAIR_TIME) {
+              this.endHeroActivity();
+              this.app.roadside.finishRepair();
+              return false;
+            }
+            break;
           case 'musala':
             yaw = Math.PI;
             hero.yaw = yaw;
@@ -11591,6 +11606,7 @@
       handleZone(z) {
         switch (z.action) {
           case 'bench_sit': this.startSit(z.bench); return true;
+          case 'motor_mogok': this.app.roadside.interact(); return true;
           case 'musala':
             this._begin({ type: 'musala', spot: z.pos, kind: z.kind });
             return true;
@@ -11674,6 +11690,11 @@
         let info = '';
         const stat = k => `${GameStats.names[k]} Lv${GameStats.level(k)}`;
         switch (A.type) {
+          case 'repair_motor':
+            title = 'MEMPERBAIKI MOTOR BAYU';
+            sub = '[E] atau bergerak untuk berhenti';
+            bar = A.t / RoadsideBreakdown.REPAIR_TIME;
+            break;
           case 'musala':
             title = A.kind === 'ibadah' ? 'IBADAH' : 'DOA';
             sub = '[E] atau bergerak untuk berhenti';
@@ -11863,11 +11884,12 @@
         this.offers = offers.slice(0, 4);
       }
 
-      openBoard() {
+      openBoard(preferredEvent = null) {
         if (!GameState.started || GameState.paused) return;
         if (GameState.inVehicle || GameState.vehicleTransition) { showToast('Turun dari kendaraan dulu untuk membuka Papan Misi', 'flag'); return; }
         this.offers = this.offers.filter(o => !o.event && (o.type !== 'bounty' || !o.target.atHome));
         if (!this.offers.length) this._genOffers();
+        this.preferredEvent = preferredEvent;
         this.newOfferButton.classList.add('hidden');
         GameState.paused = true;
         this._renderBoard();
@@ -11894,9 +11916,11 @@
       }
 
       _addLocalOffer() {
-        if (!this.active && this.app.marketRain?.available) {
-          this.offers.unshift(this.app.marketRain.makeOffer());
-        }
+        if (this.active) return;
+        const local = [this.app.marketRain, this.app.roadside]
+          .filter(event => event?.available).map(event => event.makeOffer());
+        local.sort((a, b) => Number(b.event === this.preferredEvent) - Number(a.event === this.preferredEvent));
+        this.offers.unshift(...local);
       }
 
       accept(i) {
@@ -11904,6 +11928,7 @@
         const o = this.offers[i];
         if (!o) return;
         if (o.event === 'marketRain' && !this.app.marketRain.available) { this._renderBoard(); return; }
+        if (o.event === 'motorMogok' && !this.app.roadside.available) { this._renderBoard(); return; }
         this.closeBoard();
         const extraTime = o.type === 'paket' ? Math.hypot(this.app.hero.pos.x - o.a.x, this.app.hero.pos.z - o.a.z) / 4 : 0;
         const m = Object.assign({}, o, { stage: 0, timeLeft: (o.time || 0) + Math.ceil(extraTime) });
@@ -11934,6 +11959,7 @@
       _clearActive() {
         const m = this.active;
         if (m && m.thief) this._remove(m.thief);
+        if (m?.event === 'motorMogok' && this.app.life.heroAct?.type === 'repair_motor') this.app.life.endHeroActivity();
         this.active = null;
         this.beacon.visible = false;
       }
@@ -11974,6 +12000,7 @@
           this.app.marketRain.delivered = true;
           this.app.life.say(this.app.life.marketStalls[0].vendorActor, 'Terima kasih! Petinya aman.', 3.2);
         }
+        if (m.event === 'motorMogok') this.app.roadside.onComplete();
         this._clearActive();
         this._genOffers();
         this.app.updateHUD();
@@ -12073,14 +12100,21 @@
           this._ring.scale.setScalar(1 + Math.sin(this.t * 3) * 0.12);
           this._beamMat.color.setHex(m.type === 'paket' && m.stage === 1 ? 0x34d399 : (m.type === 'paket' ? 0xfbbf24 : 0xf87171));
         } else this.beacon.visible = false;
+        if (m.event === 'motorMogok' && m.stage === 1) return;
         if (m.type === 'paket' && tp) {
-          const d = Math.hypot(hero.pos.x - tp.x, hero.pos.z - tp.z);
           const inV = GameState.inVehicle && GameState.activeVehicle;
           const px = inV ? GameState.activeVehicle.pos.x : hero.pos.x; const pz = inV ? GameState.activeVehicle.pos.z : hero.pos.z;
-          const canHandleCrate = m.event !== 'marketRain' ||
+          const canHandleCrate = !m.event ||
             (!inV && Math.abs(hero.pos.y - this.app.world.getGroundHeight(px, pz)) < 1.1);
           if (canHandleCrate && Math.hypot(px - tp.x, pz - tp.z) < tp.r + (inV ? 1.5 : 0)) {
-            if (m.stage === 0) { m.stage = 1; m.target = { x: m.b.x, z: m.b.z, r: 4.6, label: m.b.name }; showToast(`Paket diambil! Antar ke ${m.b.name}`, 'backpack'); this.app.sound.playPickup(); Haptics.buzz(30); }
+            if (m.stage === 0) {
+              m.stage = 1;
+              m.target = { x: m.b.x, z: m.b.z, r: 4.6, label: m.b.name };
+              const message = m.event === 'motorMogok' ? 'Perkakas siap. Kembali ke motor Bayu dan tekan E.' : `Paket diambil! Antar ke ${m.b.name}`;
+              showToast(message, 'backpack');
+              this.app.sound.playPickup();
+              Haptics.buzz(30);
+            }
             else this._complete(m.timeLeft > m.time * 0.4 ? ' (bonus cepat!)' : '');
           }
         }
@@ -12217,7 +12251,8 @@
         mEl.classList.remove('hidden');
         document.getElementById('ms-title').textContent = `MISI: ${m.title}`;
         let obj = '';
-        if (m.type === 'paket') obj = m.stage === 0 ? `Ambil paket di ${m.a.name}` : `Antar ke ${m.b.name}`;
+        if (m.event === 'motorMogok') obj = m.stage === 0 ? 'Ambil perkakas di Lapak Alat Pantura' : 'Perbaiki motor Bayu [E]';
+        else if (m.type === 'paket') obj = m.stage === 0 ? `Ambil paket di ${m.a.name}` : `Antar ke ${m.b.name}`;
         else if (m.type === 'copet') obj = 'Kejar dan pukul Si Copet!';
         else if (m.type === 'bounty') obj = `Kalahkan ${m.target.name}`;
         else obj = `Menangkan ${m.gname} (menu LOMBA)`;
@@ -12622,7 +12657,7 @@
       offerFromStall(stall) {
         const { missions } = this.app;
         if (stall === this.stalls[0] && this.available && !missions.active) {
-          missions.openBoard();
+          missions.openBoard('marketRain');
           return;
         }
         if (missions.active?.event === 'marketRain') {
@@ -12715,6 +12750,165 @@
           ring.scale.setScalar(0.08 + phase * 0.74);
           ring.material.opacity = wet * (1 - phase) * 0.55;
         });
+      }
+    }
+
+    class RoadsideBreakdown {
+      static REPAIR_TIME = 4;
+
+      constructor(app) {
+        this.app = app;
+        this.spot = new THREE.Vector3(52, 0, -10.5);
+        this.riderSpot = new THREE.Vector3(50.05, 0, -11.2);
+        this.repairSpot = new THREE.Vector3(52, 0, -8.8);
+        this.shop = app.world.serviceZones.find(zone => zone.action === 'toko_alat');
+        this.available = false;
+        this.wait = 0;
+        this.cooldown = 0;
+        this.mustLeave = false;
+        this.departure = 0;
+        this.time = 0;
+        this.smokeTime = 0;
+        this.group = new THREE.Group();
+        app.scene.add(this.group);
+        this.group.visible = false;
+        this.bike = app.vehicles._createVehicleMesh({ type: 'motorbike', color: 0x0e7490 });
+        this.bike.root.position.copy(this.spot);
+        this.bike.root.rotation.set(0, Math.PI / 2, -0.08, 'YXZ');
+        this.group.add(this.bike.root);
+
+        const { life } = app;
+        this.lamp = new THREE.MeshStandardMaterial({ color: 0xfb923c, emissive: 0xff7616, emissiveIntensity: 1.5 });
+        for (const z of [-0.9, 0.9]) {
+          for (const x of [-0.28, 0.28]) life._box(this.bike.root, 0.13, 0.09, 0.1, this.lamp, x, 0.64, z, false);
+        }
+        const warning = new THREE.Mesh(
+          new THREE.ConeGeometry(0.22, 0.42, 8),
+          new THREE.MeshStandardMaterial({ color: 0xff7022, emissive: 0xa33b10, emissiveIntensity: 0.35 }),
+        );
+        warning.position.set(49.7, 0.22, -8.7);
+        this.warning = warning;
+        this.group.add(warning);
+
+        this.rider = CharacterRigFactory.createRig({
+          hair: 'hair_short', top: 'top_kaos', pants: 'pants_jeans', shirtColor: '#db9138',
+          pantsColor: '#334155', shoesColor: '#d4d4d4', skinColor: '#bb8254',
+        });
+        this.rider.root.position.copy(this.riderSpot);
+        this.group.add(this.rider.root);
+        this.zone = life._zone(this.riderSpot.x, this.riderSpot.z, 2.2, 'motor_mogok', 'Bicara dengan Bayu [E]');
+        this.zone.enabled = false;
+        this.repairZone = life._zone(this.repairSpot.x, this.repairSpot.z, 2.3, 'motor_mogok', 'Perbaiki motor Bayu [E]');
+        this.repairZone.enabled = false;
+
+        this.toolbox = new THREE.Group();
+        const red = life._mat(0xb73536);
+        const dark = life._mat(0x353944);
+        life._box(this.toolbox, 0.47, 0.24, 0.3, red, 0, 0.12, 0, false);
+        life._box(this.toolbox, 0.2, 0.075, 0.074, dark, 0, 0.27, 0, false);
+        this.toolbox.position.set(this.shop.pos.x + 0.75, this.shop.pos.y, this.shop.pos.z - 0.5);
+        this.toolbox.visible = false;
+        app.scene.add(this.toolbox);
+
+        const steel = life._mat(0xbecbd3, 0.38);
+        this.wrench = new THREE.Group();
+        this.wrench.position.set(0, -0.29, 0.09);
+        this.wrench.rotation.z = -0.4;
+        life._box(this.wrench, 0.045, 0.23, 0.045, steel, 0, -0.05, 0, false);
+        life._box(this.wrench, 0.13, 0.06, 0.065, steel, 0, -0.165, 0, false);
+        for (const x of [-0.044, 0.044]) life._box(this.wrench, 0.042, 0.08, 0.065, steel, x, -0.21, 0, false);
+        app.hero.rig.rightElbowPivot.add(this.wrench);
+        this.wrench.visible = false;
+      }
+
+      makeOffer() {
+        return {
+          type: 'paket', event: 'motorMogok', title: 'Bantu Motor Mogok',
+          desc: 'Ambil kotak perkakas di Lapak Alat Pantura, lalu kembali untuk membantu Bayu.',
+          a: { name: 'Lapak Alat Pantura', x: this.shop.pos.x, z: this.shop.pos.z },
+          b: { name: 'Motor Bayu', x: this.repairSpot.x, z: this.repairSpot.z },
+          time: 100, reward: 70000, xp: ['dayaTahan', 1],
+        };
+      }
+
+      interact() {
+        const { hero, life, missions } = this.app;
+        const m = missions.active;
+        if (!m) { if (this.available) missions.openBoard('motorMogok'); return; }
+        if (m.event !== 'motorMogok') { showToast('Selesaikan misi aktif untuk membantu Bayu.', 'flag'); return; }
+        if (m.stage === 0) { showToast('Ambil kotak perkakas di Lapak Alat Pantura.', 'flag'); return; }
+        if (hero.pos.distanceTo(this.repairSpot) <= this.repairZone.radius
+            && Math.abs(hero.pos.y - this.app.world.getGroundHeight(hero.pos.x, hero.pos.z)) < 1.1) {
+          life._begin({ type: 'repair_motor', spot: this.repairSpot });
+        }
+      }
+
+      finishRepair() {
+        if (this.app.missions.active?.event === 'motorMogok') this.app.missions._complete();
+      }
+
+      onComplete() {
+        this.available = false;
+        this.departure = 2.5;
+        this.cooldown = 120;
+        this.mustLeave = true;
+        this.zone.enabled = this.repairZone.enabled = false;
+        this.toolbox.visible = false;
+        showToast('Motor Bayu menyala kembali. Terima kasih sudah membantu!', 'check');
+        this.app.sound.playTone(88, 0.45, 'triangle', 0.1, 155);
+      }
+
+      update(dt) {
+        const { hero, forest, life, missions } = this.app;
+        const distance = hero.pos.distanceTo(this.spot);
+        const daytime = life.routineSlot !== 0;
+        const active = missions.active?.event === 'motorMogok' ? missions.active : null;
+        this.wrench.visible = Boolean(active && life.heroAct?.type === 'repair_motor');
+        this.cooldown = Math.max(0, this.cooldown - dt);
+        if (distance > 42) this.mustLeave = false;
+        if (!this.available && !active && !this.departure && daytime && !forest.active && distance < 31
+            && !this.mustLeave && this.cooldown <= 0) {
+          this.wait += dt;
+          if (this.wait >= 5) {
+            this.available = true;
+            this.wait = 0;
+            this.bike.root.position.copy(this.spot);
+            this.bike.root.rotation.z = -0.08;
+            this.rider.root.position.copy(this.riderSpot);
+            showToast('Motor mogok dekat Lapak Alat. Bayu melambaikan tangan dari tepi jalan.', 'flag');
+          }
+        } else this.wait = 0;
+        if (!daytime && !active) this.available = false;
+        const stage = active?.stage;
+        this.zone.enabled = !forest.active && !this.departure && (this.available || Boolean(active)) && stage !== 1;
+        this.repairZone.enabled = !forest.active && stage === 1;
+        this.group.visible = !forest.active && distance < 80 && Boolean(this.available || active || this.departure);
+        this.toolbox.visible = !forest.active && stage === 0;
+        if (this.departure > 0) {
+          this.departure = Math.max(0, this.departure - dt);
+          const bike = this.bike.root;
+          bike.position.x += dt * 3.4;
+          bike.rotation.z = 0;
+          this.bike.wheels.forEach(wheel => { wheel.rotation.x += dt * 10; });
+          this.rider.root.position.copy(bike.position).add(new THREE.Vector3(-0.12, 0.19, 0));
+          this.rider.root.rotation.y = Math.PI / 2;
+          LifePoses.apply(this.rider, { py: 0.63, hl: [-0.7, 0, 0.3], hr: [-0.7, 0, -0.3], kl: 1.25, kr: 1.25,
+            ls: [-1, 0, 0.2], rs: [-1, 0, -0.2], le: -0.75, re: -0.75 });
+        }
+        this.warning.visible = !this.departure;
+        if (!this.group.visible) return;
+        this.time += dt;
+        this.lamp.emissiveIntensity = this.departure > 0 ? 0.35 : (Math.floor(this.time * 3) % 2 ? 2.2 : 0.10);
+        if (this.departure > 0) return;
+        this.rider.root.rotation.y = Math.atan2(hero.pos.x - this.riderSpot.x, hero.pos.z - this.riderSpot.z);
+        LifePoses.apply(this.rider, stage === undefined
+          ? { ls: [-2.4, 0, 0.26 + Math.sin(this.time * 6) * 0.33], le: -0.36 }
+          : LifePoses.pose('owner', this.time, { serveT: 0 }));
+        this.smokeTime -= dt;
+        if (this.smokeTime <= 0 && distance < 38) {
+          this.smokeTime = 0.6;
+          this.app.fx.dustPuff(new THREE.Vector3(this.spot.x + 0.35, 0.74, this.spot.z), 2, 0.56, 0x555a60);
+        }
       }
     }
 
@@ -14841,6 +15035,7 @@
         this.missions = new MissionSystem(this);
         this.weather = new WeatherSystem(this);
         this.marketRain = new MarketRain(this);
+        this.roadside = new RoadsideBreakdown(this);
         this.garage = new GarageSystem(this);
         this.progress = new ProgressSystem(this);
         this.power = new JurusSystem(this);
@@ -15332,6 +15527,7 @@
         let bestServiceDist = 99;
         for (let i = 0; i < this.world.serviceZones.length; i++) {
           const sz = this.world.serviceZones[i];
+          if (sz.enabled === false) continue;
           const dist = p.distanceTo(sz.pos);
           if (dist <= sz.radius && dist < bestServiceDist) {
             bestServiceDist = dist;
@@ -15457,6 +15653,7 @@
             this.extras.update(dt);
             this.forest.update(dt);
             this.missions.update(dt);
+            this.roadside.update(dt);
             this.weather.update(dt);
             this.progress.update(dt);
             if (this.fx) this.fx.update(dt);
