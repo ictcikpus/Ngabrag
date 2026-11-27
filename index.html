@@ -388,6 +388,7 @@
           <!-- Minimap -->
           <div class="relative rounded-2xl overflow-hidden border-2 border-amber-400/50 shadow-lg bg-slate-950/90 shrink-0">
             <canvas id="minimap-canvas" width="112" height="112" class="w-[74px] h-[74px] sm:w-[108px] sm:h-[108px] block"></canvas>
+            <div id="hud-clock" title="Jam permainan" style="position:absolute;top:2px;left:2px;padding:1px 4px;border-radius:6px;background:rgba(2,6,23,.82);color:#fde68a;font:800 9.5px/1.25 ui-monospace,Menlo,monospace;letter-spacing:.02em;z-index:2">☀ 16:30</div>
             <div id="hud-zone-name" class="absolute bottom-0 inset-x-0 text-center font-extrabold text-amber-300 truncate" style="font-size:6.5px;padding:2px 2px 1px;background:linear-gradient(transparent,rgba(2,6,23,.88));letter-spacing:.02em">PANTURA</div>
           </div>
 
@@ -990,6 +991,7 @@
       quality: 'medium',
       audioEnabled: true,
       timePresetIndex: 0, // 0: Golden Afternoon, 1: Bright Noon, 2: Night Neon
+      clock: 16.5, dark: 0, bossKills: 0,
       cameraMode: 0,      // 0: Standard, 1: Wide, 2: Close, 3: First-Person/Hood
       cameraSensitivity: 1.0,
       cameraDistanceMult: 1.0,
@@ -1855,6 +1857,7 @@
         this.trafficLights = [];
         this.cashPickups = [];
         this.worldLimit = 145;
+        this.arena = { x: 900, z: 900, r: 60 };
         this.roadCoords = [-70, 0, 70];
 
         this._buildGroundAndRoads();
@@ -1876,11 +1879,16 @@
       resolveCircleCollision(pos, radius = 0.58) {
         let hit = false;
 
-        // World perimeter
-        if (pos.x < -this.worldLimit + radius) { pos.x = -this.worldLimit + radius; hit = true; }
-        if (pos.x > this.worldLimit - radius) { pos.x = this.worldLimit - radius; hit = true; }
-        if (pos.z < -this.worldLimit + radius) { pos.z = -this.worldLimit + radius; hit = true; }
-        if (pos.z > this.worldLimit - radius) { pos.z = this.worldLimit - radius; hit = true; }
+        // World perimeter (atau batas Hutan Terlarang)
+        if (pos.x > 500) {
+          const A = this.arena, ax = pos.x - A.x, az = pos.z - A.z, ad = Math.hypot(ax, az), lim = A.r - radius;
+          if (ad > lim) { pos.x = A.x + ax / ad * lim; pos.z = A.z + az / ad * lim; hit = true; }
+        } else {
+          if (pos.x < -this.worldLimit + radius) { pos.x = -this.worldLimit + radius; hit = true; }
+          if (pos.x > this.worldLimit - radius) { pos.x = this.worldLimit - radius; hit = true; }
+          if (pos.z < -this.worldLimit + radius) { pos.z = -this.worldLimit + radius; hit = true; }
+          if (pos.z > this.worldLimit - radius) { pos.z = this.worldLimit - radius; hit = true; }
+        }
 
         // Static wall colliders
         for (let i = 0; i < this.colliders.length; i++) {
@@ -1934,7 +1942,9 @@
       }
 
       isCircleBlocked(x, z, radius = 0.58) {
-        if (Math.abs(x) > this.worldLimit - radius || Math.abs(z) > this.worldLimit - radius) {
+        if (x > 500) {
+          if (Math.hypot(x - this.arena.x, z - this.arena.z) > this.arena.r - radius) return true;
+        } else if (Math.abs(x) > this.worldLimit - radius || Math.abs(z) > this.worldLimit - radius) {
           return true;
         }
         for (let i = 0; i < this.colliders.length; i++) {
@@ -2924,6 +2934,7 @@
             muzzle.y += 1.25;
             this.fx.muzzleFlash(muzzle);
           }
+          if (this.forest && this.forest.bossShot(this, fwd)) return;
           const hitCitizen = citizens.findInCone(this.pos, fwd, 11.0, 0.75);
           if (hitCitizen) {
             this.sound.playHitImpact(true);
@@ -2946,6 +2957,7 @@
       _resolveHit(citizens, combo) {
         const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
         const reach = (GameState.equipped.gloves ? 2.6 : 2.15) + 0.3;
+        if (this.forest && this.forest.bossMelee(this, fwd, reach, combo)) return;
         const target = citizens.findInCone(this.pos, fwd, reach, 0.4);
         if (!target) { if (this.life) this.life.tryHitBag(this, combo); return; }
 
@@ -4609,6 +4621,7 @@
         const app = this.life.app;
         const hero = app.hero;
         if (this.life.busy) this.life.endHeroActivity();
+        if (app.forest && app.forest.active) app.forest.leave(true);
         const cost = Math.min(GameState.cash, 50000);
         GameState.cash -= cost;
         GameState.health = 45;
@@ -9912,7 +9925,7 @@
         this.t += dt;
         this._frame = (this._frame || 0) + 1;
         const hero = this.hero;
-        const night = GameState.timePresetIndex === 2 ? 1 : 0;
+        const night = (typeof GameState.dark === 'number' && GameState.clock !== undefined) ? GameState.dark : (GameState.timePresetIndex === 2 ? 1 : 0);
         this.nightK = (this.nightK || 0) + (night - (this.nightK || 0)) * Math.min(1, dt * 2);
 
         // lights & bulbs
@@ -11338,7 +11351,7 @@
         if (!d) return false;
         try {
           const G = GameState;
-          ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
+          ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat', 'clock', 'bossKills'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
           if (d.foodInventory) G.foodInventory = d.foodInventory;
           if (d.stats) G.stats = Object.assign({ kekuatan: 0, dayaTahan: 0, kelincahan: 0 }, d.stats);
           if (d.ownedItems) G.ownedItems = new Set(d.ownedItems);
@@ -11386,7 +11399,7 @@
           const m = this.app.missions;
           const d = {
             v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
-            timePresetIndex: G.timePresetIndex, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
+            timePresetIndex: G.timePresetIndex, clock: G.clock, bossKills: G.bossKills || 0, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
             appearance: G.appearance, equipped: G.equipped, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
             audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
           };
@@ -12277,6 +12290,594 @@
       }
     }
 
+    function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+    // =====================================================================
+    //  JAM GAME (HH:MM) — siang/malam mengikuti jam
+    // =====================================================================
+    class ClockSystem {
+      constructor(app) {
+        this.app = app;
+        this.acc = 1;
+        this._txt = '';
+        if (typeof GameState.clock !== 'number' || isNaN(GameState.clock)) GameState.clock = 16.5;
+        const C = (h, sky, fog, hs, hg, hi, sc, si, neon, dark) => ({ h, sky: new THREE.Color(sky), fog: new THREE.Color(fog), hs: new THREE.Color(hs), hg: new THREE.Color(hg), hi, sc: new THREE.Color(sc), si, neon, dark });
+        const night = (h) => C(h, 0x090d16, 0x0f172a, 0x60a5fa, 0x090d16, 0.55, 0x93c5fd, 0.5, 0.95, 1);
+        this.KF = [
+          night(0), night(5),
+          C(6.3, 0xf59e6b, 0xd48a63, 0xfdd9b5, 0x334155, 0.8, 0xfdba74, 0.8, 0.5, 0.5),
+          C(8, 0x7ccaf0, 0xa5dcf5, 0xffffff, 0x475569, 1.1, 0xfffbeb, 1.3, 0.15, 0),
+          C(12, 0x38bdf8, 0x7dd3fc, 0xffffff, 0x475569, 1.15, 0xfffbeb, 1.45, 0.1, 0),
+          C(15.5, 0x4fb0ea, 0x93d2f2, 0xffffff, 0x475569, 1.1, 0xfffbeb, 1.4, 0.15, 0),
+          C(17.2, 0xd97706, 0xb45309, 0xfde68a, 0x334155, 0.95, 0xfdba74, 1.25, 0.45, 0.2),
+          C(18.4, 0x7c3a5a, 0x5b2c4a, 0xc79ab8, 0x1e293b, 0.7, 0xfb923c, 0.6, 0.8, 0.75),
+          night(19.6), night(24)
+        ];
+        this.FOREST = C(0, 0x0a1612, 0x0e1f19, 0x7fd4b4, 0x07100c, 0.95, 0xa7f3d0, 0.7, 0, 0.8);
+        this.cur = C(0, 0, 0, 0, 0, 1, 0, 1, 0, 0);
+        app.scene.add(app.sunLight.target);
+      }
+
+      _sample(h) {
+        const K = this.KF; let i = 0;
+        while (i < K.length - 2 && h >= K[i + 1].h) i++;
+        const a = K[i], b = K[i + 1];
+        let k = clamp((h - a.h) / (b.h - a.h), 0, 1);
+        k = k * k * (3 - 2 * k);
+        const c = this.cur;
+        c.sky.copy(a.sky).lerp(b.sky, k); c.fog.copy(a.fog).lerp(b.fog, k);
+        c.hs.copy(a.hs).lerp(b.hs, k); c.hg.copy(a.hg).lerp(b.hg, k); c.sc.copy(a.sc).lerp(b.sc, k);
+        c.hi = a.hi + (b.hi - a.hi) * k; c.si = a.si + (b.si - a.si) * k;
+        c.neon = a.neon + (b.neon - a.neon) * k; c.dark = a.dark + (b.dark - a.dark) * k;
+        return c;
+      }
+
+      apply() {
+        const app = this.app, h = GameState.clock;
+        const forest = !!(app.forest && app.forest.active);
+        const s = forest ? this.FOREST : this._sample(h);
+        if (!app.scene.background || !app.scene.background.isColor) app.scene.background = new THREE.Color();
+        app.scene.background.copy(s.sky);
+        if (!app.scene.fog) app.scene.fog = new THREE.FogExp2(s.fog.getHex(), 0.0042);
+        app.scene.fog.color.copy(s.fog);
+        app.hemiLight.color.copy(s.hs); app.hemiLight.groundColor.copy(s.hg); app.hemiLight.intensity = s.hi;
+        app.sunLight.color.copy(s.sc); app.sunLight.intensity = s.si;
+        if (app.world && app.world.neonSigns) app.world.neonSigns.forEach(m => { m.emissiveIntensity = s.neon; });
+        GameState.dark = s.dark;
+        GameState.timePresetIndex = s.dark > 0.5 ? 2 : (h >= 15.5 ? 0 : 1);
+        // posisi matahari / bulan
+        const tgt = forest ? app.hero.pos : { x: 0, y: 0, z: 0 };
+        app.sunLight.target.position.set(tgt.x, 0, tgt.z);
+        let ox, oy;
+        if (h >= 6 && h <= 18) { const a = (h - 6) / 12 * Math.PI; ox = Math.cos(a) * 85; oy = 22 + Math.sin(a) * 75; }
+        else { ox = -35; oy = 70; }
+        app.sunLight.position.set(tgt.x + ox, oy, tgt.z + 45);
+        if (app.weather) { app.weather.captureBase(); if (app.weather._base) app.weather._base.dens = forest ? 0.017 : 0.0042; }
+        const ic = document.getElementById('hud-time-icon');
+        if (ic) ic.innerHTML = GameIcons.svg(s.dark > 0.5 ? 'moon' : (h >= 15.5 ? 'sunset' : 'sun'), 'w-4 h-4 sm:w-5 sm:h-5');
+      }
+
+      setHour(h) {
+        GameState.clock = ((h % 24) + 24) % 24;
+        this.apply();
+        this._text();
+      }
+
+      _text() {
+        const el = document.getElementById('hud-clock');
+        if (!el) return;
+        const m = Math.floor(GameState.clock * 60) % 1440;
+        const hh = String(Math.floor(m / 60)).padStart(2, '0'), mm = String(m % 60).padStart(2, '0');
+        const night = GameState.clock < 5.5 || GameState.clock >= 18.5;
+        const t = (night ? '☾ ' : '☀ ') + hh + ':' + mm;
+        if (t !== this._txt) { this._txt = t; el.textContent = t; }
+      }
+
+      update(dt) {
+        GameState.clock = (GameState.clock + dt / 60) % 24;
+        this.acc += dt;
+        const f = this.app.forest;
+        if (f && f.active) { this.app.sunLight.target.position.set(this.app.hero.pos.x, 0, this.app.hero.pos.z); this.app.sunLight.position.set(this.app.hero.pos.x - 35, 70, this.app.hero.pos.z + 45); }
+        if (this.acc >= 0.3) { this.acc = 0; this.apply(); }
+        this._text();
+      }
+    }
+
+    // =====================================================================
+    //  HUTAN TERLARANG — area rahasia di luar peta + Raksasa Hutan (boss)
+    // =====================================================================
+    class ForestSystem {
+      constructor(app) {
+        this.app = app; this.scene = app.scene; this.world = app.world;
+        this.AX = 900; this.AZ = 900; this.R = 60;
+        this.EX = -128; this.EZ = 118;
+        this.active = false; this.cool = 0; this.t = 0; this.hinted = false;
+        this.boss = null; this.rings = []; this.portals = []; this.fireflies = null;
+        const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.92 }, o || {}));
+        this.M = M;
+        this._buildEntrance();
+        this._buildArena();
+        this._buildHud();
+      }
+
+      _portal(parent, x, z, rotY, col, ground) {
+        const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY; parent.add(g);
+        const stone = this.M(0x3b414c);
+        const runeM = new THREE.MeshBasicMaterial({ color: col });
+        [-2.3, 2.3].forEach(px => {
+          const p = new THREE.Mesh(new THREE.BoxGeometry(1.3, 6.4, 1.3), stone); p.position.set(px, 3.2, 0); p.castShadow = true; g.add(p);
+          [0.68, -0.68].forEach(zz => { const r = new THREE.Mesh(new THREE.BoxGeometry(0.16, 4, 0.08), runeM); r.position.set(px, 3.4, zz); g.add(r); });
+        });
+        const lin = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.1, 1.5), stone); lin.position.y = 6.8; lin.castShadow = true; g.add(lin);
+        const planes = [];
+        for (let k = 0; k < 2; k++) {
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 6.0), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
+          m.position.y = 3.2; m.position.z = k * 0.05; g.add(m); planes.push(m);
+        }
+        this.portals.push({ planes, ph: Math.random() * 6 });
+        // collider pilar (dunia)
+        const horiz = Math.abs(Math.sin(rotY)) < 0.5;
+        [-2.3, 2.3].forEach(px => { if (horiz) this.world.addBoxCollider(ground.x + px, ground.z, 1.3, 1.3); else this.world.addBoxCollider(ground.x, ground.z - px, 1.3, 1.3); });
+        return g;
+      }
+
+      _simpleTree(parent, x, z, s, rnd) {
+        const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s);
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 7, 6), this.M(0x2a1d14)); tr.position.y = 3.5; tr.castShadow = true; g.add(tr);
+        const col = [0x0f3b2a, 0x14532d, 0x1d4a3c][Math.floor(rnd() * 3)];
+        const c1 = new THREE.Mesh(new THREE.ConeGeometry(3.4, 5.5, 7), this.M(col, { flatShading: true })); c1.position.y = 8; c1.castShadow = true; g.add(c1);
+        const c2 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 4.5, 7), this.M(col, { flatShading: true })); c2.position.y = 11; g.add(c2);
+        parent.add(g);
+        this.world.addBoxCollider(x, z, 1.3 * s, 1.3 * s);
+      }
+
+      _buildEntrance() {
+        const rnd = mulberry32(777);
+        const g = new THREE.Group(); this.scene.add(g); this.entG = g;
+        const EX = this.EX, EZ = this.EZ;
+        this._portal(g, EX, EZ, Math.PI / 2, 0x8b5cf6, { x: EX, z: EZ });
+        // rumpun pohon rapat menyembunyikan gerbang; celah hanya dari arah peta
+        const spots = [];
+        for (let i = 0; i < 9; i++) spots.push([EX - 5 - rnd() * 5, EZ - 9 + i * 2.3 + rnd()]);
+        for (let i = 0; i < 6; i++) { spots.push([EX - 1 + rnd() * 9, EZ - 6.5 - rnd() * 6]); spots.push([EX - 1 + rnd() * 9, EZ + 6.5 + rnd() * 6]); }
+        for (let i = 0; i < 4; i++) { spots.push([EX + 10 + rnd() * 3, EZ - 7 - rnd() * 3]); spots.push([EX + 10 + rnd() * 3, EZ + 7 + rnd() * 3]); }
+        spots.forEach(p => { if (Math.abs(p[0]) < 142 && Math.abs(p[1]) < 142) this._simpleTree(g, p[0], p[1], 0.9 + rnd() * 0.6, rnd); });
+        // kunang-kunang ungu samar
+        this.wisps = [];
+        const wm = new THREE.MeshBasicMaterial({ color: 0xc4b5fd, transparent: true, opacity: 0.85 });
+        for (let i = 0; i < 6; i++) { const w = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), wm); w.userData = { a: rnd() * 6, r: 1.5 + rnd() * 3, y: 1 + rnd() * 3 }; g.add(w); this.wisps.push(w); }
+      }
+
+      _buildArena() {
+        const rnd = mulberry32(4242);
+        const A = new THREE.Group(); A.position.set(this.AX, 0, this.AZ); this.scene.add(A); this.arenaG = A;
+        const M = this.M;
+        const ground = new THREE.Mesh(new THREE.CircleGeometry(this.R + 16, 64), M(0x16261a)); ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; A.add(ground);
+        const clear = new THREE.Mesh(new THREE.CircleGeometry(24, 48), M(0x2a2a1f)); clear.rotation.x = -Math.PI / 2; clear.position.y = 0.02; clear.receiveShadow = true; A.add(clear);
+        const ring = new THREE.Mesh(new THREE.RingGeometry(22.4, 23.0, 64), new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.75 })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; A.add(ring);
+        this.glyph = new THREE.Mesh(new THREE.RingGeometry(9, 9.5, 6), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.55 })); this.glyph.rotation.x = -Math.PI / 2; this.glyph.position.y = 0.045; A.add(this.glyph);
+        // batu berdiri
+        const sm = M(0x3a3f47), rm = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+        for (let i = 0; i < 10; i++) {
+          const a = i / 10 * Math.PI * 2 + 0.3, x = Math.cos(a) * 24.5, z = Math.sin(a) * 24.5;
+          const s = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5.5 + rnd() * 1.5, 1.6), sm); s.position.set(x, 2.9, z); s.rotation.y = a; s.castShadow = true; A.add(s);
+          const r = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.6, 0.06), rm); r.position.set(x - Math.cos(a) * 0.82, 3.2, z - Math.sin(a) * 0.82); r.rotation.y = a; A.add(r);
+          this.world.addBoxCollider(this.AX + x, this.AZ + z, 1.7, 1.7);
+        }
+        // pohon (instanced)
+        const N = 120, spots = [];
+        for (let i = 0; i < N * 3 && spots.length < N; i++) {
+          const a = rnd() * Math.PI * 2, r = 27 + rnd() * 44, x = Math.cos(a) * r, z = Math.sin(a) * r;
+          if (Math.abs(x) < 7 && z > 15) continue;
+          spots.push([x, z, 0.8 + rnd() * 0.7, rnd()]);
+        }
+        const mk = (geo, y, col) => { const m = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }), spots.length); m.castShadow = true; m.frustumCulled = false; A.add(m); return m; };
+        const gT = new THREE.CylinderGeometry(0.4, 0.7, 7, 6); gT.translate(0, 3.5, 0);
+        const g1 = new THREE.ConeGeometry(3.4, 5.5, 7); g1.translate(0, 8, 0);
+        const g2 = new THREE.ConeGeometry(2.4, 4.5, 7); g2.translate(0, 11, 0);
+        const iT = mk(gT), i1 = mk(g1), i2 = mk(g2);
+        const d = new THREE.Object3D(), col = new THREE.Color(), greens = [0x0f3b2a, 0x14532d, 0x1d4a3c, 0x123524];
+        spots.forEach((p, i) => {
+          d.position.set(p[0], 0, p[1]); d.rotation.set(0, p[3] * 6.28, 0); d.scale.setScalar(p[2]); d.updateMatrix();
+          iT.setMatrixAt(i, d.matrix); i1.setMatrixAt(i, d.matrix); i2.setMatrixAt(i, d.matrix);
+          iT.setColorAt(i, col.setHex(0x2a1d14)); const gc = greens[Math.floor(p[3] * 4) % 4]; i1.setColorAt(i, col.setHex(gc)); i2.setColorAt(i, col.setHex(gc));
+          if (Math.hypot(p[0], p[1]) < this.R) this.world.addBoxCollider(this.AX + p[0], this.AZ + p[1], 1.3 * p[2], 1.3 * p[2]);
+        });
+        // jamur bercahaya
+        const gm = new THREE.ConeGeometry(0.35, 0.8, 6); gm.translate(0, 0.4, 0);
+        const im = new THREE.InstancedMesh(gm, new THREE.MeshBasicMaterial({ color: 0xffffff }), 36); im.frustumCulled = false; A.add(im);
+        const cc = [0x2dd4bf, 0xe879f9, 0x84cc16];
+        for (let i = 0; i < 36; i++) { const a = rnd() * 6.28, r = 12 + rnd() * 44; d.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); d.rotation.set(0, 0, 0); d.scale.setScalar(0.6 + rnd() * 1.1); d.updateMatrix(); im.setMatrixAt(i, d.matrix); im.setColorAt(i, col.setHex(cc[i % 3])); }
+        // kunang-kunang
+        const FN = 70, pos = new Float32Array(FN * 3); this.ffSeed = [];
+        for (let i = 0; i < FN; i++) { const a = rnd() * 6.28, r = rnd() * 52; pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = 0.6 + rnd() * 5; pos[i * 3 + 2] = Math.sin(a) * r; this.ffSeed.push(rnd() * 6); }
+        const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        this.fireflies = new THREE.Points(fg, new THREE.PointsMaterial({ color: 0xbef264, size: 0.45, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })); this.fireflies.frustumCulled = false; A.add(this.fireflies);
+        // gerbang pulang
+        this.exitX = this.AX; this.exitZ = this.AZ + 54;
+        this._portal(A, 0, 54, 0, 0x34d399, { x: this.AX, z: this.AZ + 54 });
+      }
+
+      _buildHud() {
+        const d = document.createElement('div');
+        d.id = 'boss-hud';
+        d.style.cssText = 'position:fixed;top:5rem;left:50%;transform:translateX(-50%);z-index:25;width:min(300px,68vw);pointer-events:none;display:none;text-align:center;font-family:inherit';
+        d.innerHTML = '<div id="boss-name" style="font-weight:900;font-size:11px;letter-spacing:.06em;color:#fecaca;text-shadow:0 1px 3px #000">RAKSASA HUTAN — GRAKHOR</div>'
+          + '<div style="margin-top:3px;height:10px;border-radius:6px;background:rgba(2,6,23,.85);border:1px solid rgba(248,113,113,.6);overflow:hidden"><div id="boss-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#b91c1c,#f97316)"></div></div>';
+        document.body.appendChild(d);
+        this.hudEl = d; this.hudFill = d.querySelector('#boss-hp-fill'); this.hudName = d.querySelector('#boss-name');
+      }
+
+      // ---------------- masuk / keluar ----------------
+      enter() {
+        const app = this.app, hero = app.hero;
+        this.active = true; this.cool = 3;
+        if (app.fx) app.fx.screenFlash('10,5,25', 0.95, 900);
+        app.sound.playTone(90, 1.2, 'sine', 0.16, 45);
+        app.sound.playTone(520, 0.9, 'triangle', 0.05, 180, 0.1);
+        hero.pos.set(this.AX, 0, this.AZ + 46); hero.yaw = Math.PI; hero.velY = 0;
+        if (app.camCtrl) { app.camCtrl.yaw = Math.PI; app.camCtrl.currentLookAt.set(hero.pos.x, 1.5, hero.pos.z); }
+        // bersihkan kejaran
+        const m = app.missions; if (m) { m.heat = 0; m.stars = 0; m.enforcers.slice().forEach(e => m._remove(e)); m.enforcers = []; }
+        app.citizens.list.forEach(c => { c.hostile = 0; c.atk = null; });
+        this._spawnBoss();
+        app.clock.apply();
+        showToast('HUTAN TERLARANG — kamu keluar dari Pantura. Kalahkan Raksasa Hutan atau lari ke gerbang hijau!', 'alert');
+        Haptics.buzz([60, 40, 90]);
+      }
+
+      leave(ko) {
+        const app = this.app, hero = app.hero;
+        if (!this.active) return;
+        this.active = false; this.cool = 3;
+        this._clearBoss();
+        hero.pos.set(this.EX + 5.5, this.world.getGroundHeight(this.EX + 5.5, this.EZ), this.EZ); hero.yaw = Math.PI / 2; hero.velY = 0;
+        if (app.camCtrl) { app.camCtrl.yaw = Math.PI / 2; app.camCtrl.currentLookAt.set(hero.pos.x, 1.5, hero.pos.z); }
+        if (app.fx) app.fx.screenFlash('10,5,25', 0.9, 800);
+        app.clock.apply();
+        if (!ko) showToast('Kembali ke Pantura...', 'route');
+      }
+
+      isBossActive() { return this.active && this.boss && this.boss.state !== 'dead'; }
+
+      // ---------------- boss ----------------
+      _clearBoss() {
+        const b = this.boss; if (!b) return;
+        this.scene.remove(b.root); b.tele.forEach(t => this.scene.remove(t)); this.rings.forEach(r => this.scene.remove(r.mesh)); this.rings = [];
+        this.boss = null; this.hudEl.style.display = 'none';
+      }
+
+      _spawnBoss() {
+        this._clearBoss();
+        const M = this.M, B = (w, h, d, mat) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        const skin = M(0x4a5d34), dark = M(0x2f3b22), bark = M(0x5a3f2a), bone = M(0xe3dcc3), moss = M(0x2f7a3a);
+        const eyeM = new THREE.MeshBasicMaterial({ color: 0xff3b1a }), coreM = new THREE.MeshBasicMaterial({ color: 0xfb923c });
+        const mats = [skin, dark, bark, moss];
+        const root = new THREE.Group(); root.scale.setScalar(0.8);
+        const body = new THREE.Group(); root.add(body);
+        const part = (mesh) => { mesh.castShadow = true; return mesh; };
+        const leg = (sx) => {
+          const hip = new THREE.Group(); hip.position.set(sx * 1.35, 4.5, 0); body.add(hip);
+          const th = part(B(1.5, 2.2, 1.6, skin)); th.position.y = -1.1; hip.add(th);
+          const knee = new THREE.Group(); knee.position.y = -2.2; hip.add(knee);
+          const sh = part(B(1.4, 2.2, 1.5, dark)); sh.position.y = -1.1; knee.add(sh);
+          const ft = part(B(1.8, 0.7, 2.6, bark)); ft.position.set(0, -2.3, 0.5); knee.add(ft);
+          return { hip, knee };
+        };
+        const L = leg(-1), R = leg(1);
+        const torso = new THREE.Group(); torso.position.y = 4.5; body.add(torso);
+        const chest = part(B(5.4, 3.8, 3.4, skin)); chest.position.y = 2.3; torso.add(chest);
+        const belly = part(B(4.4, 2.4, 3.6, dark)); belly.position.y = 0.0; torso.add(belly);
+        const core = B(1.0, 1.0, 0.3, coreM); core.position.set(0, 2.5, 1.75); torso.add(core);
+        const mossTop = B(5.0, 0.4, 3.0, moss); mossTop.position.set(0, 4.3, 0); torso.add(mossTop);
+        [-1, 1].forEach(sx => { const pad = part(B(2.2, 1.6, 2.4, bark)); pad.position.set(sx * 3.4, 4.0, 0); torso.add(pad); const mp = B(2.0, 0.3, 2.2, moss); mp.position.set(sx * 3.4, 4.9, 0); torso.add(mp); });
+        for (let i = 0; i < 7; i++) { const th = part(new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.8, 5), bone)); th.position.set((i - 3) * 0.75, 2.4 + (i % 2) * 1.2, -1.9); th.rotation.x = -1.5; torso.add(th); }
+        const head = new THREE.Group(); head.position.y = 4.8; torso.add(head);
+        const hd = part(B(2.4, 2.2, 2.4, skin)); hd.position.y = 1.3; head.add(hd);
+        const jaw = part(B(2.0, 0.8, 2.0, dark)); jaw.position.set(0, 0.15, 0.25); head.add(jaw);
+        [-0.7, 0.7].forEach(x => { const tk = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.0, 5), bone); tk.position.set(x, 0.75, 1.1); head.add(tk); const e = B(0.5, 0.32, 0.2, eyeM); e.position.set(x, 1.6, 1.22); head.add(e); const hn = part(new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.4, 6), bone)); hn.position.set(x * 1.45, 3.0, 0); hn.rotation.z = -x * 0.55; head.add(hn); });
+        const brow = B(2.6, 0.4, 0.5, bark); brow.position.set(0, 2.0, 1.15); head.add(brow);
+        const arm = (sx) => {
+          const sh = new THREE.Group(); sh.position.set(sx * 3.4, 4.5, 0); torso.add(sh);
+          const up = part(B(1.6, 3.4, 1.6, skin)); up.position.y = -1.7; sh.add(up);
+          const el = new THREE.Group(); el.position.y = -3.4; sh.add(el);
+          const fo = part(B(1.8, 3.2, 1.8, dark)); fo.position.y = -1.6; el.add(fo);
+          const fi = part(B(2.6, 2.4, 2.6, bark)); fi.position.y = -3.6; el.add(fi);
+          return { sh, el };
+        };
+        const AL = arm(-1), AR = arm(1);
+        root.position.set(this.AX, 0, this.AZ - 8);
+        this.scene.add(root);
+        this.boss = {
+          root, body, torso, head, L, R, AL, AR, mats, eyeM,
+          pos: new THREE.Vector3(this.AX, 0, this.AZ - 8), yaw: 0, hp: 3200, max: 3200,
+          state: 'intro', st: 2.2, atk: null, cd: 1.5, t: 0, flash: 0, poise: 0, enraged: false, walk: 0, stepT: 0,
+          tele: [], dir: new THREE.Vector3(), hitDone: false, dead: 0, y: 0,
+          pose: { shL: 0, shR: 0, elL: -0.25, elR: -0.25, tx: 0, ty: 0, hx: 0, crouch: 0 }
+        };
+        this.hudEl.style.display = 'block'; this.hudFill.style.width = '100%'; this.hudName.textContent = 'RAKSASA HUTAN — GRAKHOR';
+        this.hudFill.style.background = 'linear-gradient(90deg,#b91c1c,#f97316)';
+        this._roar(1);
+      }
+
+      _roar(k) {
+        const s = this.app.sound;
+        s.playNoiseBurst({ duration: 1.3 * k, filterType: 'lowpass', startFreq: 900, endFreq: 110, Q: 1, gainVal: 0.38, attack: 0.05, wet: 0.3 });
+        s.playTone(72, 1.1 * k, 'sawtooth', 0.16, 42);
+        s.playTone(110, 0.9 * k, 'square', 0.06, 60, 0.1);
+        if (this.app.camCtrl) this.app.camCtrl.addShake(0.8 * k, 0.28);
+        Haptics.buzz([80, 40, 120]);
+      }
+
+      _tele(kind, x, z, yaw, ex) {
+        const mat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false });
+        let geo;
+        if (kind === 'disc') geo = new THREE.CircleGeometry(ex, 40);
+        else if (kind === 'sector') geo = new THREE.CircleGeometry(8.6, 28, -Math.PI / 2 - 1.22, 2.44);
+        else geo = new THREE.PlaneGeometry(5, 32);
+        geo.rotateX(-Math.PI / 2);
+        const m = new THREE.Mesh(geo, mat); m.position.set(x, 0.09, z);
+        if (kind === 'sector') m.rotation.y = yaw;
+        if (kind === 'line') { m.rotation.y = yaw; m.position.x = x + Math.sin(yaw) * 16; m.position.z = z + Math.cos(yaw) * 16; }
+        this.scene.add(m); this.boss.tele.push(m); return m;
+      }
+
+      _clearTele() { const b = this.boss; b.tele.forEach(t => this.scene.remove(t)); b.tele = []; }
+
+      _hurt(dmg, srcX, srcZ) {
+        const app = this.app, hero = app.hero, fx = app.fx;
+        const up = hero.pos.clone(); up.y += 2.3;
+        if (hero.rollTimer > 0) { if (fx) fx.floatText(up, 'DIHINDARI!', '#67e8f9', 1.0); return false; }
+        const dir = new THREE.Vector3(hero.pos.x - srcX, 0, hero.pos.z - srcZ); if (dir.lengthSq() < 1e-4) dir.set(0, 0, 1); dir.normalize();
+        let d = dmg;
+        if (hero.guardTimer > 0) { d *= 0.35; app.sound.playBlock(); if (fx) fx.floatText(up, 'TANGKIS!', '#7dd3fc', 0.9); }
+        else { app.sound.playHitImpact(true, false); if (fx) fx.screenFlash('239,68,68', 0.4, 300); }
+        d = Math.round(d);
+        GameState.health = Math.max(0, GameState.health - d);
+        if (fx) { fx.impactBurst(hero.pos.clone().setY(hero.pos.y + 1.4), dir, 0.8); fx.floatText(up.clone().setY(up.y - 0.4), '-' + d, '#fb7185', 1.0); }
+        if (app.camCtrl) app.camCtrl.addShake(0.2, 0.35);
+        hero.pos.addScaledVector(dir, 1.6);
+        Haptics.buzz([40, 20, 60]);
+        if (GameState.health <= 0) app.citizens._heroKO({ name: 'Raksasa Hutan' });
+        return true;
+      }
+
+      // ----- serangan Hero ke boss -----
+      bossMelee(hero, fwd, reach, combo) {
+        const b = this.boss; if (!this.active || !b || b.state === 'dead') return false;
+        const dx = b.pos.x - hero.pos.x, dz = b.pos.z - hero.pos.z, d = Math.hypot(dx, dz);
+        if (d - 3.2 > reach + 0.5) return false;
+        if ((dx * fwd.x + dz * fwd.z) / (d || 1) < 0.2 && d > 4.4) return false;
+        const baseDmg = (GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult();
+        const dmg = Math.round(baseDmg * [0, 1.0, 1.2, 1.45, 1.8][combo]);
+        const heavy = combo >= 3, fin = combo === 4;
+        hero.sound.playHitImpact(heavy, fin);
+        if (combo >= 2) hero.sound.playComboChime(combo - 1);
+        const hp = hero.pos.clone(); hp.x += dx / (d || 1) * Math.max(0, d - 3.2); hp.z += dz / (d || 1) * Math.max(0, d - 3.2); hp.y = 1.6;
+        if (hero.fx) {
+          hero.fx.impactBurst(hp, fwd, 0.7 + combo * 0.3);
+          hero.fx.floatText(hp.clone().setY(hp.y + 0.6), ['', 'JAB!', 'CROSS!', 'HOOK!', 'UPPERCUT!'][combo], ['', '#fde047', '#fdba74', '#fb7185', '#f472b6'][combo], 0.9 + combo * 0.1);
+          hero.fx.floatText(hp.clone().add(new THREE.Vector3(0.5, 0.1, 0)), '-' + dmg, '#ffffff', 0.75);
+          hero.fx.hitStop(0.03 + combo * 0.012);
+        }
+        if (hero.camCtrl) { hero.camCtrl.addShake(0.08 + combo * 0.03, 0.1 + combo * 0.06); hero.camCtrl.kickFov(1.5 + combo * 1.4); }
+        this.damageBoss(dmg, fin);
+        return true;
+      }
+
+      bossShot(hero, fwd) {
+        const b = this.boss; if (!this.active || !b || b.state === 'dead') return false;
+        const dx = b.pos.x - hero.pos.x, dz = b.pos.z - hero.pos.z, d = Math.hypot(dx, dz);
+        if (d > 34 || (dx * fwd.x + dz * fwd.z) / (d || 1) < 0.9) return false;
+        const dmg = Math.round(32 * GameStats.dmgMult());
+        hero.sound.playHitImpact(true);
+        if (hero.fx) { const p = b.pos.clone(); p.y = 4; hero.fx.impactBurst(p, fwd, 1.0); hero.fx.floatText(p.clone().setY(6), '-' + dmg, '#7dd3fc', 0.9); }
+        this.damageBoss(dmg, false);
+        return true;
+      }
+
+      damageBoss(n, stagger) {
+        const b = this.boss; if (!b || b.state === 'dead') return;
+        b.hp = Math.max(0, b.hp - n); b.flash = 0.12; b.poise += n;
+        if (!b.enraged && b.hp < b.max * 0.5) {
+          b.enraged = true; b.eyeM.color.setHex(0xffd000); this._roar(1.2);
+          showToast('GRAKHOR MENGAMUK! Gerakannya lebih cepat!', 'alert');
+          this.hudFill.style.background = 'linear-gradient(90deg,#7f1d1d,#ef4444)';
+          if (this.app.fx) this.app.fx.screenFlash('255,60,30', 0.3, 500);
+        }
+        if (b.hp <= 0) { this._die(); return; }
+        if ((stagger || b.poise >= 240) && b.state !== 'intro' && b.state !== 'stagger') { b.poise = 0; b.state = 'stagger'; b.st = 1.0; this._clearTele(); b.atk = null; b.root.position.y = 0; b.y = 0; }
+      }
+
+      _die() {
+        const b = this.boss, app = this.app;
+        b.state = 'dead'; b.dead = 0; this._clearTele();
+        this.rings.forEach(r => this.scene.remove(r.mesh)); this.rings = [];
+        const first = (GameState.bossKills || 0) === 0;
+        const reward = first ? 500000 : 150000;
+        GameState.bossKills = (GameState.bossKills || 0) + 1;
+        GameState.cash += reward;
+        GameState.health = Math.min(100, GameState.health + 40);
+        app.sound.playLevelUp(); this._roar(1.4);
+        if (app.fx) { const p = b.pos.clone(); p.y = 5; app.fx.floatText(p, '+' + formatRupiah(reward), '#fde047', 1.6); app.fx.screenFlash('255,230,150', 0.6, 900); app.fx.impactBurst(p, new THREE.Vector3(0, 1, 0), 2.0); }
+        showToast('GRAKHOR TUMBANG! ' + (first ? 'Hadiah perdana ' : 'Hadiah ') + formatRupiah(reward) + '. Kembali lewat gerbang hijau.', 'trophy');
+        if (app.progress && app.progress.save) try { app.progress.save(); } catch (e) { /* abaikan */ }
+        app.updateHUD();
+        setTimeout(() => { if (this.boss === b) this.hudEl.style.display = 'none'; }, 1800);
+      }
+
+      _ring(x, z, max, speed, dmg, delay) {
+        const m = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 56), new THREE.MeshBasicMaterial({ color: 0xfb923c, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+        m.rotation.x = -Math.PI / 2; m.position.set(x, 0.12, z); m.scale.setScalar(0.01); m.visible = false; this.scene.add(m);
+        this.rings.push({ x, z, r: 0, max, speed, dmg, delay: delay || 0, hit: false, mesh: m });
+      }
+
+      _begin(type) {
+        const b = this.boss, hero = this.app.hero, en = b.enraged ? 0.8 : 1;
+        b.atk = type; b.state = 'windup'; b.hitDone = false;
+        b.st = { slam: 0.95, sweep: 0.7, stomp: 0.8, charge: 0.9 }[type] * en; b.stMax = b.st;
+        const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw);
+        if (type === 'slam') { b.tx = b.pos.x + fx * 5.4; b.tz = b.pos.z + fz * 5.4; this._tele('disc', b.tx, b.tz, 0, 4.7); }
+        if (type === 'sweep') this._tele('sector', b.pos.x, b.pos.z, b.yaw);
+        if (type === 'charge') { b.dir.set(hero.pos.x - b.pos.x, 0, hero.pos.z - b.pos.z).normalize(); b.yaw = Math.atan2(b.dir.x, b.dir.z); this._tele('line', b.pos.x, b.pos.z, b.yaw); }
+        if (type === 'stomp') this._roar(0.4);
+      }
+
+      _strike() {
+        const b = this.boss, app = this.app, hero = app.hero;
+        this._clearTele();
+        b.state = 'strike'; b.hitDone = false;
+        const dist = (x, z) => Math.hypot(hero.pos.x - x, hero.pos.z - z);
+        if (b.atk === 'slam') {
+          b.st = 0.2;
+          const P = new THREE.Vector3(b.tx, 0.3, b.tz);
+          app.sound.playNoiseBurst({ duration: 0.5, filterType: 'lowpass', startFreq: 600, endFreq: 70, Q: 0.8, gainVal: 0.4, attack: 0.003 }); app.sound.playTone(60, 0.5, 'sine', 0.25, 30);
+          if (app.fx) app.fx.impactBurst(P, new THREE.Vector3(0, 1, 0), 1.6);
+          if (app.camCtrl) app.camCtrl.addShake(0.5, 0.35);
+          if (dist(b.tx, b.tz) < 5.0 && hero.pos.y < 1.6) this._hurt(32, b.tx, b.tz);
+          this._ring(b.tx, b.tz, 9, 14, 0, 0);
+        } else if (b.atk === 'sweep') {
+          b.st = 0.36; b.sweepT = 0;
+        } else if (b.atk === 'stomp') {
+          b.st = 0.6;
+        } else if (b.atk === 'charge') {
+          b.st = 1.1; b.dir.set(Math.sin(b.yaw), 0, Math.cos(b.yaw));
+          app.sound.playNoiseBurst({ duration: 0.6, filterType: 'bandpass', startFreq: 400, endFreq: 150, Q: 1, gainVal: 0.2 });
+        }
+      }
+
+      _land() {
+        const b = this.boss, app = this.app, hero = app.hero;
+        app.sound.playNoiseBurst({ duration: 0.7, filterType: 'lowpass', startFreq: 700, endFreq: 60, Q: 0.8, gainVal: 0.45, attack: 0.003 }); app.sound.playTone(52, 0.7, 'sine', 0.3, 26);
+        if (app.camCtrl) app.camCtrl.addShake(0.6, 0.45);
+        if (app.fx) app.fx.impactBurst(new THREE.Vector3(b.pos.x, 0.4, b.pos.z), new THREE.Vector3(0, 1, 0), 2.0);
+        this._ring(b.pos.x, b.pos.z, 28, 19, 26, 0);
+        if (b.enraged) this._ring(b.pos.x, b.pos.z, 28, 19, 26, 0.55);
+      }
+
+      update(dt) {
+        this.t += dt; this.cool = Math.max(0, this.cool - dt);
+        const app = this.app, hero = app.hero;
+        // animasi gerbang
+        this.portals.forEach((p, i) => { const k = this.t * 1.6 + p.ph; p.planes[0].material.opacity = 0.42 + Math.sin(k) * 0.14; p.planes[1].material.opacity = 0.3 + Math.cos(k * 1.3) * 0.12; p.planes[1].scale.set(1 + Math.sin(k * 0.7) * 0.06, 1, 1); });
+        if (!this.active) {
+          this.wisps.forEach(w => { const u = w.userData, a = u.a + this.t * 0.6; w.position.set(this.EX + 1.5 + Math.cos(a) * u.r * 0.5, u.y + Math.sin(a * 1.7) * 0.5, this.EZ + Math.sin(a) * u.r); });
+          const dx = hero.pos.x - this.EX, dz = hero.pos.z - this.EZ, d = Math.hypot(dx, dz);
+          if (d < 16 && !this.hinted) { this.hinted = true; showToast('Ada cahaya ungu aneh di balik pepohonan...', 'alert'); }
+          if (d < 1.7 && this.cool <= 0 && !GameState.currentBuilding) {
+            if (GameState.inVehicle || (app.life && app.life.busy)) { showToast('Turun dari kendaraan / hentikan aktivitas dulu untuk masuk gerbang.', 'alert'); this.cool = 2.5; }
+            else this.enter();
+          }
+          return;
+        }
+        // di dalam hutan
+        if (this.glyph) this.glyph.rotation.z += dt * 0.25;
+        if (this.fireflies) { const arr = this.fireflies.geometry.attributes.position.array; for (let i = 0; i < this.ffSeed.length; i++) { arr[i * 3 + 1] += Math.sin(this.t * 0.8 + this.ffSeed[i]) * dt * 0.5; arr[i * 3] += Math.cos(this.t * 0.4 + this.ffSeed[i] * 2) * dt * 0.4; } this.fireflies.geometry.attributes.position.needsUpdate = true; }
+        if (this.cool <= 0 && Math.hypot(hero.pos.x - this.exitX, hero.pos.z - this.exitZ) < 1.7) { this.leave(false); return; }
+        if (this.boss) this._bossUpdate(dt);
+        // cincin kejut
+        for (let i = this.rings.length - 1; i >= 0; i--) {
+          const r = this.rings[i];
+          if (r.delay > 0) { r.delay -= dt; continue; }
+          r.mesh.visible = true; r.r += r.speed * dt; r.mesh.scale.setScalar(Math.max(0.01, r.r)); r.mesh.material.opacity = 0.8 * (1 - r.r / r.max);
+          if (r.dmg > 0 && !r.hit && Math.abs(Math.hypot(hero.pos.x - r.x, hero.pos.z - r.z) - r.r) < 1.3 && hero.pos.y < 0.9) { r.hit = true; this._hurt(r.dmg, r.x, r.z); }
+          if (r.r >= r.max) { this.scene.remove(r.mesh); this.rings.splice(i, 1); }
+        }
+      }
+
+      _bossUpdate(dt) {
+        const b = this.boss, app = this.app, hero = app.hero, P = b.pose;
+        b.t += dt; b.cd -= dt; b.poise = Math.max(0, b.poise - dt * 25);
+        const en = b.enraged ? 1.35 : 1;
+        let dx = hero.pos.x - b.pos.x, dz = hero.pos.z - b.pos.z; const d = Math.hypot(dx, dz) || 0.001;
+        const turn = (rate) => { const want = Math.atan2(dx, dz); let df = want - b.yaw; while (df > Math.PI) df -= Math.PI * 2; while (df < -Math.PI) df += Math.PI * 2; b.yaw += clamp(df, -rate * dt, rate * dt); };
+        let walking = 0, k = 7;
+        // target pose default
+        let tsl = 0.12, tsr = 0.12, tel = -0.3, ter = -0.3, ttx = 0.08, tty = 0, thx = 0;
+        switch (b.state) {
+          case 'intro':
+            b.st -= dt; tsl = tsr = -2.5; tel = ter = -0.3; ttx = -0.3; thx = -0.5; k = 4;
+            if (b.st <= 0) b.state = 'chase';
+            break;
+          case 'chase':
+            turn(2.4 * en);
+            if (d > 6.2) { const sp = 3.3 * en; b.pos.x += dx / d * sp * dt; b.pos.z += dz / d * sp * dt; walking = 1; }
+            if (b.cd <= 0) {
+              const r = Math.random(); let a = null;
+              if (d < 9.5) a = r < 0.6 ? 'slam' : 'sweep';
+              else if (d < 32) a = r < 0.4 ? 'stomp' : (r < 0.4 + (b.enraged ? 0.45 : 0.25) ? 'charge' : null);
+              if (a) this._begin(a); else b.cd = 0.45;
+            }
+            break;
+          case 'windup': {
+            b.st -= dt; const f = 1 - b.st / b.stMax; k = 9;
+            if (b.atk === 'slam') { turn(1.2); tsl = tsr = -2.9; ttx = -0.3; thx = -0.2; const m = b.tele[0]; if (m) m.material.opacity = 0.3 + f * 0.35; }
+            else if (b.atk === 'sweep') { tsl = tsr = -1.45; tel = ter = -0.1; tty = 1.1; ttx = 0.05; const m = b.tele[0]; if (m) m.material.opacity = 0.3 + f * 0.35; }
+            else if (b.atk === 'stomp') { turn(2); tsl = tsr = -2.6; P.crouch += (1 - P.crouch) * Math.min(1, dt * 10); ttx = 0.2; }
+            else if (b.atk === 'charge') { tsl = tsr = 0.9; ttx = 0.55; const m = b.tele[0]; if (m) m.material.opacity = 0.25 + f * 0.4 + Math.sin(b.t * 30) * 0.08; }
+            if (b.st <= 0) this._strike();
+            break;
+          }
+          case 'strike':
+            b.st -= dt; k = 18;
+            if (b.atk === 'slam') { tsl = tsr = -0.6; ttx = 0.4; thx = 0.2; if (b.st <= 0) { b.state = 'recover'; b.st = 0.95 / (b.enraged ? 1.3 : 1); } }
+            else if (b.atk === 'sweep') {
+              b.sweepT += dt; tsl = tsr = -1.45; tel = ter = -0.1; tty = -1.1;
+              if (!b.hitDone && b.sweepT > 0.12) { b.hitDone = true; app.sound.playNoiseBurst({ duration: 0.3, filterType: 'bandpass', startFreq: 900, endFreq: 200, Q: 1, gainVal: 0.25 }); let df = Math.atan2(dx, dz) - b.yaw; while (df > Math.PI) df -= Math.PI * 2; while (df < -Math.PI) df += Math.PI * 2; if (d < 8.9 && Math.abs(df) < 1.22) this._hurt(24, b.pos.x, b.pos.z); if (app.camCtrl) app.camCtrl.addShake(0.2, 0.2); }
+              if (b.st <= 0) { b.state = 'recover'; b.st = 0.9; }
+            } else if (b.atk === 'stomp') {
+              const f = 1 - b.st / 0.6; b.y = Math.sin(Math.min(1, f) * Math.PI) * 4.2; tsl = tsr = -2.6; P.crouch += (0 - P.crouch) * Math.min(1, dt * 12);
+              if (b.st <= 0) { b.y = 0; this._land(); b.state = 'recover'; b.st = 0.9; }
+            } else if (b.atk === 'charge') {
+              tsl = tsr = 0.9; ttx = 0.6; walking = 2.6;
+              b.pos.x += b.dir.x * 22 * dt; b.pos.z += b.dir.z * 22 * dt;
+              if (!b.hitDone && Math.hypot(hero.pos.x - b.pos.x, hero.pos.z - b.pos.z) < 3.8) { b.hitDone = true; if (this._hurt(34, b.pos.x, b.pos.z)) hero.pos.addScaledVector(b.dir, 5); }
+              const ex = b.pos.x - this.AX, ez = b.pos.z - this.AZ;
+              if (Math.hypot(ex, ez) > this.R - 9) { b.state = 'stagger'; b.st = 1.7; b.atk = null; if (app.camCtrl) app.camCtrl.addShake(0.5, 0.4); app.sound.playTone(50, 0.5, 'sine', 0.3, 26); showToast('Grakhor menabrak batas hutan! Serang sekarang!', 'bolt'); }
+              else if (b.st <= 0) { b.state = 'recover'; b.st = 1.3; }
+            }
+            break;
+          case 'recover':
+            b.st -= dt; P.crouch += (0 - P.crouch) * Math.min(1, dt * 8);
+            if (b.st <= 0) { b.state = 'chase'; b.cd = b.enraged ? 0.5 : 1.0; }
+            break;
+          case 'stagger':
+            b.st -= dt; tsl = tsr = -0.9; tel = ter = -0.5; ttx = -0.4; thx = -0.5; P.crouch += (0 - P.crouch) * Math.min(1, dt * 8);
+            if (b.st <= 0) { b.state = 'chase'; b.cd = 0.8; }
+            break;
+          case 'dead': {
+            b.dead += dt; b.root.rotation.x = -Math.min(1.45, b.dead * 0.9);
+            if (b.dead > 4) b.root.position.y = -(b.dead - 4) * 1.2;
+            if (b.dead > 9) { this._clearBoss(); }
+            return;
+          }
+        }
+        // sambungkan pose (ease)
+        const e = Math.min(1, dt * k);
+        const swing = Math.sin(b.walk) * 0.5 * Math.min(1, walking);
+        P.shL += (tsl + swing - P.shL) * e; P.shR += (tsr - swing - P.shR) * e;
+        P.elL += (tel - P.elL) * e; P.elR += (ter - P.elR) * e;
+        P.tx += (ttx - P.tx) * e; P.ty += (tty - P.ty) * e; P.hx += (thx - P.hx) * e;
+        if (walking) { b.walk += dt * (walking > 1 ? 14 : 5.2 * en); b.stepT -= dt; if (b.stepT <= 0 && walking < 2) { b.stepT = 0.6 / en; if (d < 40) { if (app.camCtrl) app.camCtrl.addShake(0.07, 0.09); app.sound.playTone(66, 0.16, 'sine', 0.14, 36); } } }
+        const sw = Math.sin(b.walk);
+        b.L.hip.rotation.x = sw * 0.55 * (walking ? 1 : 0) - P.crouch * 0.5; b.R.hip.rotation.x = -sw * 0.55 * (walking ? 1 : 0) - P.crouch * 0.5;
+        b.L.knee.rotation.x = Math.max(0, -sw) * 0.6 + P.crouch * 1.0; b.R.knee.rotation.x = Math.max(0, sw) * 0.6 + P.crouch * 1.0;
+        b.AL.sh.rotation.x = P.shL; b.AR.sh.rotation.x = P.shR; b.AL.el.rotation.x = P.elL; b.AR.el.rotation.x = P.elR;
+        b.torso.rotation.x = P.tx; b.torso.rotation.y = P.ty; b.head.rotation.x = P.hx;
+        const breathe = Math.sin(b.t * 2) * 0.03;
+        b.torso.scale.y = 1 + breathe; b.body.position.y = -P.crouch * 1.0 + Math.abs(sw) * 0.12 * (walking ? 1 : 0);
+        // pembatas arena + dorong Hero keluar badan boss
+        const ex = b.pos.x - this.AX, ez = b.pos.z - this.AZ, er = Math.hypot(ex, ez);
+        if (er > this.R - 8) { b.pos.x = this.AX + ex / er * (this.R - 8); b.pos.z = this.AZ + ez / er * (this.R - 8); }
+        dx = hero.pos.x - b.pos.x; dz = hero.pos.z - b.pos.z; const d2 = Math.hypot(dx, dz) || 0.001;
+        if (d2 < 3.4 && b.state !== 'dead') { hero.pos.x = b.pos.x + dx / d2 * 3.4; hero.pos.z = b.pos.z + dz / d2 * 3.4; }
+        b.root.position.set(b.pos.x, b.y, b.pos.z); b.root.rotation.y = b.yaw;
+        // kilatan terkena pukulan
+        b.flash = Math.max(0, b.flash - dt);
+        const fl = b.flash > 0 ? 0.85 : 0; b.mats.forEach(m => m.emissive.setRGB(fl, fl * 0.1, 0));
+        this.hudFill.style.width = (b.hp / b.max * 100).toFixed(1) + '%';
+      }
+    }
+
     class PanturaGameApp {
       constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -12309,6 +12910,10 @@
         this.garage = new GarageSystem(this);
         this.progress = new ProgressSystem(this);
         this.extras = new ExtrasSystem(this);
+        this.forest = new ForestSystem(this);
+        this.hero.forest = this.forest;
+        this.clock = new ClockSystem(this);
+        this.clock.apply();
         this.hero.life = this.life;
         this.citizens.life = this.life;
 
@@ -12397,6 +13002,7 @@
       }
 
       _applyTimePreset(idx) {
+        if (this.clock) { this.clock.setHour([17, 12, 21][idx % 3]); return; }
         GameState.timePresetIndex = idx % 3;
         const presets = [
           {
@@ -12781,6 +13387,7 @@
       }
 
       _getZoneName(x, z) {
+        if (x > 500) return 'HUTAN TERLARANG';
         if (GameState.currentBuilding) return GameState.currentBuilding.title.toUpperCase();
         if (x > 18 && x < 56 && z > 90 && z < 128) return 'KOLAM RENANG TIRTA PANTURA';
         if (x > -54 && x < -16 && z > 90 && z < 128) return 'KANDANG KUDA PANTURA';
@@ -12880,6 +13487,8 @@
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
             this.extras.update(dt);
+            this.forest.update(dt);
+            this.clock.update(dt);
             this.missions.update(dt);
             this.weather.update(dt);
             this.progress.update(dt);
