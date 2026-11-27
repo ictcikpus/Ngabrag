@@ -1859,9 +1859,10 @@
         this.trafficLights = [];
         this.cashPickups = [];
         this.destructionTargets = [];
-        this.worldLimit = 145;
+        this.worldLimit = 220;
         this.arena = { x: 900, z: 900, r: 60 };
-        this.roadCoords = [-70, 0, 70];
+        this.roadCoords = [-150, -70, 0, 70, 150];
+        this.districts = [];
 
         this._buildGroundAndRoads();
         this._buildLandmarks();
@@ -1965,6 +1966,83 @@
         return false;
       }
 
+      pedestrianPath(from, to, step = 4) {
+        const clear = (ax, az, bx, bz) => {
+          const steps = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.85);
+          for (let i = 1; i <= steps; i++) {
+            if (this.isCircleBlocked(ax + (bx - ax) * i / steps, az + (bz - az) * i / steps, 0.61)) return false;
+          }
+          return true;
+        };
+        if (clear(from.x, from.z, to.x, to.z)) return [to];
+
+        const side = Math.floor(this.worldLimit / step);
+        const span = side * 2 + 1;
+        const key = (x, z) => z * span + x;
+        const point = index => ({ x: (index % span - side) * step, z: (Math.floor(index / span) - side) * step });
+        const nearest = pos => {
+          const cx = Math.round(pos.x / step) + side;
+          const cz = Math.round(pos.z / step) + side;
+          let best = -1, distance = Infinity;
+          for (let z = Math.max(0, cz - 2); z < Math.min(span, cz + 3); z++) {
+            for (let x = Math.max(0, cx - 2); x < Math.min(span, cx + 3); x++) {
+              const index = key(x, z);
+              const p = point(index);
+              const d = Math.hypot(p.x - pos.x, p.z - pos.z);
+              if (d < distance && !this.isCircleBlocked(p.x, p.z, 0.61) && clear(pos.x, pos.z, p.x, p.z)) {
+                best = index; distance = d;
+              }
+            }
+          }
+          return best;
+        };
+        const start = nearest(from), end = nearest(to);
+        if (start < 0 || end < 0) return [];
+        const target = point(end);
+        const open = [{ index: start, cost: 0, score: 0 }];
+        const costs = new Map([[start, 0]]);
+        const previous = new Map();
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+        while (open.length && previous.size < 3500) {
+          let best = 0;
+          for (let i = 1; i < open.length; i++) if (open[i].score < open[best].score) best = i;
+          const node = open[best];
+          open[best] = open[open.length - 1];
+          open.pop();
+          if (node.cost !== costs.get(node.index)) continue;
+          if (node.index === end) {
+            const path = [to];
+            for (let index = end; index !== undefined; index = previous.get(index)) path.push(point(index));
+            path.reverse();
+            const waypoints = [];
+            let last = from;
+            for (let i = 0; i < path.length;) {
+              let next = path.length - 1;
+              while (next > i && !clear(last.x, last.z, path[next].x, path[next].z)) next--;
+              last = path[next];
+              waypoints.push(last);
+              i = next + 1;
+            }
+            return waypoints;
+          }
+          const p = point(node.index);
+          const cx = node.index % span, cz = Math.floor(node.index / span);
+          for (const [dx, dz] of dirs) {
+            const x = cx + dx, z = cz + dz;
+            if (x < 0 || x >= span || z < 0 || z >= span) continue;
+            const index = key(x, z);
+            const cost = node.cost + Math.hypot(dx, dz) * step;
+            if (cost >= (costs.get(index) ?? Infinity)) continue;
+            const next = point(index);
+            if (!clear(p.x, p.z, next.x, next.z)) continue;
+            costs.set(index, cost);
+            previous.set(index, node.index);
+            open.push({ index, cost, score: cost + Math.hypot(next.x - target.x, next.z - target.z) });
+          }
+        }
+        return [];
+      }
+
       getBuildingAt(x, z) {
         for (let i = 0; i < this.buildings.length; i++) {
           const b = this.buildings[i];
@@ -2000,7 +2078,7 @@
 
       _buildGroundAndRoads() {
         const ground = new THREE.Mesh(
-          new THREE.PlaneGeometry(310, 310),
+          new THREE.PlaneGeometry(this.worldLimit * 2 + 20, this.worldLimit * 2 + 20),
           new THREE.MeshStandardMaterial({ color: 0x365314, roughness: 0.92 })
         );
         ground.rotation.x = -Math.PI / 2;
@@ -2008,22 +2086,22 @@
         this.scene.add(ground);
 
         const roadH = TextureFactory.createRoadTexture(false);
-        roadH.repeat.set(18, 1);
+        roadH.repeat.set(this.worldLimit / 8, 1);
         const roadV = TextureFactory.createRoadTexture(true);
-        roadV.repeat.set(1, 18);
+        roadV.repeat.set(1, this.worldLimit / 8);
 
         const matH = new THREE.MeshStandardMaterial({ map: roadH, roughness: 0.78 });
         const matV = new THREE.MeshStandardMaterial({ map: roadV, roughness: 0.78 });
         const interMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.8 });
 
         this.roadCoords.forEach(c => {
-          const hMesh = new THREE.Mesh(new THREE.PlaneGeometry(290, 14), matH);
+          const hMesh = new THREE.Mesh(new THREE.PlaneGeometry(this.worldLimit * 2, 14), matH);
           hMesh.rotation.x = -Math.PI / 2;
           hMesh.position.set(0, 0.03, c);
           hMesh.receiveShadow = true;
           this.scene.add(hMesh);
 
-          const vMesh = new THREE.Mesh(new THREE.PlaneGeometry(14, 290), matV);
+          const vMesh = new THREE.Mesh(new THREE.PlaneGeometry(14, this.worldLimit * 2), matV);
           vMesh.rotation.x = -Math.PI / 2;
           vMesh.position.set(c, 0.032, 0);
           vMesh.receiveShadow = true;
@@ -2486,7 +2564,9 @@
         });
 
         // Traffic Light Signal at Main Intersection (-70, -70) & (70, -70)
-        [[-61, -61], [61, -61]].forEach(([tx, tz]) => {
+        [[-70, -70, 9], [70, -70, -9]].forEach(([x, z, offset]) => {
+          const tx = x + offset;
+          const tz = z + 9;
           const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 5.5, 8), poleMat);
           post.position.set(tx, 2.75, tz);
           this.scene.add(post);
@@ -2505,7 +2585,7 @@
           const gBulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), greenMat);
           gBulb.position.set(tx, 4.85, tz + 0.28);
           this.scene.add(rBulb, gBulb);
-          this.trafficLights.push({ redMat, greenMat });
+          this.trafficLights.push({ x, z, redMat, greenMat });
         });
         this.tlTimer = 0;
       }
@@ -2630,7 +2710,7 @@
     const rideSeat = (t) => { const a = (RIDE[t] || RIDE.motorbike).seat; return new THREE.Vector3(a[0], a[1], a[2]); };
 
     class CharacterRigFactory {
-      static createRig(app = GameState.appearance) {
+      static createRig(app, equipment = {}) {
         const root = new THREE.Group();
 
         const skinMat = new THREE.MeshStandardMaterial({ color: app.skinColor || '#c68642', roughness: 0.65 });
@@ -2656,14 +2736,6 @@
         chestMesh.position.set(0, 0.28, 0);
         chestMesh.castShadow = true;
         torso.add(chestMesh);
-
-        // Jacket / Batik / Hoodie Accent Overlay
-        const jacketStripe = new THREE.Mesh(
-          new THREE.BoxGeometry(0.50, 0.54, 0.29),
-          new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.14 })
-        );
-        jacketStripe.position.set(0, 0.28, 0);
-        torso.add(jacketStripe);
 
         // Backpack Gear (on back)
         const backpackMesh = new THREE.Mesh(
@@ -2858,15 +2930,14 @@
           rightKneePivot: rightLeg.kneePivot,
           materials: { skinMat, shirtMat, pantsMat, shoesMat },
           body: {
-            chest: chestMesh, hip: hipMesh, headMesh, jacket: jacketStripe,
+            chest: chestMesh, hip: hipMesh, headMesh,
             uaL: leftArm.upperArm, uaR: rightArm.upperArm, faL: leftArm.forearm, faR: rightArm.forearm,
             thL: leftLeg.thigh, thR: rightLeg.thigh, shL: leftLeg.shin, shR: rightLeg.shin
           },
           parts: {
             hairShort,
             capGroup,
-            helmetGroup,
-            jacketStripe
+            helmetGroup
           },
           backpackMesh,
           leftGloveMesh: leftArm.gloveMesh,
@@ -2878,7 +2949,7 @@
           drinkCupMesh
         };
 
-        this.applyAppearance(rig, app);
+        this.applyAppearance(rig, app, equipment);
         return rig;
       }
 
@@ -2894,8 +2965,7 @@
         rig.parts.capGroup.visible = app.hair === 'hair_cap';
         rig.parts.helmetGroup.visible = app.hair === 'hair_helmet';
 
-        rig.parts.jacketStripe.visible = app.top !== 'top_kaos';
-        rig.parts.jacketStripe.material.opacity = app.top === 'top_batik' ? 0.28 : 0.16;
+        this.applyOutfit(rig, app, rig._ph ? rig._ph.tier : 0);
 
         rig.backpackMesh.visible = Boolean(eq.backpack);
         rig.leftGloveMesh.visible = Boolean(eq.gloves);
@@ -2903,6 +2973,93 @@
         rig.blasterMesh.visible = Boolean(eq.blaster);
         rig.glassesMesh.visible = Boolean(eq.glasses);
         rig.maskMesh.visible = Boolean(eq.mask);
+      }
+
+      static buildOutfit(rig) {
+        const { chest, thL, thR, shL, shR } = rig.body;
+        const { shirtMat, pantsMat } = rig.materials;
+        const topDetail = new THREE.MeshStandardMaterial({ roughness: 0.75 });
+        const pantsDetail = new THREE.MeshStandardMaterial({ roughness: 0.75 });
+        const trim = new THREE.MeshStandardMaterial({ color: 0x263445, roughness: 0.7 });
+        const hardware = new THREE.MeshStandardMaterial({ color: 0xd5dce6, roughness: 0.45 });
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const box = (parent, mat, w, h, d, x, y, z) => {
+          const mesh = new THREE.Mesh(geometry, mat);
+          mesh.scale.set(w, h, d);
+          mesh.position.set(x, y, z);
+          parent.add(mesh);
+          return mesh;
+        };
+        const group = (parent) => {
+          const model = new THREE.Group();
+          parent.add(model);
+          return model;
+        };
+
+        const jacket = group(chest);
+        box(jacket, shirtMat, 0.51, 0.54, 0.32, 0, 0, 0);
+        box(jacket, trim, 0.32, 0.08, 0.33, 0, 0.25, 0);
+        box(jacket, trim, 0.52, 0.055, 0.33, 0, -0.24, 0);
+        box(jacket, hardware, 0.018, 0.46, 0.012, 0, 0.025, 0.164);
+        for (const x of [-0.15, 0.15]) {
+          box(jacket, topDetail, 0.17, 0.07, 0.022, x, 0.12, 0.167);
+        }
+
+        const batik = group(chest);
+        box(batik, trim, 0.23, 0.035, 0.068, 0, 0.228, 0.128);
+        for (const z of [-0.143, 0.143]) {
+          for (const y of [-0.18, -0.06, 0.06, 0.18]) {
+            for (const x of [-0.15, -0.05, 0.05, 0.15]) {
+              box(batik, topDetail, 0.053, 0.053, 0.009, x, y, z).rotation.z = Math.PI / 4;
+            }
+          }
+        }
+
+        const hoodie = group(chest);
+        box(hoodie, shirtMat, 0.52, 0.54, 0.34, 0, 0, 0);
+        const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), shirtMat);
+        hood.scale.set(1.05, 0.83, 0.66);
+        hood.position.set(0, 0.235, -0.15);
+        hoodie.add(hood);
+        box(hoodie, topDetail, 0.29, 0.12, 0.042, 0, -0.14, 0.174);
+        for (const x of [-0.055, 0.055]) {
+          box(hoodie, hardware, 0.013, 0.14, 0.01, x, 0.15, 0.175);
+        }
+
+        const cargo = [];
+        const training = [];
+        [[thL, shL, 1], [thR, shR, -1]].forEach(([thigh, shin, side]) => {
+          cargo.push(box(thigh, pantsDetail, 0.045, 0.21, 0.14, side * 0.092, -0.02, 0));
+          cargo.push(box(thigh, trim, 0.05, 0.045, 0.145, side * 0.095, 0.065, 0));
+          cargo.push(box(shin, pantsMat, 0.18, 0.35, 0.185, 0, 0.01, 0));
+          for (const [leg, edge, height] of [[thigh, 0.085, 0.42], [shin, 0.075, 0.38]]) {
+            training.push(box(leg, pantsDetail, 0.014, height, 0.047, side * edge, 0, 0));
+            training.push(box(leg, pantsDetail, 0.026, height, 0.012, side * (edge - 0.021), 0, edge + 0.006));
+          }
+        });
+        return { jacket, batik, hoodie, cargo, training, topDetail, pantsDetail };
+      }
+
+      static applyOutfit(rig, app, tearTier = 0) {
+        const { top, pants } = app;
+        const { skinMat, shirtMat, pantsMat } = rig.materials;
+        const { faL, faR, shL, shR } = rig.body;
+        const longSleeves = top === 'top_jaket' || top === 'top_hoodie';
+        faL.material = faR.material = longSleeves && tearTier === 0 ? shirtMat : skinMat;
+        shL.material = shR.material = pants === 'pants_shorts' ? skinMat : pantsMat;
+
+        if (!rig.outfit) {
+          if (!longSleeves && top !== 'top_batik' && pants !== 'pants_cargo' && pants !== 'pants_training') return;
+          rig.outfit = this.buildOutfit(rig);
+        }
+        const { jacket, batik, hoodie, cargo, training, topDetail, pantsDetail } = rig.outfit;
+        topDetail.color.setHex(0xffe2a0).lerp(shirtMat.color, 0.38);
+        pantsDetail.color.setHex(0xe2e8f0).lerp(pantsMat.color, pants === 'pants_cargo' ? 0.76 : 0.22);
+        jacket.visible = tearTier < 2 && top === 'top_jaket';
+        batik.visible = tearTier < 2 && top === 'top_batik';
+        hoodie.visible = tearTier < 2 && top === 'top_hoodie';
+        cargo.forEach(mesh => { mesh.visible = pants === 'pants_cargo'; });
+        training.forEach(mesh => { mesh.visible = pants === 'pants_training'; });
       }
     }
 
@@ -2915,7 +3072,7 @@
         this.world = world;
         this.sound = sound;
 
-        this.rig = CharacterRigFactory.createRig(GameState.appearance);
+        this.rig = CharacterRigFactory.createRig(GameState.appearance, GameState.equipped);
         this.pos = new THREE.Vector3(0, 0.22, 16);
         this.yaw = Math.PI;
         this.velY = 0;
@@ -4132,6 +4289,90 @@
         this.list = [];
         this.driftSoundCooldown = 0;
         this._spawnInitialFleet();
+        this._spawnTraffic();
+      }
+
+      _spawnTraffic() {
+        const makeRoute = ([left, right, north, south], reverse) => {
+          const corners = [[left, north], [right, north], [right, south], [left, south]]
+            .map(([x, z]) => new THREE.Vector3(x, 0, z));
+          if (reverse) corners.reverse();
+          const around = (corner, adjacent) => corner.clone().lerp(adjacent, 5 / corner.distanceTo(adjacent));
+          const before = corners.map((corner, i) => around(corner, corners[(i + 3) % 4]));
+          const after = corners.map((corner, i) => around(corner, corners[(i + 1) % 4]));
+          const route = new THREE.CurvePath();
+          for (let i = 0; i < corners.length; i++) {
+            route.add(new THREE.QuadraticBezierCurve3(before[i], corners[i], after[i]));
+            route.add(new THREE.LineCurve3(after[i], before[(i + 1) % 4]));
+          }
+          return route;
+        };
+        const colors = [0x2563eb, 0xffffff, 0x0d9488, 0x64748b, 0xbe123c, 0xf2c34d];
+        const routes = [
+          [[-73, 73, -73, 73], false, 3, 0.42],
+          [[-67, 67, -67, 67], true, 3, 0.66],
+          [[-73, 73, -73, 3], false, 3, 0.05],
+          [[-67, 67, -67, -3], true, 3, 0.47],
+          [[-153, 153, -153, 153], false, 4, 0.18],
+          [[-147, 147, -147, 147], true, 4, 0.51],
+        ];
+        for (const [bounds, reverse, count, offset] of routes) {
+          const route = makeRoute(bounds, reverse);
+          const length = route.getLength();
+          for (let i = 0; i < count; i++) {
+            const distance = length * (i + offset) / count;
+            const p = route.getPoint(distance / length);
+            const next = route.getPoint((distance + 1) / length);
+            this.addVehicle({
+              name: 'Mobil Lalu Lintas', type: i % 3 === 0 ? 'suv' : 'sedan',
+              x: p.x, z: p.z, yaw: Math.atan2(next.x - p.x, next.z - p.z),
+              color: colors[(i + (reverse ? 2 : 0)) % colors.length],
+              traffic: { route, length, distance, cruise: 8 + i % 3 * 1.3 },
+            });
+          }
+        }
+      }
+
+      _driveTraffic(v, dt, hero) {
+        const t = v.traffic;
+        const hour = GameState.clock ?? 16.5;
+        const isDay = hour >= 6 && hour < 18;
+        v.mesh.visible = isDay;
+        if (!isDay || v.disabled) { v.speed = 0; return; }
+
+        const fx = Math.sin(v.yaw);
+        const fz = Math.cos(v.yaw);
+        let target = t.cruise;
+        const clearance = (x, z, width, buffer) => {
+          const dx = x - v.pos.x;
+          const dz = z - v.pos.z;
+          const ahead = dx * fx + dz * fz;
+          if (ahead > 0 && ahead < 23 && Math.abs(dx * fz - dz * fx) < width) {
+            target = Math.min(target, Math.max(0, (ahead - buffer) * 1.3));
+          }
+        };
+        for (const other of this.list) {
+          if (other !== v && other.mesh.visible) clearance(other.pos.x, other.pos.z, 1.8, 4.6);
+        }
+        if (hero && !GameState.inVehicle) clearance(hero.pos.x, hero.pos.z, 1.55, 3.2);
+        const northSouth = Math.abs(fz) > 0.75;
+        const eastWest = Math.abs(fx) > 0.75;
+        const greenNorthSouth = this.world.tlTimer > 5;
+        for (const signal of this.world.trafficLights) {
+          const ahead = (signal.x - v.pos.x) * fx + (signal.z - v.pos.z) * fz;
+          if (ahead >= 7 && ((northSouth && !greenNorthSouth) || (eastWest && greenNorthSouth))) {
+            clearance(signal.x, signal.z, 5.3, 8);
+          }
+        }
+        v.speed += clamp(target - v.speed, -11 * dt, 3.8 * dt);
+        t.distance = (t.distance + v.speed * dt) % t.length;
+        const p = t.route.getPoint(t.distance / t.length);
+        const next = t.route.getPoint(((t.distance + 0.65) % t.length) / t.length);
+        v.pos.set(p.x, this.world.getGroundHeight(p.x, p.z), p.z);
+        v.yaw = Math.atan2(next.x - p.x, next.z - p.z);
+        v.mesh.position.copy(v.pos);
+        v.mesh.rotation.y = v.yaw;
+        v.wheels.forEach(wheel => { wheel.rotation.x += v.speed * dt * 2.6; });
       }
 
       _createVehicleMesh(spec) {
@@ -4370,6 +4611,8 @@
         const pos = new THREE.Vector3(spec.x, gy, spec.z);
         built.root.position.copy(pos);
         built.root.rotation.y = spec.yaw || 0;
+        const hour = GameState.clock ?? 16.5;
+        if (spec.traffic) built.root.visible = hour >= 6 && hour < 18;
         this.scene.add(built.root);
 
         const veh = {
@@ -4394,7 +4637,8 @@
           smokeCooldown: 0,
           conditionWarned: false,
           noEngine: spec.type === 'bicycle' || spec.type === 'horse',
-          noTune: spec.type === 'bicycle' || spec.type === 'horse'
+          noTune: Boolean(spec.traffic) || spec.type === 'bicycle' || spec.type === 'horse',
+          traffic: spec.traffic || null
         };
         this.list.push(veh);
         if (typeof GarageSystem !== 'undefined') GarageSystem.apply(veh);
@@ -4404,10 +4648,11 @@
       spawnPurchasedVehicle(spec, nearPos) {
         const offsetX = nearPos.x + 4.5;
         const offsetZ = nearPos.z + 3.5;
+        const limit = this.world.worldLimit - 10;
         return this.addVehicle({
           ...spec,
-          x: clamp(offsetX, -135, 135),
-          z: clamp(offsetZ, -135, 135),
+          x: clamp(offsetX, -limit, limit),
+          z: clamp(offsetZ, -limit, limit),
           yaw: Math.PI
         });
       }
@@ -4417,7 +4662,7 @@
         let bestD = maxDist;
         for (let i = 0; i < this.list.length; i++) {
           const v = this.list[i];
-          if (v.disabled) continue;
+          if (v.disabled || v.traffic) continue;
           const d = pos.distanceTo(v.pos);
           if (d < bestD) {
             bestD = d;
@@ -4461,6 +4706,10 @@
 
         for (let i = 0; i < this.list.length; i++) {
           const v = this.list[i];
+          if (v.traffic) {
+            this._driveTraffic(v, dt, window.ngabragApp?.hero);
+            continue;
+          }
           if (v.type === 'horse' && v.disabled) {
             v.recoveryTimer -= dt;
             if (v.recoveryTimer <= 0) {
@@ -4516,11 +4765,17 @@
               this.driftSoundCooldown = 0.24;
             }
 
-            v.pos.x += Math.sin(v.yaw) * v.speed * dt;
-            v.pos.z += Math.cos(v.yaw) * v.speed * dt;
-
+            const dx = Math.sin(v.yaw) * v.speed * dt;
+            const dz = Math.cos(v.yaw) * v.speed * dt;
             const radius = RIDE[v.type] ? RIDE[v.type].r : 1.55;
-            if (this.world.resolveCircleCollision(v.pos, radius)) {
+            v.pos.x += dx;
+            v.pos.z += dz;
+            const hitTraffic = this.list.some(other => other.traffic && other.mesh.visible
+              && Math.hypot(other.pos.x - v.pos.x, other.pos.z - v.pos.z) < radius + 1.45
+              && Math.hypot(other.pos.x - v.pos.x + dx, other.pos.z - v.pos.z + dz)
+                >= Math.hypot(other.pos.x - v.pos.x, other.pos.z - v.pos.z));
+            if (hitTraffic) { v.pos.x -= dx; v.pos.z -= dz; }
+            if (this.world.resolveCircleCollision(v.pos, radius) || hitTraffic) {
               if (Math.abs(v.speed) > 8 && v.impactCooldown <= 0) {
                 this.damageVehicle(v, Math.min(37, Math.abs(v.speed) * 1.4));
                 v.impactCooldown = 0.65;
@@ -4533,7 +4788,7 @@
             if (citizens && citizens.list && Math.abs(v.speed) > 4.5) {
               for (let j = 0; j < citizens.list.length; j++) {
                 const c = citizens.list[j];
-                if (v.pos.distanceTo(c.pos) < radius + 0.65) {
+                if (!c.atHome && !c.offShift && v.pos.distanceTo(c.pos) < radius + 0.65) {
                   const pushDir = new THREE.Vector3().subVectors(c.pos, v.pos).normalize();
                   citizens.onHitCitizen(c, 35, pushDir, true);
                   v.speed *= 0.72;
@@ -4918,6 +5173,7 @@
         let bestD = maxDist;
         for (let i = 0; i < this.list.length; i++) {
           const c = this.list[i];
+          if (c.atHome || c.offShift) continue;
           const d = pos.distanceTo(c.pos);
           if (d < bestD) {
             bestD = d;
@@ -4932,6 +5188,7 @@
         let bestD = maxDist;
         for (let i = 0; i < this.list.length; i++) {
           const c = this.list[i];
+          if (c.atHome || c.offShift) continue;
           const toC = new THREE.Vector3().subVectors(c.pos, origin);
           toC.y = 0;
           const dist = toC.length();
@@ -4963,7 +5220,7 @@
       reactToHorn(hornPos) {
         for (let i = 0; i < this.list.length; i++) {
           const c = this.list[i];
-          if (c.pos.distanceTo(hornPos) < 11) {
+          if (!c.atHome && !c.offShift && c.pos.distanceTo(hornPos) < 11) {
             c.greetTimer = 1.4;
             this.sound.playNpcVoice('surprise', c.female);
           }
@@ -5026,7 +5283,7 @@
           // Warga kuat lain ikut membela
           for (let k = 0; k < this.list.length; k++) {
             const o = this.list[k];
-            if (o === c || !o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
+            if (o === c || o.atHome || o.offShift || !o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
             if (o.pos.distanceTo(c.pos) < 11) {
               o.hostile = 20;
               if (this.life) this.life.say(o, 'Hei! Jangan main pukul warga sini!', 2.4);
@@ -5039,7 +5296,7 @@
           // jagoan terdekat membela warga lemah
           for (let k = 0; k < this.list.length; k++) {
             const o = this.list[k];
-            if (!o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
+            if (o.atHome || o.offShift || !o.tier || o.tier === 'biasa' || o.hostile > 0 || (o.truce || 0) > 0 || o.downTimer > 0) continue;
             if (o.pos.distanceTo(c.pos) < 12 && !fromVehicle) {
               o.hostile = 20;
               if (this.life) this.life.say(o, 'Heh! Berani pukul warga? Hadapi gue!', 2.6);
@@ -5065,10 +5322,11 @@
         this._updateCore(dt, hero);
         this._separate(dt, hero);
         this._updateDogs(dt, hero);
+        this._updateStrays(dt, hero);
       }
 
       // ---------- Anjing peliharaan warga (jalan mengikuti pemilik dengan tali) ----------
-      attachDog(c, kind = 0) {
+      attachDog(c, kind = 0, stray = false) {
         if (kind >= 4) return this._attachGoat(c);
         const pal = [
           { fur: 0x9a6a3c, dark: 0x5b3a1a, belly: 0xe7c9a0 },
@@ -5090,7 +5348,11 @@
           const ear = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.17, 0.1), dark); ear.position.set(x * 1.35, 0.15, -0.02); ear.rotation.z = x > 0 ? -0.3 : 0.3; head.add(ear);
           const eye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.03), M(0x050505)); eye.position.set(x, 0.04, 0.15); head.add(eye);
         });
-        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.1), M(0xdc2626)); collar.position.set(0, 0.6, 0.3); g.add(collar);
+        if (!stray) {
+          const collar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.1), M(0xdc2626));
+          collar.position.set(0, 0.6, 0.3);
+          g.add(collar);
+        }
         const tail = new THREE.Group(); tail.position.set(0, 0.62, -0.38); g.add(tail);
         const tm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.34), dark); tm.position.set(0, 0.08, -0.15); tm.rotation.x = 0.7; tail.add(tm);
         const legs = [[-0.12, 0.26], [0.12, 0.26], [-0.12, -0.26], [0.12, -0.26]].map(([x, z]) => {
@@ -5102,7 +5364,7 @@
         const gy = this.world.getGroundHeight(c.pos.x, c.pos.z);
         g.position.set(c.pos.x - 1.2, gy, c.pos.z - 0.8);
         this.scene.add(g);
-        const leash = this._makeLeash();
+        const leash = stray ? null : this._makeLeash();
         c.dog = { sc: 1.35, collar: new THREE.Vector3(0, 0.6, 0.3), goat: false, root: g, head, tail, legs, leash, pos: g.position, yaw: c.yaw, cycle: Math.random() * 6, speed: 0, barkT: 2 + Math.random() * 4, side: Math.random() < 0.5 ? 1 : -1, sniff: 0, wander: new THREE.Vector3() };
         return c.dog;
       }
@@ -5155,6 +5417,72 @@
         c.dog = null;
       }
 
+      _animateDog(d, dt, heroD, fighting) {
+        d.root.rotation.y = d.yaw;
+      d.cycle += d.speed * dt * 5.5;
+      const sw = Math.sin(d.cycle) * Math.min(1, d.speed / 2.2) * 0.8;
+      d.legs[0].rotation.x = sw; d.legs[3].rotation.x = sw; d.legs[1].rotation.x = -sw; d.legs[2].rotation.x = -sw;
+      const t = performance.now() * 0.001;
+      const happy = heroD < 6 || fighting;
+      d.tail.rotation.y = Math.sin(t * (happy ? 18 : 8)) * (happy ? 0.7 : 0.4);
+      d.tail.rotation.x = fighting ? -0.5 : 0;
+      const sniffing = d.speed < 0.5 && !fighting;
+      d.head.rotation.x = sniffing ? 0.55 + Math.sin(t * 7) * 0.12 : Math.sin(d.cycle * 2) * 0.05;
+      d.root.position.y = d.pos.y + Math.abs(Math.sin(d.cycle)) * 0.04 * Math.min(1, d.speed / 2);
+      }
+
+      spawnStrays(positions) {
+        this.strays = positions.map(([x, z], i) => {
+          const origin = new THREE.Vector3(x, 0, z);
+          const dog = this.attachDog({ pos: origin, yaw: i }, i % 4, true);
+          dog.origin = origin;
+          dog.goal = origin.clone();
+          dog.root.visible = false;
+          return dog;
+        });
+      }
+
+      _updateStrays(dt, hero) {
+        if (!this.strays) return;
+        const slot = this.life?.routineSlot;
+        const night = slot === 0 || slot === 3;
+        this.strays.forEach((dog, index) => {
+          const heroD = Math.hypot(hero.pos.x - dog.pos.x, hero.pos.z - dog.pos.z);
+          dog.root.visible = night && heroD < 88 && (index < 4 || slot === 0);
+          if (!dog.root.visible) return;
+          dog.sniff -= dt;
+          const dx = dog.goal.x - dog.pos.x;
+          const dz = dog.goal.z - dog.pos.z;
+          const distance = Math.hypot(dx, dz);
+          if (dog.sniff <= 0) {
+            dog.sniff = 3 + Math.random() * 4;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 2 + Math.random() * (slot === 0 ? 10 : 6);
+            dog.goal.set(dog.origin.x + Math.sin(angle) * radius, 0, dog.origin.z + Math.cos(angle) * radius);
+          }
+          dog.speed = distance > 0.4 ? Math.min(2.4, distance * 1.6) : 0;
+          if (dog.speed > 0) {
+            const move = Math.min(distance, dt * dog.speed);
+            const x = dog.pos.x + dx / distance * move;
+            const z = dog.pos.z + dz / distance * move;
+            if (this.world.isCircleBlocked(x, z, 0.35)) { dog.sniff = 0; dog.speed = 0; }
+            else {
+              const yaw = Math.atan2(dx, dz) - dog.yaw;
+              dog.yaw += Math.atan2(Math.sin(yaw), Math.cos(yaw)) * Math.min(1, dt * 8);
+              dog.pos.x = x;
+              dog.pos.z = z;
+            }
+          }
+          dog.pos.y = this.world.getGroundHeight(dog.pos.x, dog.pos.z);
+          this._animateDog(dog, dt, heroD, false);
+          dog.barkT -= dt;
+          if (dog.barkT <= 0) {
+            if (heroD < 12) this.sound.playBark?.();
+            dog.barkT = 5 + Math.random() * 7;
+          }
+        });
+      }
+
       _updateDogs(dt, hero) {
         const app = window.ngabragApp;
         this.list.forEach(c => {
@@ -5163,8 +5491,9 @@
           if (!d.root.parent) this.scene.add(d.root);
           if (!d.leash.parent) this.scene.add(d.leash);
           if (!isFinite(d.pos.x) || !isFinite(d.pos.z)) { d.pos.set(c.pos.x - 1, c.pos.y, c.pos.z - 1); }
-          d.root.visible = true;
-          d.leash.visible = true;
+          d.root.visible = !c.atHome && !c.offShift && c.rig.root.visible;
+          d.leash.visible = d.root.visible;
+          if (!d.root.visible) return;
           const hx = hero.pos.x - d.pos.x; const hz = hero.pos.z - d.pos.z;
           const heroD = Math.hypot(hx, hz);
           const fighting = (c.hostile > 0) || (c.flee > 0) || (c.atk != null);
@@ -5204,18 +5533,7 @@
           d.pos.y = this.world.getGroundHeight(d.pos.x, d.pos.z);
           // menoleh ke Hero saat dekat & diam
           if (heroD < 5 && d.speed < 0.6) { let da = Math.atan2(hx, hz) - d.yaw; da = Math.atan2(Math.sin(da), Math.cos(da)); d.yaw += da * Math.min(1, dt * 5); }
-          d.root.rotation.y = d.yaw;
-          // animasi
-          d.cycle += d.speed * dt * 5.5;
-          const sw = Math.sin(d.cycle) * Math.min(1, d.speed / 2.2) * 0.8;
-          d.legs[0].rotation.x = sw; d.legs[3].rotation.x = sw; d.legs[1].rotation.x = -sw; d.legs[2].rotation.x = -sw;
-          const t = performance.now() * 0.001;
-          const happy = heroD < 6 || fighting;
-          d.tail.rotation.y = Math.sin(t * (happy ? 18 : 8)) * (happy ? 0.7 : 0.4);
-          d.tail.rotation.x = fighting ? -0.5 : 0;
-          const sniffing = d.speed < 0.5 && !fighting;
-          d.head.rotation.x = sniffing ? 0.55 + Math.sin(t * 7) * 0.12 : Math.sin(d.cycle * 2) * 0.05;
-          d.root.position.y = d.pos.y + Math.abs(Math.sin(d.cycle)) * 0.04 * Math.min(1, d.speed / 2);
+          this._animateDog(d, dt, heroD, fighting);
           // gonggong
           d.barkT -= dt;
           if (d.barkT <= 0) {
@@ -5250,6 +5568,7 @@
           if (!a.rig.root.visible) continue;
           for (let j = i + 1; j < L.length; j++) {
             const b = L[j];
+            if (!b.rig.root.visible || b.atHome || b.offShift) continue;
             const dx = b.pos.x - a.pos.x;
             const dz = b.pos.z - a.pos.z;
             const d2 = dx * dx + dz * dz;
@@ -5312,6 +5631,7 @@
         for (let i = 0; i < this.list.length; i++) {
           const c = this.list[i];
           c._busy = false;
+          if (c.atHome || c.offShift) continue;
           if (c.flashTimer > 0) c.flashTimer -= dt;
           if (c.staggerTimer > 0) c.staggerTimer -= dt;
           if (c.truce > 0) c.truce -= dt;
@@ -5341,8 +5661,17 @@
             showToast(`${c.name} menantangmu! Siap-siap: gulung (roll) untuk menghindar, tangkis untuk mengurangi damage.`, 'alert');
           }
 
+          const activeTarget = this.life?.app.missions?.active?.target === c;
+          if (c.routine && this.life && !activeTarget && c.downTimer <= 0 && c.staggerTimer <= 0
+              && c.downBlend < 0.02 && c.knockbackVel.lengthSq() <= 0.05 && !(c.hostile > 0)
+              && !(c.flee > 0) && (c.fixed || (c.angryTimer <= 0 && c.greetTimer <= 0))) {
+            if (c.fixed) { c.greetTimer = 0; c.angryTimer = 0; }
+            this.life.updateRoutineActor(c, dt, hero);
+            continue;
+          }
+
           // Warga beraktivitas (ngobrol, olahraga, jualan, dll.) dikendalikan LifeSystem
-          if (c.act && this.life && c.downTimer <= 0 && c.staggerTimer <= 0 && c.knockbackVel.lengthSq() <= 0.05
+          if (c.act && !c.routine && this.life && c.downTimer <= 0 && c.staggerTimer <= 0 && c.knockbackVel.lengthSq() <= 0.05
               && !(c.hostile > 0) && (c.fixed || (c.angryTimer <= 0 && c.greetTimer <= 0))) {
             if (c.fixed) { c.greetTimer = 0; c.angryTimer = 0; }
             c._busy = true;
@@ -5392,6 +5721,7 @@
                 c.turnTimer = 2.0 + Math.random() * 3.5;
                 c.yaw += (Math.random() - 0.5) * 2.4;
               }
+              if (c.nightAnchor && c.pos.distanceTo(c.nightAnchor) > 15) c.yaw = Math.atan2(c.nightAnchor.x - c.pos.x, c.nightAnchor.z - c.pos.z);
               const speed = 1.65;
               c.pos.x += Math.sin(c.yaw) * speed * dt;
               c.pos.z += Math.cos(c.yaw) * speed * dt;
@@ -5657,8 +5987,11 @@
         world.roadCoords.forEach(rc => {
           const rx = cx + (rc - heroPos.x) * scale;
           const rz = cy + (rc - heroPos.z) * scale;
-          ctx.fillRect(rx - 4, 0, 8, h);
-          ctx.fillRect(0, rz - 4, w, 8);
+          const minX = cx + (-world.worldLimit - heroPos.x) * scale;
+          const minZ = cy + (-world.worldLimit - heroPos.z) * scale;
+          const size = world.worldLimit * 2 * scale;
+          ctx.fillRect(rx - 4, minZ, 8, size);
+          ctx.fillRect(minX, rz - 4, size, 8);
         });
 
         // Alun-Alun & Sasana Tinju
@@ -5666,6 +5999,19 @@
         ctx.fillRect(cx + (-16 - heroPos.x) * scale, cy + (-11 - heroPos.z) * scale, 32 * scale, 22 * scale);
         ctx.fillStyle = '#e11d48';
         ctx.fillRect(cx + (-5 - heroPos.x) * scale, cy + (41 - heroPos.z) * scale, 10 * scale, 10 * scale);
+
+        for (const area of world.districts) {
+          const x = cx + (area.x - heroPos.x) * scale;
+          const z = cy + (area.z - heroPos.z) * scale;
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = area.accent;
+          ctx.fillRect(x - area.w * scale / 2, z - area.d * scale / 2, area.w * scale, area.d * scale);
+          ctx.globalAlpha = 1;
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(area.name, x, z - 10);
+        }
+        ctx.textAlign = 'start';
 
         // Buildings
         ctx.fillStyle = '#64748b';
@@ -5678,6 +6024,8 @@
         // Vehicles
         ctx.fillStyle = '#38bdf8';
         vehicles.list.forEach(v => {
+          if (!v.mesh.visible) return;
+          ctx.fillStyle = v.traffic ? '#94a3b8' : '#38bdf8';
           const vx = cx + (v.pos.x - heroPos.x) * scale;
           const vz = cy + (v.pos.z - heroPos.z) * scale;
           ctx.beginPath();
@@ -5688,6 +6036,8 @@
         // Citizens
         ctx.fillStyle = '#a3e635';
         citizens.list.forEach(c => {
+          if (c.atHome || c.offShift || !c.rig.root.visible) return;
+          ctx.fillStyle = c.tier === 'preman' ? '#f87171' : '#a3e635';
           const px = cx + (c.pos.x - heroPos.x) * scale;
           const pz = cy + (c.pos.z - heroPos.z) * scale;
           ctx.fillRect(px - 1.5, pz - 1.5, 3, 3);
@@ -6178,9 +6528,12 @@
             const startInp = document.getElementById('start-hero-name');
             if (startInp) startInp.value = GameState.heroName;
           }
+          Object.assign(GameState.appearance, this.customAppearance);
+          Object.assign(GameState.equipped, this.customEquipment);
           CharacterRigFactory.applyAppearance(this.app.hero.rig);
           this.app.updateGearBadge();
           this.app.updateHUD();
+          this.app.progress?.save();
           document.getElementById('modal-customize')?.classList.add('hidden');
           GameState.paused = false;
           showToast('Gaya & Kostum Hero diterapkan!', 'check');
@@ -6469,7 +6822,7 @@
         stage.position.y = -0.06;
         this.prevScene.add(stage);
 
-        this.prevRig = CharacterRigFactory.createRig(GameState.appearance);
+        this.prevRig = CharacterRigFactory.createRig(GameState.appearance, GameState.equipped);
         this.prevScene.add(this.prevRig.root);
         this.prevYaw = 0.25;
 
@@ -6491,17 +6844,24 @@
 
       renderPreview() {
         if (!this.prevRenderer || !this.prevRig) return;
-        CharacterRigFactory.applyAppearance(this.prevRig, GameState.appearance, GameState.equipped);
+        CharacterRigFactory.applyAppearance(this.prevRig, this.customAppearance, this.customEquipment);
         this.prevRig.root.rotation.y = this.prevYaw;
         this.prevRenderer.render(this.prevScene, this.prevCamera);
       }
 
       openCustomizer() {
+        this.customAppearance = { ...GameState.appearance };
+        this.customEquipment = { ...GameState.equipped };
         GameState.paused = true;
         document.getElementById('modal-customize')?.classList.remove('hidden');
         const nameInp = document.getElementById('custom-hero-name');
         if (nameInp) nameInp.value = GameState.heroName;
+        this._renderCustomizerControls();
+      }
 
+      _renderCustomizerControls() {
+        const appearance = this.customAppearance;
+        const equipped = this.customEquipment;
         const renderChoiceGroup = (elId, list, currentVal, onPick) => {
           const wrap = document.getElementById(elId);
           if (!wrap) return;
@@ -6515,7 +6875,7 @@
           wrap.querySelectorAll('button').forEach(b => {
             b.addEventListener('click', () => {
               onPick(b.getAttribute('data-val'));
-              this.openCustomizer();
+              this._renderCustomizerControls();
             });
           });
         };
@@ -6525,21 +6885,21 @@
           { id: 'hair_spiky', label: 'Spiky Gaul' },
           { id: 'hair_cap', label: 'Topi Pantura' },
           { id: 'hair_helmet', label: 'Helm Fullface' }
-        ], GameState.appearance.hair, v => { GameState.appearance.hair = v; });
+        ], appearance.hair, v => { appearance.hair = v; });
 
         renderChoiceGroup('top-options', [
           { id: 'top_kaos', label: 'Kaos Santai' },
           { id: 'top_jaket', label: 'Jaket Touring' },
           { id: 'top_batik', label: 'Batik Karawang' },
           { id: 'top_hoodie', label: 'Hoodie Bekasi' }
-        ], GameState.appearance.top, v => { GameState.appearance.top = v; });
+        ], appearance.top, v => { appearance.top = v; });
 
         renderChoiceGroup('pants-options', [
           { id: 'pants_jeans', label: 'Jeans Slim' },
           { id: 'pants_cargo', label: 'Cargo Pantura' },
           { id: 'pants_shorts', label: 'Celana Pendek' },
           { id: 'pants_training', label: 'Training Sport' }
-        ], GameState.appearance.pants, v => { GameState.appearance.pants = v; });
+        ], appearance.pants, v => { appearance.pants = v; });
 
         const accWrap = document.getElementById('acc-options');
         if (accWrap) {
@@ -6552,16 +6912,16 @@
           ];
           accWrap.innerHTML = accList.map(a => `
             <button type="button" data-akey="${a.key}" class="py-2 px-2.5 rounded-xl text-[11px] font-bold border transition ${
-              GameState.equipped[a.key]
+              equipped[a.key]
                 ? 'bg-emerald-500/25 border-emerald-400 text-emerald-200'
                 : 'bg-slate-900 border-slate-700 text-slate-400'
-            }">${a.label}: ${GameState.equipped[a.key] ? 'ON' : 'OFF'}</button>
+            }">${a.label}: ${equipped[a.key] ? 'ON' : 'OFF'}</button>
           `).join('');
           accWrap.querySelectorAll('button').forEach(b => {
             b.addEventListener('click', () => {
               const k = b.getAttribute('data-akey');
-              GameState.equipped[k] = !GameState.equipped[k];
-              this.openCustomizer();
+              equipped[k] = !equipped[k];
+              this._renderCustomizerControls();
             });
           });
         }
@@ -6569,9 +6929,9 @@
         const bindColor = (id, key) => {
           const inp = document.getElementById(id);
           if (!inp) return;
-          inp.value = GameState.appearance[key];
+          inp.value = appearance[key];
           inp.oninput = () => {
-            GameState.appearance[key] = inp.value;
+            appearance[key] = inp.value;
             this.renderPreview();
           };
         };
@@ -8753,6 +9113,13 @@
               hl: [S(t * 2.2) * 0.2, 0, 0], hr: [-S(t * 2.2) * 0.2, 0, 0]
             };
           }
+          case 'garden':
+            return {
+              torso: [0.32 + S(t * 1.8) * 0.12, 0, 0],
+              rs: [-0.62 + S(t * 2.4) * 0.16, 0, -0.16], re: -0.7,
+              ls: [-0.38, 0, 0.12], le: -0.75,
+              head: [0.26, 0, 0], hl: [-0.12, 0, 0], hr: [0.1, 0, 0], kl: 0.24, kr: 0.15,
+            };
           case 'cook': {
             const fan = a.fan;
             const r = fan ? S(t * 11) * 0.45 : S(t * 3.2) * 0.15;
@@ -8881,7 +9248,9 @@
         this._buildPond();
         this._buildDecor();
         this._buildEdges();
+        this._buildDistricts();
         this._spawnActors();
+        this._initRoutines();
         this._buildUI();
       }
 
@@ -9498,7 +9867,9 @@
         const nearRoad = (t, m = 10) => roads.some(r => Math.abs(t - r) < m);
         const toW = (side, t, d) => (side === 'N' ? [t, -d] : side === 'S' ? [t, d] : side === 'E' ? [d, t] : [-d, t]);
         const sideYaw = { N: 0, S: Math.PI, E: -Math.PI / 2, W: Math.PI / 2 };
-        const seaSecs = [['N', -142, 142], ['E', -142, 35], ['W', -142, -35]];
+        const coast = this.world.worldLimit - 3;
+        const extension = coast - 142;
+        const seaSecs = [['N', -coast, coast], ['E', -coast, 35], ['W', -coast, -35]];
         const mtnSecs = [['S', -320, 320], ['E', 35, 320], ['W', -35, 320]];
         this.edgeAnim = { water: null, foam: [], boats: [] };
 
@@ -9550,25 +9921,25 @@
         this.edgeAnim.water = waterTex;
 
         // --- LAUT (3 sisi) ---
-        slab('N', -600, 600, 142, 600, 0.05, waterMat);
-        const seaE = new THREE.Mesh(new THREE.PlaneGeometry(458, 635), waterMat);
-        seaE.rotation.x = -Math.PI / 2; seaE.position.set(142 + 229, 0.05, -600 + 317.5); this.scene.add(seaE);
-        const seaW = new THREE.Mesh(new THREE.PlaneGeometry(458, 565), waterMat);
-        seaW.rotation.x = -Math.PI / 2; seaW.position.set(-142 - 229, 0.05, -600 + 282.5); this.scene.add(seaW);
+        slab('N', -600, 600, coast, 600, 0.05, waterMat);
+        const seaE = new THREE.Mesh(new THREE.PlaneGeometry(600 - coast, 635), waterMat);
+        seaE.rotation.x = -Math.PI / 2; seaE.position.set((600 + coast) / 2, 0.05, -600 + 317.5); this.scene.add(seaE);
+        const seaW = new THREE.Mesh(new THREE.PlaneGeometry(600 - coast, 565), waterMat);
+        seaW.rotation.x = -Math.PI / 2; seaW.position.set(-(600 + coast) / 2, 0.05, -600 + 282.5); this.scene.add(seaW);
 
         // --- pantai: pasir + pasir basah + buih ombak + penghalang tak kasat mata ---
         seaSecs.forEach(([side, a, b]) => {
           const sm = new THREE.MeshStandardMaterial({ map: sandTex.clone(), roughness: 1 });
           sm.map.needsUpdate = true;
           sm.map.repeat.set((b - a) / 10, 1.4);
-          slab(side, a, b, 127, 142, 0.006, sm);
-          slab(side, a, b, 138.5, 142, 0.009, new THREE.MeshStandardMaterial({ color: 0xb9a56f, roughness: 0.6 }));
+          slab(side, a, b, coast - 15, coast, 0.006, sm);
+          slab(side, a, b, coast - 3.5, coast, 0.009, new THREE.MeshStandardMaterial({ color: 0xb9a56f, roughness: 0.6 }));
           for (let k = 0; k < 2; k++) {
             const fm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false });
-            const f = slab(side, a, b, 141.2, 142.6, 0.055 + k * 0.001, fm);
+            const f = slab(side, a, b, coast - 0.8, coast + 0.6, 0.055 + k * 0.001, fm);
             this.edgeAnim.foam.push({ mesh: f, side, base: f.position.clone(), k });
           }
-          const [cx, cz] = toW(side, (a + b) / 2, 146.5);
+          const [cx, cz] = toW(side, (a + b) / 2, coast + 4.5);
           const horiz = side === 'N' || side === 'S';
           this.world.addBoxCollider(cx, cz, horiz ? b - a + 20 : 11, horiz ? 11 : b - a + 20);
         });
@@ -9580,23 +9951,23 @@
             for (let t = a; t < b; t += step * (0.75 + rnd() * 0.5)) {
               const h = hBase * (0.7 + rnd() * 0.6);
               const r = h * (0.62 + rnd() * 0.35);
-              const [x, z] = toW(side, t, d0 + rnd() * 16);
+              const [x, z] = toW(side, t, d0 + extension + rnd() * 16);
               peaks.push({ x, z, r, h, c: [0x3b5d2a, 0x466b33, 0x5b6b4a, 0x6b7280, 0x4a5a3a][Math.floor(rnd() * 5)] });
               if (h > 58) caps.push({ x, z, r: r * 0.3, h: h * 0.3, top: h - 3 });
             }
           });
           for (let t = a; t < b; t += 9 + rnd() * 6) {
-            const [x, z] = toW(side, t, 152 + rnd() * 10);
+            const [x, z] = toW(side, t, 152 + extension + rnd() * 10);
             hills.push({ x, z, r: 9 + rnd() * 9, h: 6 + rnd() * 9, c: [0x2f5d1e, 0x3a6b26, 0x44702d][Math.floor(rnd() * 3)] });
           }
-          for (let t = Math.max(a, -150); t < Math.min(b, 150); t += 3.2 + rnd() * 3) {
+          for (let t = Math.max(a, -coast); t < Math.min(b, coast); t += 3.2 + rnd() * 3) {
             if (nearRoad(t, 10)) continue;
-            const [x, z] = toW(side, t + rnd() * 2, 139 + rnd() * 9);
+            const [x, z] = toW(side, t + rnd() * 2, 139 + extension + rnd() * 9);
             pines.push({ x, z, s: 0.8 + rnd() * 0.9 });
           }
-          const [cx, cz] = toW(side, Math.max(a, -160) / 2 + Math.min(b, 160) / 2, 146.5);
+          const [cx, cz] = toW(side, Math.max(a, -coast) / 2 + Math.min(b, coast) / 2, coast + 4.5);
           const horiz = side === 'N' || side === 'S';
-          const len = Math.min(b, 160) - Math.max(a, -160) + 20;
+          const len = Math.min(b, coast) - Math.max(a, -coast) + 20;
           this.world.addBoxCollider(cx, cz, horiz ? len : 11, horiz ? 11 : len);
         });
         const dummy = new THREE.Object3D();
@@ -9623,17 +9994,17 @@
         seaSecs.forEach(([side, a, b]) => {
           for (let t = a + 4; t < b; t += 7 + rnd() * 5) {
             if (nearRoad(t, 10)) continue;
-            const [x, z] = toW(side, t, 130 + rnd() * 6);
+            const [x, z] = toW(side, t, 130 + extension + rnd() * 6);
             palms.push({ x, z, s: 0.85 + rnd() * 0.5, lean: (rnd() - 0.5) * 0.25 });
           }
           for (let t = a + 10; t < b; t += 24 + rnd() * 20) {
             if (nearRoad(t, 12)) continue;
-            const [x, z] = toW(side, t, 133 + rnd() * 3);
+            const [x, z] = toW(side, t, 133 + extension + rnd() * 3);
             umbrellas.push({ x, z, c: [0xef4444, 0xfacc15, 0x38bdf8, 0xf97316][Math.floor(rnd() * 4)] });
           }
           for (let t = a; t < b; t += 5 + rnd() * 6) {
             if (nearRoad(t, 8)) continue;
-            const [x, z] = toW(side, t, 139.5 + rnd() * 2);
+            const [x, z] = toW(side, t, 139.5 + extension + rnd() * 2);
             rocks.push({ x, z, s: 0.4 + rnd() * 0.7 });
           }
         });
@@ -9648,7 +10019,7 @@
         for (let i = 0; i < 9; i++) {
           const side = ['N', 'N', 'N', 'N', 'E', 'E', 'W', 'N', 'E'][i];
           const [a, b] = side === 'N' ? [-120, 120] : (side === 'E' ? [-120, 20] : [-120, -50]);
-          const [x, z] = toW(side, a + rnd() * (b - a), 175 + rnd() * 70);
+          const [x, z] = toW(side, a + rnd() * (b - a), 175 + extension + rnd() * 70);
           const g = new THREE.Group();
           const hull = new THREE.Mesh(new THREE.BoxGeometry(7, 1.1, 2.4), new THREE.MeshStandardMaterial({ color: hullMats[i % 5], roughness: 0.7 }));
           hull.position.y = 0.3;
@@ -9677,7 +10048,7 @@
         mtnSecs.forEach(([side, a, b]) => roads.forEach(r => { if (r > a && r < b) ends.push([side, r, 'mtn']); }));
         ends.forEach(([side, r, kind]) => {
           const g = new THREE.Group();
-          const [x, z] = toW(side, r, 139.2);
+          const [x, z] = toW(side, r, coast - 2.8);
           g.position.set(x, 0, z);
           g.rotation.y = (side === 'E' || side === 'W') ? Math.PI / 2 : 0;
           this.scene.add(g);
@@ -9688,7 +10059,7 @@
           // kerucut lalu lintas
           [-3, 3].forEach(px => { const c = this._cyl(g, 0.04, 0.26, 0.7, this._mat(0xf97316, 0.6), px, 0.35, -1.2, 8); });
           const sy = sideYaw[side];
-          const [sx, sz] = toW(side, r + 8.5, 138.5);
+          const [sx, sz] = toW(side, r + 8.5, coast - 3.5);
           this._sign(this.scene, kind === 'sea' ? 'PANTAI PANTURA' : 'KAWASAN HUTAN LINDUNG', kind === 'sea' ? 'Ujung Jalan • Nikmati Debur Ombak' : 'Ujung Jalan • Putar Balik', kind === 'sea' ? '#38bdf8' : '#4ade80', 6, 1.3, sx, 3.3, sz, sy);
           this._cyl(this.scene, 0.08, 0.08, 3.4, this._mat(0x475569, 0.6), sx, 1.7, sz, 6);
         });
@@ -9713,6 +10084,266 @@
           b.g.rotation.z = Math.sin(t * 0.7 + b.ph) * 0.045;
           b.g.rotation.x = Math.sin(t * 0.6 + b.ph * 1.3) * 0.03;
         });
+      }
+
+      _buildDistricts() {
+        const plaza = (name, x, z, w, d, color, description, accent) => {
+          const ground = this._box(this.scene, w, 0.08, d, this._mat(color), x, 0, z, false);
+          ground.receiveShadow = true;
+          this.world.districts.push({ name, x, z, w, d, accent });
+          this._sign(this.scene, name.toUpperCase(), description, accent, 7.2, 1.45, x, 2.6, z + d / 2 - 2, 0);
+          this._box(this.scene, 0.12, 2.7, 0.12, this._mat(0x475569), x, 1.35, z + d / 2 - 2, false);
+        };
+        plaza('Pasar Timur', 184, -30, 40, 33, 0x927b64, 'Jajan & Belanja • 06.00–18.00', '#fbbf24');
+        plaza('Kampung Barat', -179, 34, 37, 34, 0x637a35, 'Permukiman • Teras & Tempat Duduk', '#a3e635');
+        plaza('Kebun Selatan', 35, 180, 42, 38, 0x526b2c, 'Jalur Santai • Kebun Warga', '#4ade80');
+
+        const stalls = [
+          { x: 175, vendor: 'Mang Darsa', title: 'BAKSO PASAR TIMUR', type: 'bakso', menu: ['food_bakso', 'food_cilok'], color: 0xb91c1c },
+          { x: 184, vendor: 'Teh Mita', title: 'ES KELAPA CIKPUS', type: 'kelapa', menu: ['food_kelapa', 'food_esteh'], color: 0x15803d },
+          { x: 193, vendor: 'Bu Nani', title: 'JAJANAN PASAR', type: 'gorengan', menu: ['food_gorengan', 'food_martabak'], color: 0xc2410c },
+        ];
+        this.marketStalls = stalls.map(o => this._makeStall({
+          ...o, z: -36, yaw: 0, subtitle: 'Buka Pagi & Siang', awning: o.color, accent: '#fbbf24', dayMarket: true,
+        }));
+        this._makeBench(175, -21, 0, 0.04, true, 'Duduk di Pasar Timur [E]');
+        this._makeBench(193, -21, 0, 0.04, true, 'Duduk di Pasar Timur [E]');
+        this._makeBench(-178, 34, 0, 0.04, true, 'Duduk di Kampung Barat [E]');
+        this._makeBench(27, 180, Math.PI / 2, 0.04, true, 'Duduk di Kebun Selatan [E]');
+        this._makeBench(44, 189, 0, 0.04, true, 'Duduk di Kebun Selatan [E]');
+        this._light(185, 4.2, -27, 0xfcd38a, 1.7, 0.05);
+        this._light(-178, 4.2, 34, 0xfcd38a, 1.1, 0.03);
+
+        const trail = this._mat(0xb89965);
+        this._box(this.scene, 3.2, 0.1, 43, trail, 34, 0, 179, false);
+        this._box(this.scene, 26, 0.1, 3.2, trail, 34, 0, 180, false);
+        for (const x of [18, 23, 42, 48]) {
+          this._box(this.scene, 2.6, 0.18, 13, this._mat(0x65432b), x, 0.07, 169);
+          for (let i = 0; i < 6; i++) {
+            const plant = this._cyl(this.scene, 0.1, 0.37, 0.58, this._mat(i % 2 ? 0x65a30d : 0x4d7c0f), x, 0.39, 164 + i * 1.9, 5);
+            plant.rotation.z = i % 2 ? -0.2 : 0.2;
+          }
+          this._zone(x + 2.5, 170, 1.55, 'garden_tend', 'Rawat Tanaman Kebun Selatan [E]');
+        }
+
+        this.homes = [];
+        const plots = [[-29, 28], [-34, 49], [-54, 25], [-53, 55], [-19, 50], [23, 48], [55, 55],
+          [24, -23], [15, -53], [-19, -26], [-54, -30], [-100, -31], [104, -28],
+          [-189, 25], [-178, 25], [-167, 25], [177, -52], [189, -52], [200, -52], [21, 195], [53, 193]];
+        const walls = [0xd8b995, 0xa6ba9f, 0xe7bd8d, 0x9dbbb9];
+        plots.forEach(([x, z], i) => {
+          const margin = 4.2;
+          if (this.world.roadCoords.some(r => Math.abs(x - r) < 11 || Math.abs(z - r) < 11)) return;
+          if (this.world.colliders.some(b => x + margin > b.minX && x - margin < b.maxX && z + margin > b.minZ && z - margin < b.maxZ)) return;
+          const house = new THREE.Group();
+          house.position.set(x, 0, z);
+          this.scene.add(house);
+          this._box(house, 6.7, 2.8, 5.4, this._mat(walls[i % walls.length]), 0, 1.4, 0);
+          const roof = this._mat(i % 2 ? 0x6d3029 : 0x843f2a);
+          for (const direction of [-1, 1]) {
+            const slope = this._box(house, 7.2, 0.18, 3.4, roof, 0, 3.1, direction * 1.54);
+            slope.rotation.x = direction * 0.29;
+          }
+          const door = this._box(house, 0.92, 1.98, 0.14, this._mat(0x6a422b), 0, 0.99, 2.75, false);
+          const frames = this._mat(0x374151);
+          const windowGlow = new THREE.MeshStandardMaterial({ color: 0x56706e, emissive: 0xffb96b, emissiveIntensity: 0.04 });
+          for (const wx of [-2, 2]) {
+            this._box(house, 1.22, 0.96, 0.12, frames, wx, 1.62, 2.73);
+            this._box(house, 0.99, 0.75, 0.08, windowGlow, wx, 1.62, 2.8);
+          }
+          this._box(house, 2.0, 0.18, 1.5, this._mat(0xc5b6a0), 0, 0.09, 3.08, false);
+          this.world.addBoxCollider(x, z, 6.7, 5.4);
+          this.homes.push({ x, z: z + 3.55, door, windowGlow, residents: 0, arrived: 0, doorT: 0 });
+        });
+      }
+
+      _spawnDistrictActors(mk) {
+        const colors = ['#d97706', '#0891b2', '#7c3aed', '#16a34a', '#be123c'];
+        const market = [[173, -29], [177, -31], [182, -29], [186, -31], [191, -29], [195, -31], [181, -24], [190, -25]];
+        market.forEach(([x, z], i) => mk(i % 2 === 0, x, z, { type: 'shift', morning: 'chat', afternoon: 'market' },
+          { yaw: Math.PI, shirt: colors[i % colors.length], lines: ['Mau belanja di Pasar Timur?'] }));
+        [[-174, 37], [-184, 36], [-171, 32]].forEach(([x, z], i) =>
+          mk(i === 0, x, z, { type: 'shift', morning: 'sweep', afternoon: 'chat' }, { shirt: colors[i + 1] }));
+        [[35, 170], [37, 187]].forEach(([x, z], i) =>
+          mk(i === 1, x, z, { type: 'shift', morning: 'garden', afternoon: 'stretch' }, { shirt: colors[i + 2] }));
+      }
+
+      _initRoutines() {
+        const morning = new Set(['sweep', 'treadmill', 'bench', 'curl', 'squat', 'stretch', 'rope', 'bagpunch', 'jog']);
+        const always = new Set(['cook', 'owner']);
+        let i = 0;
+        for (const c of this.citizens.list) {
+          if (c.tier === 'preman') continue;
+          const activity = c.act;
+          const base = activity?.slot?.pos || activity?.home || c.pos;
+          const anchor = activity?.type === 'jog'
+            ? { x: activity.cx + activity.r, z: activity.cz }
+            : { x: base.x, z: base.z };
+          const home = this.homes.reduce((best, plot) => {
+            const cost = p => Math.hypot(p.x - anchor.x, p.z - anchor.z) + Math.min(13, p.residents * 1.8);
+            return !best || cost(plot) < cost(best) ? plot : best;
+          }, null);
+          if (!home) continue;
+          home.residents++;
+          const index = i++;
+          c.routine = {
+            home, anchor, index, phase: index * 0.63,
+            primary: always.has(activity?.type) ? -1 : (morning.has(activity?.type) ? 1 : 2),
+            stagger: (index % 7) * 0.65 + (home.residents - 1) * 0.55, cycle: 0,
+          };
+          if (activity?.slot) c.pos.set(anchor.x, this.world.getGroundHeight(anchor.x, anchor.z), anchor.z);
+          c.routine.prop = activity?.fish?.rod || activity?.prop;
+        }
+        this.nightActors = [
+          this.citizens.spawnCitizen({ name: 'Preman Pasar Timur', x: 181, z: -28, tier: 'preman', shirt: '#4c1d24' }),
+          this.citizens.spawnCitizen({ name: 'Preman Gang Barat', x: -181, z: 40, tier: 'preman', shirt: '#3f2d23' }),
+          this.citizens.spawnCitizen({ name: 'Preman Kebun Selatan', x: 37, z: 181, tier: 'preman', shirt: '#27272a' }),
+        ];
+        this.nightActors.forEach(c => { c.nightAnchor = c.pos.clone(); });
+        this.citizens.spawnStrays([
+          [9, 15], [-26, 29], [43, 33], [182, -28], [-174, 38], [36, 185],
+        ]);
+        this.updateRoutines(0, true);
+      }
+
+      updateRoutines(dt, initial = false) {
+        const slot = Math.floor((GameState.clock ?? 16.5) / 6);
+        if (slot !== this.routineSlot) {
+          this.routineSlot = slot;
+          this.shiftTime = 0;
+          const night = slot === 0 || slot === 3;
+          this.nightActors.forEach((c, i) => {
+            const off = !night || (slot === 3 && i === 2);
+            if (c.offShift && !off) c.pos.copy(c.nightAnchor);
+            c.offShift = off;
+            c.rig.root.visible = !off;
+            if (off) { c.hostile = 0; c.atk = null; }
+          });
+          for (const c of this.citizens.list) {
+            const r = c.routine;
+            if (!r) continue;
+            r.path = null;
+            r.working = false;
+            r.returning = false;
+            r.elapsed = 0;
+            r.retry = 0;
+            if (initial && night) this._enterHome(c, false);
+            if (!night && c.atHome) {
+              c.atHome = false;
+              r.home.arrived = Math.max(0, r.home.arrived - 1);
+              r.home.doorT = 0.7;
+              c.rig.root.visible = true;
+            }
+          }
+        }
+        this.shiftTime += dt;
+        const night = slot === 0 || slot === 3;
+        for (const home of this.homes) {
+          home.doorT = Math.max(0, home.doorT - dt);
+          home.door.position.z = home.doorT > 0 ? 2.77 : 2.75;
+          home.door.position.x = home.doorT > 0 ? 0.82 : 0;
+          home.windowGlow.emissiveIntensity = night && home.arrived ? (slot === 0 ? 0.15 : 0.73) : 0.04;
+        }
+      }
+
+      _enterHome(c, animate = true) {
+        const home = c.routine.home;
+        if (!c.atHome) home.arrived++;
+        if (animate) home.doorT = 0.8;
+        c.atHome = true;
+        c.pos.set(home.x, this.world.getGroundHeight(home.x, home.z), home.z);
+        c.rig.root.visible = false;
+        if (c.tag) c.tag.sp.visible = false;
+        if (c.bubble) { c.bubble.t = 0; c.bubble.sp.visible = false; }
+      }
+
+      updateRoutineActor(c, dt, hero) {
+        const r = c.routine;
+        const slot = this.routineSlot;
+        const night = slot === 0 || slot === 3;
+        const returning = night && (slot === 0 || this.shiftTime >= r.stagger);
+        const existingActivity = c.act && c.act.type !== 'shift';
+        const usesOriginal = existingActivity && (r.primary === -1 || r.primary === slot);
+        const task = c.act?.type === 'shift'
+          ? (slot === 1 ? c.act.morning : c.act.afternoon)
+          : (slot === 1 ? ['stretch', 'chat', 'sweep'][r.index % 3] : ['chat', 'phone', 'market'][r.index % 3]);
+        if (r.returning !== returning) {
+          r.returning = returning;
+          r.path = null;
+          r.retry = 0;
+          r.elapsed = 0;
+        }
+        const goal = returning ? r.home : r.anchor;
+        const distance = Math.hypot(goal.x - c.pos.x, goal.z - c.pos.z);
+        const arrived = distance < 0.85;
+        const near = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 92;
+        c.rig.root.visible = near;
+        c.routineMoving = returning || !arrived;
+
+        if (returning && (arrived || r.elapsed > 52)) {
+          this._enterHome(c);
+          return;
+        }
+        if (!returning && usesOriginal && (arrived || r.working)) {
+          r.working = true;
+          c.routineMoving = false;
+          c._busy = true;
+          if (r.prop) r.prop.visible = true;
+          this.updateActor(c, dt, hero);
+          return;
+        }
+
+        r.working = false;
+        let pose;
+        if (c.routineMoving) {
+          r.elapsed += dt;
+          r.retry -= dt;
+          if (!r.path && r.retry <= 0) {
+            this.world.resolveCircleCollision(c.pos, 0.64);
+            r.path = this.world.pedestrianPath(c.pos, goal);
+            if (!r.path.length) r.path = this.world.pedestrianPath(c.pos, goal, 2);
+            if (!r.path.length) { r.path = null; r.retry = 3; }
+          }
+          if (r.path) {
+            const next = r.path[0];
+            const dx = next.x - c.pos.x;
+            const dz = next.z - c.pos.z;
+            const length = Math.hypot(dx, dz);
+            if (length < 0.68 && r.path.length > 1) r.path.shift();
+            else if (length > 0.01) {
+              const walk = Math.min(length, (returning ? 2.45 : 1.85) * dt);
+              const x = c.pos.x + dx * walk / length;
+              const z = c.pos.z + dz * walk / length;
+              if (!this.world.isCircleBlocked(x, z, 0.54)) {
+                const delta = Math.atan2(dx, dz) - c.yaw;
+                c.yaw += Math.atan2(Math.sin(delta), Math.cos(delta)) * Math.min(1, dt * 9);
+                c.pos.x = x; c.pos.z = z;
+                r.cycle += walk * 3.65;
+              } else { r.path = null; r.retry = 0.35; }
+            }
+          }
+          const sw = r.path ? Math.sin(r.cycle) * 0.48 : 0;
+          pose = {
+            hl: [sw, 0, 0], hr: [-sw, 0, 0], kl: Math.max(0, -sw) * 0.8, kr: Math.max(0, sw) * 0.8,
+            ls: [-sw * 0.7, 0, 0.09], rs: [sw * 0.7, 0, -0.09], le: -0.24, re: -0.24,
+            py: 0.95 + Math.abs(sw) * 0.045,
+          };
+        } else {
+          const t = this.t + r.phase;
+          if (task === 'market') {
+            pose = LifePoses.pose('chat', t, { speaking: Math.sin(t * 0.75) > 0 });
+          } else {
+            pose = LifePoses.pose(task, t, { speaking: Math.sin(t) > 0 });
+          }
+        }
+        if (r.prop) r.prop.visible = r.prop === c.act?.prop && c.act?.type === 'sweep' && returning;
+        if (!near) return;
+        c.pos.y = this.world.getGroundHeight(c.pos.x, c.pos.z);
+        c.rig.root.position.copy(c.pos);
+        c.rig.root.rotation.set(0, c.yaw, 0);
+        c.rig.materials.shirtMat.emissive.setRGB(0, 0, 0);
+        c.rig.materials.skinMat.emissive.setRGB(0, 0, 0);
+        LifePoses.apply(c.rig, pose);
       }
 
       _buildDecor() {
@@ -9832,12 +10463,12 @@
         }
 
         // 5) Toko alat owner
-        mk(false, 40.5, -16.4, { type: 'owner', serveT: 0 }, { yaw: 0, shirt: '#2563eb', pants: '#111827', name: 'Koh Alung', fixed: true, lines: ['Alat bagus, harga bersahabat!', 'Joran buat mancing udah ada, Bang.'] });
+        mk(false, 44.4, -16.4, { type: 'owner', serveT: 0 }, { yaw: 0, shirt: '#2563eb', pants: '#111827', name: 'Koh Alung', fixed: true, lines: ['Alat bagus, harga bersahabat!', 'Joran buat mancing udah ada, Bang.'] });
         this.tokoOwner = this.actors[this.actors.length - 1];
 
         // 6) Sweeper
         const sw = mk(false, 0, 22, { type: 'sweep', range: 4 }, { name: 'Pak Ucok', shirt: '#ea580c', pants: '#334155', lines: ['Biar bersih alun-alunnya.'] });
-        this._addBroom(sw.rig);
+        sw.act.prop = this._addBroom(sw.rig);
 
         // 7) Pond: fishermen, guitarist
         const f1 = mk(false, this.pondPos.x + 9.4, this.pondPos.z - 0.5, { type: 'fishstand', rodTarget: new THREE.Vector3(this.pondPos.x + 4.6, 0.07, this.pondPos.z - 0.8) }, { yaw: -Math.PI / 2, name: 'Pak Haji Mancing', shirt: '#f8fafc', cap: true, fixed: true, lines: ['Sst! Jangan berisik, ikannya kabur!'] });
@@ -9845,7 +10476,7 @@
         [f1, f2].forEach(f => this._attachFishing(f));
         const gb = this._makeBench(this.pondPos.x + 11, this.pondPos.z + 9, Math.atan2(-11, -9), 0.0, true, 'Duduk di Tepi Empang [E]');
         const gt = mk(false, 0, 0, { type: 'sit', sitKind: 'guitar', bench: gb, slot: seat(gb, 0), guitar: true }, { fixed: true, yaw: gb.yaw, name: 'Bang Gitar', shirt: '#7c3aed', cap: true, lines: ['Mau request lagu, Bang?'] });
-        this._addGuitar(gt.rig);
+        gt.act.prop = this._addGuitar(gt.rig);
 
         // 8) Kids with a ball
         const kA = mk(false, 13, -10, { type: 'kid', kickT: 0 }, { name: 'Dodi', scale: 0.74, shirt: '#ef4444', yaw: 0 });
@@ -9859,6 +10490,8 @@
         mk(false, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 12.5, ang: 0, sp: 0.42 }, { name: 'Mas Joging', shirt: '#22d3ee', fixed: true, tier: 'tangguh', lines: ['Hhh... jangan ganggu, lagi lari!'] });
         mk(true, 0, 0, { type: 'jog', cx: this.pondPos.x, cz: this.pondPos.z, r: 13.4, ang: 3.2, sp: -0.38 }, { name: 'Mbak Lari', shirt: '#f43f5e', fixed: true, lines: ['Pagi-pagi udah olahraga!'] });
 
+        this._spawnDistrictActors(mk);
+
         // all actors start hidden-safe
         this.actors.forEach(a => { a.rig.root.visible = true; });
       }
@@ -9870,6 +10503,7 @@
         h.rotation.x = 0.25;
         const br = this._box(g, 0.34, 0.1, 0.12, this._mat(0xca8a04, 0.9), 0, -1.12, 0.3);
         rig.rightElbowPivot.add(g);
+        return g;
       }
 
       _addGuitar(rig) {
@@ -9919,6 +10553,7 @@
 
       // ---------------- speech bubbles ----------------
       say(c, text, dur = 3.0) {
+        if (c.atHome || c.offShift) return;
         let b = c.bubble;
         if (!b) {
           const cv = document.createElement('canvas');
@@ -10103,7 +10738,9 @@
             c.pos.z = A.home.z;
             if (A.serveT > 0) A.serveT -= dt;
             if (A.fan && dh < 40 && Math.random() < dt * 4) this.sizzleT = Math.max(this.sizzleT, 0);
-            pose = LifePoses.pose('cook', t, { fan: A.fan, serveT: A.serveT || 0 });
+            pose = this.routineSlot === 1 && A.serveT <= 0
+              ? LifePoses.pose('owner', t, { serveT: 0 })
+              : LifePoses.pose('cook', t, { fan: A.fan, serveT: A.serveT || 0 });
             if (A.serveT > 0.01 && dh < 14) c.yaw = A.stall.yaw || 0;
             break;
           }
@@ -10177,7 +10814,8 @@
         for (let i = 0; i < this.pairs.length; i++) {
           const pr = this.pairs[i];
           const d = Math.hypot(hero.pos.x - pr.a.pos.x, hero.pos.z - pr.a.pos.z);
-          if (d > 45) continue;
+          if (d > 45 || pr.a.atHome || pr.b.atHome || !pr.a.routine?.working || !pr.b.routine?.working
+              || !pr.a.rig.root.visible || !pr.b.rig.root.visible) continue;
           pr.timer -= dt;
           if (pr.timer <= 0) {
             pr.speaker ^= 1;
@@ -10200,7 +10838,7 @@
             b.sp.position.set(c.pos.x, c.pos.y + hY + 0.62, c.pos.z);
             const d = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
             const pop = Math.min(1, (b.dur - b.t) * 7);
-            b.sp.visible = b.t > 0 && d < 26;
+            b.sp.visible = !c.atHome && !c.offShift && b.t > 0 && d < 26;
             b.sp.scale.set(3.0 * pop, 1.0 * pop, 1);
             if (b.t <= 0) b.sp.visible = false;
           }
@@ -10226,7 +10864,9 @@
         });
 
         // ball between kids
-        if (this.ball) {
+        if (this.ball) this.ball.mesh.visible = Boolean(this.ball.a.routine?.working && this.ball.b.routine?.working
+          && this.ball.a.rig.root.visible && this.ball.b.rig.root.visible);
+        if (this.ball?.mesh.visible) {
           const bl = this.ball;
           const from = bl.dir > 0 ? bl.a : bl.b;
           const to = bl.dir > 0 ? bl.b : bl.a;
@@ -10247,7 +10887,7 @@
         // fishermen lines & bobbers + ripples
         for (let i = 0; i < this.bobbers.length; i++) {
           const o = this.bobbers[i];
-          if (o.owner && !o.owner.rig.root.visible) { o.bob.m.visible = false; o.bob.line.visible = false; continue; }
+          if (o.owner && (!o.owner.rig.root.visible || !o.owner.routine?.working)) { o.bob.m.visible = false; o.bob.line.visible = false; continue; }
           o.bob.m.visible = true;
           o.bob.line.visible = true;
           const by = 0.08 + Math.sin(this.t * 1.6 + o.phase) * 0.012;
@@ -10591,6 +11231,17 @@
         const T = A.t + 3;
 
         switch (A.type) {
+          case 'garden':
+            yaw = -Math.PI / 2;
+            hero.yaw = yaw;
+            lerpTo(A.spot.x, A.spot.y, A.spot.z);
+            pose = LifePoses.pose('garden', T, {});
+            if (A.t >= 4) {
+              showToast('Tanaman selesai dirawat.', 'check');
+              this.endHeroActivity();
+              return false;
+            }
+            break;
           case 'sit': {
             const sl = A.slot;
             lerpTo(sl.pos.x - A.bench.fwd.x * 0.06, sl.pos.y, sl.pos.z - A.bench.fwd.z * 0.06);
@@ -10763,7 +11414,14 @@
       handleZone(z) {
         switch (z.action) {
           case 'bench_sit': this.startSit(z.bench); return true;
+          case 'garden_tend':
+            this._begin({ type: 'garden', spot: z.pos });
+            return true;
           case 'stall': {
+            if (z.stall.dayMarket && this.routineSlot !== 1 && this.routineSlot !== 2) {
+              showToast('Pasar Timur buka pukul 06.00–18.00.', 'store');
+              return true;
+            }
             this.currentStall = z.stall;
             const v = z.stall.vendorActor;
             if (v) {
@@ -10828,6 +11486,11 @@
         let info = '';
         const stat = k => `${GameStats.names[k]} Lv${GameStats.level(k)}`;
         switch (A.type) {
+          case 'garden':
+            title = 'MERAWAT TANAMAN';
+            sub = '[E] atau bergerak untuk berhenti';
+            bar = A.t / 4;
+            break;
           case 'sit':
             title = 'SANTAI & NONGKRONG';
             sub = GameState.ownedItems.has('tool_gitar') ? '[F] Main Gitar / ngamen • [E] atau gerak: berdiri' : 'Energi & stamina pulih perlahan • [E]/gerak: berdiri';
@@ -10992,7 +11655,7 @@
           offers.push({ type: 'paket', title: 'Antar Paket Kilat', desc: `Ambil paket di ${a.name}, antar ke ${b.name}.`, a, b, time: Math.round(30 + d * 0.5), reward: Math.round((40000 + d * 900) / 1000) * 1000, xp: ['kelincahan', 1] });
         }
         offers.push({ type: 'copet', title: 'Kejar Copet!', desc: 'Ada copet kabur bawa dompet warga. Kejar dan pukul dia sebelum hilang (50 detik).', time: 50, reward: 120000, xp: ['kelincahan', 2] });
-        const strong = this.app.citizens.list.filter(c => c.tier && ['jagoan', 'preman'].includes(c.tier));
+        const strong = this.app.citizens.list.filter(c => c.tier && !c.atHome && !c.nightAnchor && ['jagoan', 'preman'].includes(c.tier));
         if (strong.length) { const t = pick(strong); offers.push({ type: 'bounty', title: 'Buru Jagoan Kampung', desc: `Warga resah dengan ${t.name} (${CitizenManager.TIERS[t.tier].label}). Kalahkan dia sampai KO.`, target: t, reward: t.tier === 'preman' ? 250000 : 150000, xp: ['kekuatan', 2] }); }
         const games = [['motor', 'Balap Motor'], ['sack', 'Balap Karung'], ['panco', 'Adu Panco'], ['sumo', 'Sumo Pantura'], ['shooting', 'Lomba Tembak']];
         const g = pick(games);
@@ -11210,8 +11873,9 @@
             const lead = 17 + Math.random() * 10;
             const side = (Math.random() - 0.5) * 13;
             const sign = chaseVehicle.speed >= 0 ? 1 : -1;
-            e.pos.x = clamp(seePos.x + Math.sin(chaseVehicle.yaw) * lead * sign + Math.cos(chaseVehicle.yaw) * side, -135, 135);
-            e.pos.z = clamp(seePos.z + Math.cos(chaseVehicle.yaw) * lead * sign - Math.sin(chaseVehicle.yaw) * side, -135, 135);
+            const limit = this.app.world.worldLimit - 10;
+            e.pos.x = clamp(seePos.x + Math.sin(chaseVehicle.yaw) * lead * sign + Math.cos(chaseVehicle.yaw) * side, -limit, limit);
+            e.pos.z = clamp(seePos.z + Math.cos(chaseVehicle.yaw) * lead * sign - Math.sin(chaseVehicle.yaw) * side, -limit, limit);
             this.app.world.resolveCircleCollision(e.pos, 0.65);
             e.pos.y = this.app.world.getGroundHeight(e.pos.x, e.pos.z);
             e._vehicleAttackCd = 0.3;
@@ -12091,7 +12755,6 @@
         const cx = 1 + 0.22 * mv + 0.4 * f;
         const cz = 1 + 0.16 * mv + 0.45 * f;
         b.chest.scale.set(cx, 1, cz);
-        b.jacket.scale.set(cx, 1, cz);
         b.hip.scale.set(1 + 0.1 * mv + 0.45 * f, 1, 1 + 0.35 * f);
         const ua = 1 + 0.7 * mv + 0.12 * f;
         const fa = 1 + 0.45 * mv + 0.08 * f;
@@ -12116,7 +12779,8 @@
         P.back.scale.set(cx, 1, 1);
         P.collar.visible = tier >= 2;
         P.collar.scale.set(cx * 0.9, 1, cz);
-        rig.parts.jacketStripe.visible = tier < 2 && GameState.appearance.top !== 'top_kaos';
+        P.tier = tier;
+        CharacterRigFactory.applyOutfit(rig, GameState.appearance, tier);
 
         // perut buncit
         const bd = 0.04 + 0.55 * f;
@@ -12458,8 +13122,9 @@
         const P = this.pool;
         const near = Math.hypot(this.app.hero.pos.x - (P.x0 + P.x1) / 2, this.app.hero.pos.z - (P.z0 + P.z1) / 2) < 70;
         this.swimmers.forEach(s => {
-          s.rig.root.visible = near;
-          if (!near) return;
+          const slot = this.app.life.routineSlot;
+          s.rig.root.visible = near && (slot === 1 || slot === 2);
+          if (!s.rig.root.visible) return;
           s.t += dt;
           s.x += s.dir * s.spd * dt;
           if (s.x > P.x1 - 1.2) { s.dir = -1; this._ring(s.x, s.lane); }
@@ -12630,7 +13295,9 @@
         GameState.dark = s.dark;
         GameState.timePresetIndex = s.dark > 0.5 ? 2 : (h >= 15.5 ? 0 : 1);
         // posisi matahari / bulan
-        const tgt = forest ? app.hero.pos : { x: 0, y: 0, z: 0 };
+        const heroPos = app.hero.pos;
+        const origin = coord => Math.round(coord / 16) * 16;
+        const tgt = forest ? heroPos : { x: origin(heroPos.x), z: origin(heroPos.z) };
         app.sunLight.target.position.set(tgt.x, 0, tgt.z);
         let ox, oy;
         if (h >= 6 && h <= 18) { const a = (h - 6) / 12 * Math.PI; ox = Math.cos(a) * 85; oy = 22 + Math.sin(a) * 75; }
@@ -12871,7 +13538,8 @@
           line.rotation.y = Math.random() * Math.PI;
           mark.add(line);
         }
-        mark.position.set(clamp(x, -135, 135), 0, clamp(z, -135, 135));
+        const limit = this.app.world.worldLimit - 10;
+        mark.position.set(clamp(x, -limit, limit), 0, clamp(z, -limit, limit));
         this.scene.add(mark);
         this.roadScars.push(mark);
         if (this.roadScars.length > 24) {
@@ -12922,7 +13590,7 @@
         if (!this.cityRampage || !b || b.state === 'dead') return;
         // Warga sekitar menjauhi raksasa; NPC tidak dihapus dari sistem semula.
         for (const c of this.app.citizens.list) {
-          if (c.downTimer > 0 || c.enforcer || c.mission || c.fixed || c.act) continue;
+          if (c.atHome || c.offShift || c.downTimer > 0 || c.enforcer || c.mission || c.fixed || c.act) continue;
           const distance = Math.hypot(c.pos.x - b.pos.x, c.pos.z - b.pos.z);
           if (distance < 23 * b.sizeMult) {
             c.flee = Math.max(c.flee || 0, 2.2);
@@ -12936,7 +13604,7 @@
         this.cityRageTimer = Math.max(4.5, 9 - b.level * 0.65);
         this.cityAssaults++;
         for (const vehicle of this.app.vehicles.list) {
-          if (vehicle.disabled || Math.hypot(vehicle.pos.x - b.pos.x, vehicle.pos.z - b.pos.z) > 18 * b.sizeMult) continue;
+          if (vehicle.disabled || !vehicle.mesh.visible || Math.hypot(vehicle.pos.x - b.pos.x, vehicle.pos.z - b.pos.z) > 18 * b.sizeMult) continue;
           this.app.vehicles.damageVehicle(vehicle, 12 + b.level * 4, { name: 'Gelombang Grakhor' });
         }
         const candidates = this.world.destructionTargets.filter(t => !t.collapsed);
@@ -13521,9 +14189,11 @@
         document.getElementById('btn-hud-customize')?.addEventListener('click', () => this.shopCtrl.openCustomizer());
 
         document.getElementById('btn-hud-time')?.addEventListener('click', () => {
-          this._applyTimePreset(GameState.timePresetIndex + 1);
-          const names = ['Sore Emas Pantura', 'Siang Terik Pantura', 'Malam Neon Pantura'];
-          showToast(`Waktu: ${names[GameState.timePresetIndex]}`, 'sunset');
+          const slot = (Math.floor(GameState.clock / 6) + 1) % 4;
+          this.clock.setHour([0, 7, 13, 18.5][slot]);
+          this.life.updateRoutines(0);
+          const names = ['Dini Hari', 'Pagi', 'Siang', 'Malam'];
+          showToast(`Waktu: ${names[slot]}`, 'sunset');
         });
 
         document.getElementById('btn-hud-cam')?.addEventListener('click', () => this.cycleCameraMode());
@@ -13928,13 +14598,14 @@
           this.world.update(dt, this.sound, this.hero.pos);
 
           if (GameState.started) {
+            this.clock.update(dt);
+            this.life.updateRoutines(dt);
             this.hero.update(dt, this.input, this.camCtrl.yaw, this.citizens);
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
             this.extras.update(dt);
             this.forest.update(dt);
-            this.clock.update(dt);
             this.missions.update(dt);
             this.weather.update(dt);
             this.progress.update(dt);
