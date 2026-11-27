@@ -88,8 +88,38 @@
     .hud-pill-row > button > span:nth-child(2) { display: none; }
     #hud-gear-pill { padding: 0.15rem 0.4rem !important; font-size: 8px !important; max-width: 110px !important; }
     #hud-gear-pill svg { width: 0.7rem !important; height: 0.7rem !important; }
-    body.hud-min .hud-pill-row, body.hud-min #stats-pill, body.hud-min #hud-gear-pill { display: none !important; }
-    body.hud-min #hud-tr-row > button:not(#btn-hud-collapse):not(#btn-hud-fs):not(#btn-hud-touch) { display: none !important; }
+    body.hud-min #hud-gear-pill { display: none !important; }
+    /* ===== HUD v2: menu lipat, tanpa tumpukan ===== */
+    #minimap-canvas { width: 58px !important; height: 58px !important; }
+    @media (min-width: 640px) { #minimap-canvas { width: 76px !important; height: 76px !important; } }
+    #hud-cam-label { display: none !important; }
+    #hud-tr-row { max-width: none !important; flex-wrap: nowrap !important; }
+    .hud-pill-row { display: none !important; }
+    .hud-pill-row.open {
+      display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px;
+      width: min(292px, 88vw); margin-top: 4px; border-radius: 16px;
+      background: rgba(2, 6, 23, 0.92); border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px);
+    }
+    .hud-pill-row.open > button { flex-direction: column; justify-content: center; gap: 2px !important; padding: 7px 2px !important; font-size: 9px !important; min-height: 46px; }
+    .hud-pill-row.open > button > span:nth-child(2) { display: inline !important; }
+    .hud-pill-row.open #stats-pill {
+      grid-column: 1 / -1; position: static !important; display: block !important; pointer-events: none;
+      background: rgba(255, 255, 255, 0.06) !important; border-radius: 10px !important; padding: 5px 8px !important; font-size: 10px !important;
+    }
+    #hud-more-panel {
+      display: none; position: absolute; right: 0; top: 36px; z-index: 50; padding: 6px; border-radius: 14px;
+      grid-template-columns: repeat(3, 2.2rem); gap: 6px; background: rgba(2, 6, 23, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px);
+    }
+    #hud-more-panel.open { display: grid; }
+    #hud-more-panel .glass-pill { width: 2.2rem !important; height: 2.2rem !important; border-radius: 0.7rem !important; }
+    #hud-more-panel .glass-pill svg { width: 1rem !important; height: 1rem !important; }
+    body.hud-min #hud-tr-row > button:not(#btn-hud-more) { display: none !important; }
+    body.hud-min #btn-hud-menu { display: none !important; }
+    #hud-tr-row { position: relative; }
+    #hud-mission-wrap { top: 4.6rem !important; }
+    #hud-gear-pill.empty { display: none !important; }
     .glass-pill:active {
       transform: scale(0.95);
     }
@@ -358,30 +388,29 @@
           <!-- Minimap -->
           <div class="relative rounded-2xl overflow-hidden border-2 border-amber-400/50 shadow-lg bg-slate-950/90 shrink-0">
             <canvas id="minimap-canvas" width="112" height="112" class="w-[74px] h-[74px] sm:w-[108px] sm:h-[108px] block"></canvas>
-            <div class="absolute bottom-0.5 sm:bottom-1 inset-x-0 text-center text-[8px] sm:text-[9px] font-extrabold tracking-wider text-amber-300 drop-shadow">PANTURA</div>
+            <div id="hud-zone-name" class="absolute bottom-0 inset-x-0 text-center font-extrabold text-amber-300 truncate" style="font-size:6.5px;padding:2px 2px 1px;background:linear-gradient(transparent,rgba(2,6,23,.88));letter-spacing:.02em">PANTURA</div>
           </div>
 
-          <!-- Hero Profile, Health, Nitro & Rupiah (ringkas) -->
-          <div class="glass-panel rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 min-w-0 flex-1 max-w-[128px] sm:max-w-[158px]">
-            <div class="flex items-baseline justify-between gap-1">
-              <span id="hud-hero-name" class="text-[10px] sm:text-[11px] font-black text-white truncate">Kang Raka</span>
-            </div>
-            <div id="hud-zone-name" class="text-[7.5px] sm:text-[8.5px] font-semibold text-amber-300 truncate leading-tight mb-0.5">SUMMARECON BEKASI</div>
-            <div class="flex items-center gap-1 mb-0.5" title="Energi">
+          <!-- Kartu Hero ringkas: nama, energi, stamina, dompet -->
+          <div id="hud-card" class="glass-panel rounded-xl min-w-0" style="padding:4px 7px;width:104px">
+            <span id="hud-hero-name" class="block font-black text-white truncate" style="font-size:9.5px;line-height:1.15">Kang Raka</span>
+            <div class="flex items-center gap-1" style="margin-top:2px" title="Energi">
               <span data-icon="heart" data-icon-class="w-2.5 h-2.5 text-rose-400"></span>
-              <div class="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden"><div id="hud-health-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div></div>
-              <span id="hud-health-text" class="text-[7.5px] font-bold text-slate-300 w-6 text-right">100%</span>
+              <div class="flex-1 rounded-full bg-slate-800 overflow-hidden" style="height:4px"><div id="hud-health-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div></div>
+              <span id="hud-health-text" class="hidden">100%</span>
             </div>
-            <div class="flex items-center gap-1 mb-0.5" title="Stamina / Nitro">
+            <div class="flex items-center gap-1" style="margin-top:2px" title="Stamina / Nitro">
               <span data-icon="bolt" data-icon-class="w-2.5 h-2.5 text-amber-400"></span>
-              <div class="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden"><div id="hud-nitro-bar" class="h-full bg-gradient-to-r from-amber-400 to-cyan-400 transition-all duration-100" style="width: 100%"></div></div>
-              <span class="w-6"></span>
+              <div class="flex-1 rounded-full bg-slate-800 overflow-hidden" style="height:4px"><div id="hud-nitro-bar" class="h-full bg-gradient-to-r from-amber-400 to-cyan-400 transition-all duration-100" style="width: 100%"></div></div>
             </div>
-            <div class="flex items-center gap-1" title="Dompet">
+            <div class="flex items-center gap-1" style="margin-top:2px" title="Dompet">
               <span data-icon="wallet" data-icon-class="w-2.5 h-2.5 text-emerald-400"></span>
-              <span id="hud-cash" class="text-[9.5px] sm:text-[10.5px] font-black text-emerald-400 truncate">Rp 1.250.000</span>
+              <span id="hud-cash" class="font-black text-emerald-400 truncate" style="font-size:9.5px;line-height:1.1">Rp 1.250.000</span>
             </div>
           </div>
+          <button id="btn-hud-menu" type="button" title="Menu: Toko, Ransel, Misi, Statistik" class="glass-pill shrink-0 flex items-center justify-center text-amber-300" style="width:1.9rem;height:1.9rem;border-radius:.65rem">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          </button>
         </div>
 
         <!-- Primary Feature Pills -->
@@ -431,6 +460,7 @@
           </button>
         </div>
 
+        <button id="btn-hud-more" type="button" title="Pengaturan: suara, layar penuh, getar, kontrol, cuaca" class="glass-pill w-8 h-8 rounded-xl flex items-center justify-center text-slate-200" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
         <!-- Equipped Gear Indicator -->
         <button id="hud-gear-pill" type="button" title="Buka Ransel untuk Pasang/Lepas Item" class="glass-pill rounded-xl px-2 py-1 sm:px-2.5 text-[9px] sm:text-[10px] font-bold text-slate-200 flex items-center gap-1.5 hover:border-emerald-400/50 max-w-[130px] sm:max-w-[235px]">
           <span class="shrink-0 text-emerald-400" data-icon="backpack" data-icon-class="w-3.5 h-3.5"></span>
@@ -988,6 +1018,7 @@
       },
       boxingStage: 0,
       stats: { kekuatan: 0, dayaTahan: 0, kelincahan: 0 },
+      fat: 0,
       gymPassUntil: 0,
       fishCaught: 0,
       boxingWins: 0,
@@ -1277,6 +1308,17 @@
       }
 
       playHorn(vehicleType = 'coupe') {
+        if (vehicleType === 'bicycle') {
+          this.playTone(2200, 0.12, 'sine', 0.06, 2100);
+          this.playTone(2650, 0.22, 'sine', 0.05, 2550, 0.12);
+          return;
+        }
+        if (vehicleType === 'horse') {
+          this.playTone(520, 0.2, 'sawtooth', 0.06, 960);
+          this.playTone(960, 0.32, 'sawtooth', 0.055, 420, 0.16);
+          this.playTone(380, 0.28, 'triangle', 0.05, 300, 0.42);
+          return;
+        }
         if (vehicleType === 'motorbike') {
           this.playTone(540, 0.16, 'square', 0.065, 535);
         } else {
@@ -2495,6 +2537,14 @@
     // ==========================================================================
     // 5. ARTICULATED 3D HUMANOID RIG FACTORY (HERO, PREVIEW & CITIZENS)
     // ==========================================================================
+    const RIDE = {
+      motorbike: { seat: [0, 0.44, -0.06], r: 0.85 },
+      bicycle: { seat: [0, 0.4, -0.12], r: 0.8 },
+      horse: { seat: [0, 1.08, -0.1], r: 1.05 }
+    };
+    const isTwoWheel = (t) => Boolean(RIDE[t]);
+    const rideSeat = (t) => { const a = (RIDE[t] || RIDE.motorbike).seat; return new THREE.Vector3(a[0], a[1], a[2]); };
+
     class CharacterRigFactory {
       static createRig(app = GameState.appearance) {
         const root = new THREE.Group();
@@ -2645,7 +2695,7 @@
           gloveMesh.visible = false;
           elbowPivot.add(gloveMesh);
 
-          return { shoulderPivot, elbowPivot, gloveMesh };
+          return { shoulderPivot, elbowPivot, gloveMesh, upperArm, forearm };
         };
 
         const leftArm = buildArm(true);
@@ -2703,7 +2753,7 @@
           shoe.castShadow = true;
           kneePivot.add(shoe);
 
-          return { hipPivot, kneePivot };
+          return { hipPivot, kneePivot, thigh, shin };
         };
 
         const leftLeg = buildLeg(true);
@@ -2723,6 +2773,11 @@
           leftKneePivot: leftLeg.kneePivot,
           rightKneePivot: rightLeg.kneePivot,
           materials: { skinMat, shirtMat, pantsMat, shoesMat },
+          body: {
+            chest: chestMesh, hip: hipMesh, headMesh, jacket: jacketStripe,
+            uaL: leftArm.upperArm, uaR: rightArm.upperArm, faL: leftArm.forearm, faR: rightArm.forearm,
+            thL: leftLeg.thigh, thR: rightLeg.thigh, shL: leftLeg.shin, shR: rightLeg.shin
+          },
           parts: {
             hairShort,
             capGroup,
@@ -3014,9 +3069,9 @@
 
       startVehicleTransition(vehicle, entering) {
         if (GameState.vehicleTransition || GameState.roomTransition) return;
-        const isBike = vehicle.type === 'motorbike';
+        const isBike = isTwoWheel(vehicle.type);
         const seatLocal = isBike
-          ? new THREE.Vector3(0, 0.44, -0.06)
+          ? rideSeat(vehicle.type)
           : new THREE.Vector3(-0.42, vehicle.type === 'suv' ? 0.22 : 0.14, 0.12);
 
         const leftStandLocal = isBike
@@ -3110,9 +3165,9 @@
       }
 
       _updateDrivingPose(vehicle, steerInput = 0) {
-        const isBike = vehicle.type === 'motorbike';
+        const isBike = isTwoWheel(vehicle.type);
         const localSeat = isBike
-          ? new THREE.Vector3(0, 0.44, -0.06)
+          ? rideSeat(vehicle.type)
           : new THREE.Vector3(-0.42, vehicle.type === 'suv' ? 0.22 : 0.14, 0.12);
 
         this.pos.copy(this._getVehicleLocalPoint(vehicle, localSeat));
@@ -3134,6 +3189,38 @@
         this.rig.rightShoulderPivot.rotation.set(-1.15 - steerAngle, -0.2, -0.15);
         this.rig.leftElbowPivot.rotation.set(-0.45, 0, 0);
         this.rig.rightElbowPivot.rotation.set(-0.45, 0, 0);
+        if (vehicle.type === 'horse' || vehicle.type === 'bicycle') this._ridePose(vehicle, steerInput);
+      }
+
+      _ridePose(v, steer) {
+        const r = this.rig;
+        if (v.type === 'horse') {
+          const g = v.gait || 0;
+          const sp = Math.min(1, Math.abs(v.speed) / 8);
+          r.root.position.y += (v.bob || 0);
+          r.torso.rotation.set(0.08 + sp * 0.2 + Math.sin(g * 2) * 0.04 * sp, 0, 0);
+          r.leftHipPivot.rotation.set(-0.5, 0, 0.62);
+          r.rightHipPivot.rotation.set(-0.5, 0, -0.62);
+          r.leftKneePivot.rotation.set(0.95 + Math.sin(g) * 0.1 * sp, 0, 0);
+          r.rightKneePivot.rotation.set(0.95 - Math.sin(g) * 0.1 * sp, 0, 0);
+          r.leftShoulderPivot.rotation.set(-0.85 + steer * 0.12, 0.1, 0.1);
+          r.rightShoulderPivot.rotation.set(-0.85 - steer * 0.12, -0.1, -0.1);
+          r.leftElbowPivot.rotation.set(-1.0, 0, 0);
+          r.rightElbowPivot.rotation.set(-1.0, 0, 0);
+          r.head.rotation.set(-0.05 - sp * 0.1, -steer * 0.2, 0);
+        } else {
+          const ped = v.ped || 0;
+          r.torso.rotation.set(0.55, 0, 0);
+          r.leftHipPivot.rotation.set(-0.95 + Math.sin(ped) * 0.55, 0, 0.1);
+          r.rightHipPivot.rotation.set(-0.95 - Math.sin(ped) * 0.55, 0, -0.1);
+          r.leftKneePivot.rotation.set(1.05 + Math.cos(ped) * 0.55, 0, 0);
+          r.rightKneePivot.rotation.set(1.05 - Math.cos(ped) * 0.55, 0, 0);
+          r.leftShoulderPivot.rotation.set(-1.25 + steer * 0.1, 0.12, 0.12);
+          r.rightShoulderPivot.rotation.set(-1.25 - steer * 0.1, -0.12, -0.12);
+          r.leftElbowPivot.rotation.set(-0.3, 0, 0);
+          r.rightElbowPivot.rotation.set(-0.3, 0, 0);
+          r.head.rotation.set(-0.3, -steer * 0.25, 0);
+        }
       }
 
       update(dt, input, cameraYaw, citizens) {
@@ -3145,7 +3232,7 @@
         // 1. Handle Vehicle Boarding/Dismounting Transition
         if (GameState.vehicleTransition) {
           const tr = GameState.vehicleTransition;
-          const isBike = tr.vehicle.type === 'motorbike';
+          const isBike = isTwoWheel(tr.vehicle.type);
           tr.progress = Math.min(1, tr.progress + dt / tr.duration);
           const p = tr.progress;
           const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
@@ -3208,7 +3295,7 @@
             if (tr.entering) {
               GameState.inVehicle = true;
               GameState.activeVehicle = tr.vehicle;
-              this.sound.syncRadio(true);
+              this.sound.syncRadio(!tr.vehicle.noEngine);
               showToast(`Mengendarai ${tr.vehicle.name}`, isBike ? 'bike' : 'car');
             } else {
               this.pos.copy(liveStand);
@@ -3278,7 +3365,7 @@
         }
 
         // 3b. Life-system activities (gym, sitting, fishing...)
-        if (this.life && this.life.heroUpdate(dt, input)) return;
+        if (this.life && this.life.heroUpdate(dt, input, cameraYaw)) return;
 
         // 4. On-Foot Timers
         if (this.attackTimer > 0) this.attackTimer = Math.max(0, this.attackTimer - dt);
@@ -3962,6 +4049,8 @@
       }
 
       _createVehicleMesh(spec) {
+        if (spec.type === 'bicycle') return this._bicycleMesh(spec);
+        if (spec.type === 'horse') return this._horseMesh(spec);
         const root = new THREE.Group();
         const isBike = spec.type === 'motorbike';
 
@@ -4064,6 +4153,119 @@
         return { root, wheels, doorPivot, bodyMat };
       }
 
+      // ---------- Sepeda & Kuda (kendaraan tanpa mesin) ----------
+      _bicycleMesh(spec) {
+        const root = new THREE.Group();
+        const frameMat = new THREE.MeshStandardMaterial({ color: spec.color, metalness: 0.5, roughness: 0.35 });
+        const dark = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+        const chrome = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.25 });
+        const bar = (a, b, t, mat) => {
+          const m = new THREE.Mesh(new THREE.BoxGeometry(t, t, 1), mat);
+          const A = new THREE.Vector3(...a); const B = new THREE.Vector3(...b);
+          m.position.copy(A).add(B).multiplyScalar(0.5);
+          m.scale.z = A.distanceTo(B);
+          m.lookAt(B);
+          m.castShadow = true;
+          root.add(m);
+          return m;
+        };
+        const BB = [0, 0.3, -0.12]; const RA = [0, 0.34, -0.55]; const FA = [0, 0.34, 0.55];
+        const ST = [0, 0.88, -0.26]; const HT = [0, 0.9, 0.42]; const HB = [0, 0.62, 0.45];
+        bar(BB, ST, 0.045, frameMat);
+        bar(ST, HT, 0.045, frameMat);
+        bar(BB, HB, 0.055, frameMat);
+        bar(BB, RA, 0.035, frameMat);
+        bar(ST, RA, 0.03, frameMat);
+        bar([0.045, 0.62, 0.45], [0.045, 0.34, 0.55], 0.03, chrome);
+        bar([-0.045, 0.62, 0.45], [-0.045, 0.34, 0.55], 0.03, chrome);
+        bar(HB, [0, 1.0, 0.41], 0.04, chrome);
+        const hb = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.04, 0.05), chrome); hb.position.set(0, 1.03, 0.4); root.add(hb);
+        [-0.27, 0.27].forEach(x => { const gr = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.05), dark); gr.position.set(x, 1.03, 0.4); root.add(gr); });
+        const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.32), dark); saddle.position.set(0, 0.93, -0.3); saddle.castShadow = true; root.add(saddle);
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.3), new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 }));
+        basket.position.set(0, 0.88, 0.62); basket.castShadow = true; root.add(basket);
+        const crank = new THREE.Group(); crank.position.set(...BB); root.add(crank);
+        [1, -1].forEach(s => {
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.18, 0.03), chrome); arm.position.set(s * 0.1, s * 0.09, 0); crank.add(arm);
+          const pd = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, 0.07), dark); pd.position.set(s * 0.16, s * 0.18, 0); crank.add(pd);
+        });
+        const wheels = [];
+        [-0.55, 0.55].forEach(z => {
+          const wg = new THREE.Group(); wg.position.set(0, 0.34, z);
+          const tire = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.035, 8, 22), dark); tire.rotation.y = Math.PI / 2; tire.castShadow = true; wg.add(tire);
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.012, 6, 22), chrome); rim.rotation.y = Math.PI / 2; wg.add(rim);
+          [0, Math.PI / 3, -Math.PI / 3].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.54, 0.01), chrome); sp.rotation.x = a; wg.add(sp); });
+          root.add(wg); wheels.push(wg);
+        });
+        const animate = (v, dt) => {
+          v.ped = (v.ped || 0) + v.speed * dt * 1.7;
+          crank.rotation.x = v.ped;
+          const steer = v.steerLean || 0;
+          v.mesh.rotation.z += (-steer * 0.18 - v.mesh.rotation.z) * Math.min(1, dt * 6);
+        };
+        return { root, wheels, doorPivot: null, bodyMat: frameMat, animate };
+      }
+
+      _horseMesh(spec) {
+        const root = new THREE.Group();
+        const M = (c, r = 0.85) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+        const white = spec.color === 0xe5e7eb;
+        const coat = M(spec.color);
+        const dark = M(0x1b1410, 0.7);
+        const maneMat = M(white ? 0x9ca3af : 0x120d09);
+        const add = (g, geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; g.add(m); return m; };
+        add(root, new THREE.BoxGeometry(0.62, 0.66, 1.5), coat, 0, 1.08, 0);
+        add(root, new THREE.BoxGeometry(0.52, 0.6, 0.5), coat, 0, 1.12, 0.62);
+        add(root, new THREE.BoxGeometry(0.54, 0.6, 0.46), coat, 0, 1.1, -0.62);
+        const neck = new THREE.Group(); neck.position.set(0, 1.28, 0.8); root.add(neck);
+        add(neck, new THREE.BoxGeometry(0.26, 0.74, 0.3), coat, 0, 0.3, 0.14, 0.55);
+        add(neck, new THREE.BoxGeometry(0.07, 0.72, 0.12), maneMat, 0, 0.36, -0.04, 0.55);
+        const head = new THREE.Group(); head.position.set(0, 0.64, 0.42); neck.add(head); head.rotation.x = 0.55;
+        add(head, new THREE.BoxGeometry(0.22, 0.28, 0.5), coat, 0, 0, 0.1);
+        add(head, new THREE.BoxGeometry(0.19, 0.2, 0.22), spec.color === 0x1f1a17 ? coat : M(0xe7c9a0), 0, -0.1, 0.4);
+        add(head, new THREE.BoxGeometry(0.05, 0.05, 0.03), dark, -0.12, 0.06, 0.18);
+        add(head, new THREE.BoxGeometry(0.05, 0.05, 0.03), dark, 0.12, 0.06, 0.18);
+        add(head, new THREE.BoxGeometry(0.06, 0.14, 0.06), coat, -0.07, 0.2, -0.05);
+        add(head, new THREE.BoxGeometry(0.06, 0.14, 0.06), coat, 0.07, 0.2, -0.05);
+        add(head, new THREE.BoxGeometry(0.08, 0.16, 0.06), maneMat, 0, 0.18, 0.08);
+        const tail = new THREE.Group(); tail.position.set(0, 1.3, -0.82); root.add(tail);
+        add(tail, new THREE.BoxGeometry(0.1, 0.7, 0.12), maneMat, 0, -0.34, -0.05, 0.25);
+        const legs = [[-0.2, 0.52], [0.2, 0.52], [-0.2, -0.52], [0.2, -0.52]].map(([x, z]) => {
+          const pv = new THREE.Group(); pv.position.set(x, 0.78, z);
+          add(pv, new THREE.BoxGeometry(0.16, 0.42, 0.18), coat, 0, -0.21, 0);
+          add(pv, new THREE.BoxGeometry(0.11, 0.34, 0.13), coat, 0, -0.58, 0);
+          add(pv, new THREE.BoxGeometry(0.14, 0.08, 0.16), dark, 0, -0.76, 0.01);
+          root.add(pv); return pv;
+        });
+        add(root, new THREE.BoxGeometry(0.58, 0.07, 0.5), M(0x7f1d1d, 0.6), 0, 1.44, -0.05);
+        add(root, new THREE.BoxGeometry(0.5, 0.05, 0.1), M(0x111827, 0.6), 0, 1.4, 0.34);
+        [-0.36, 0.36].forEach(x => { add(root, new THREE.BoxGeometry(0.03, 0.34, 0.03), M(0x9ca3af, 0.4), x, 1.24, -0.05); add(root, new THREE.BoxGeometry(0.1, 0.03, 0.12), M(0x9ca3af, 0.4), x, 1.06, -0.05); });
+        const animate = (v, dt, driven, sound) => {
+          const sp = Math.abs(v.speed);
+          v.gait = (v.gait || 0) + (sp * 1.7 + (sp > 0.3 ? 1.5 : 0)) * dt;
+          const a = Math.min(1, sp / 5) * 0.85;
+          const s = Math.sin(v.gait);
+          legs[0].rotation.x = s * a; legs[3].rotation.x = s * a; legs[1].rotation.x = -s * a; legs[2].rotation.x = -s * a;
+          const bob = Math.abs(Math.sin(v.gait)) * 0.07 * Math.min(1, sp / 6);
+          v.bob = bob;
+          v.mesh.position.y += bob;
+          const t = performance.now() * 0.001;
+          if (sp < 0.3 && !driven) {
+            neck.rotation.x = 0.05 + Math.max(0, Math.sin(t * 0.35 + v.pos.x)) * 0.75;
+            tail.rotation.z = Math.sin(t * 2.2 + v.pos.z) * 0.25;
+          } else {
+            neck.rotation.x = 0.12 + Math.sin(v.gait) * 0.07 * Math.min(1, sp / 6);
+            tail.rotation.x = -0.1 - Math.min(1, sp / 8) * 0.5;
+            tail.rotation.z = Math.sin(v.gait * 0.5) * 0.15;
+          }
+          if (driven && sp > 3) {
+            const beat = Math.floor(v.gait / Math.PI);
+            if (beat !== v._beat) { v._beat = beat; if (sound && sound.playFootstep) sound.playFootstep(true); }
+          }
+        };
+        return { root, wheels: [], doorPivot: null, bodyMat: coat, animate };
+      }
+
       _spawnInitialFleet() {
         const specs = [
           { name: 'Sedan Pantura GT', type: 'coupe', color: 0xf59e0b, maxSpeed: 24, accel: 16, turnRate: 2.3, x: -6, z: 24, yaw: Math.PI },
@@ -4097,7 +4299,10 @@
           mesh: built.root,
           wheels: built.wheels,
           doorPivot: built.doorPivot,
-          bodyMat: built.bodyMat
+          bodyMat: built.bodyMat,
+          animate: built.animate || null,
+          noEngine: spec.type === 'bicycle' || spec.type === 'horse',
+          noTune: spec.type === 'bicycle' || spec.type === 'horse'
         };
         this.list.push(veh);
         if (typeof GarageSystem !== 'undefined') GarageSystem.apply(veh);
@@ -4139,6 +4344,7 @@
           if (isDriven) {
             const throttle = -input.moveY; // Forward = +1, Reverse = -1
             const steer = -input.moveX;
+            v.steerLean = steer;
             const isNitro = input.sprint && throttle > 0.1 && GameState.nitro > 2;
             const isDrifting = input.crouch && Math.abs(v.speed) > 7 && Math.abs(steer) > 0.2;
 
@@ -4174,7 +4380,7 @@
             v.pos.x += Math.sin(v.yaw) * v.speed * dt;
             v.pos.z += Math.cos(v.yaw) * v.speed * dt;
 
-            const radius = v.type === 'motorbike' ? 0.85 : 1.55;
+            const radius = RIDE[v.type] ? RIDE[v.type].r : 1.55;
             if (this.world.resolveCircleCollision(v.pos, radius)) {
               v.speed *= -0.35;
               this.sound.playBump();
@@ -4192,7 +4398,7 @@
               }
             }
 
-            this.sound.updateVehicleEngine(dt, v);
+            if (!v.noEngine) this.sound.updateVehicleEngine(dt, v);
           } else {
             v.speed *= Math.max(0, 1 - 4 * dt);
           }
@@ -4208,6 +4414,7 @@
           for (let w = 0; w < v.wheels.length; w++) {
             v.wheels[w].rotation.x += wheelSpin;
           }
+          if (v.animate) v.animate(v, dt, isDriven, this.sound);
         }
       }
     }
@@ -4283,7 +4490,7 @@
         });
         // beberapa warga biasa jalan-jalan bersama anjingnya
         const plain = this.list.filter(c => !c.tier);
-        [0, 2, 4, 6].forEach((i, k) => { if (plain[i]) this.attachDog(plain[i], k); });
+        [[0, 0], [2, 1], [4, 4], [6, 2], [9, 3], [12, 4]].forEach(([i, k]) => { if (plain[i]) this.attachDog(plain[i], k); });
       }
 
       // Membuat warga baru saat permainan berjalan (Satpol PP, copet misi, dll.)
@@ -4625,6 +4832,7 @@
           tangguh: { hp: 120, kb: 0.55, scale: 1.04, label: 'TANGGUH', col: '#fbbf24', dmg: 7, speed: 3.5, cd: 1.5, windup: 0.42, block: 0.2, reward: 30000 },
           jagoan: { hp: 210, kb: 0.3, scale: 1.09, label: 'JAGOAN', col: '#fb923c', dmg: 12, speed: 4.1, cd: 1.15, windup: 0.34, block: 0.35, reward: 90000 },
           satpol: { hp: 160, kb: 0.4, scale: 1.05, label: 'SATPOL', col: '#60a5fa', dmg: 9, speed: 4.7, cd: 1.1, windup: 0.36, block: 0.25, reward: 10000 },
+          polisi: { hp: 430, kb: 0.1, scale: 1.12, label: 'POLISI', col: '#22d3ee', dmg: 20, speed: 5.3, cd: 0.8, windup: 0.28, block: 0.5, reward: 40000 },
           preman: { hp: 340, kb: 0.15, scale: 1.18, label: 'PREMAN', col: '#ef4444', dmg: 19, speed: 4.5, cd: 0.95, windup: 0.3, block: 0.45, reward: 220000 }
         };
       }
@@ -4637,6 +4845,7 @@
 
       // ---------- Anjing peliharaan warga (jalan mengikuti pemilik dengan tali) ----------
       attachDog(c, kind = 0) {
+        if (kind >= 4) return this._attachGoat(c);
         const pal = [
           { fur: 0x9a6a3c, dark: 0x5b3a1a, belly: 0xe7c9a0 },
           { fur: 0x1f2937, dark: 0x0b1220, belly: 0x4b5563 },
@@ -4669,11 +4878,49 @@
         const gy = this.world.getGroundHeight(c.pos.x, c.pos.z);
         g.position.set(c.pos.x - 1.2, gy, c.pos.z - 0.8);
         this.scene.add(g);
-        const leashGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-        const leash = new THREE.Line(leashGeo, new THREE.LineBasicMaterial({ color: 0xdc2626 }));
-        leash.frustumCulled = false;
-        this.scene.add(leash);
-        c.dog = { root: g, head, tail, legs, leash, pos: g.position, yaw: c.yaw, cycle: Math.random() * 6, speed: 0, barkT: 2 + Math.random() * 4, side: Math.random() < 0.5 ? 1 : -1, sniff: 0, wander: new THREE.Vector3() };
+        const leash = this._makeLeash();
+        c.dog = { sc: 1.35, collar: new THREE.Vector3(0, 0.6, 0.3), goat: false, root: g, head, tail, legs, leash, pos: g.position, yaw: c.yaw, cycle: Math.random() * 6, speed: 0, barkT: 2 + Math.random() * 4, side: Math.random() < 0.5 ? 1 : -1, sniff: 0, wander: new THREE.Vector3() };
+        return c.dog;
+      }
+
+      _makeLeash() {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+        m.frustumCulled = false;
+        this.scene.add(m);
+        return m;
+      }
+
+      // Kambing berkalung tali — dituntun warga seperti anjing
+      _attachGoat(c) {
+        const M = (col) => new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 });
+        const fur = M(0xf5f1e6); const dark = M(0x6b5b45); const horn = M(0xd6c8a8);
+        const g = new THREE.Group();
+        const part = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+        part(new THREE.BoxGeometry(0.36, 0.38, 0.8), fur, 0, 0.64, 0);
+        part(new THREE.BoxGeometry(0.28, 0.1, 0.5), M(0xe7dcc2), 0, 0.48, 0.02);
+        const head = new THREE.Group(); head.position.set(0, 0.92, 0.46); g.add(head);
+        const hm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.24, 0.3), fur); hm.castShadow = true; head.add(hm);
+        const sn = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.14), dark); sn.position.set(0, -0.06, 0.2); head.add(sn);
+        const beard = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.15, 0.05), dark); beard.position.set(0, -0.18, 0.15); head.add(beard);
+        [-0.07, 0.07].forEach(x => {
+          const h = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.04), horn); h.position.set(x, 0.2, -0.05); h.rotation.x = -0.6; head.add(h);
+          const e = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.09), fur); e.position.set(x * 2.3, 0.05, -0.06); e.rotation.z = x > 0 ? -0.35 : 0.35; head.add(e);
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.045, 0.03), M(0x050505)); eye.position.set(x * 1.4, 0.04, 0.15); head.add(eye);
+        });
+        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.1), M(0xdc2626)); collar.position.set(0, 0.78, 0.38); g.add(collar);
+        const tail = new THREE.Group(); tail.position.set(0, 0.8, -0.4); g.add(tail);
+        const tm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.15, 0.06), fur); tm.position.set(0, 0.07, -0.02); tm.rotation.x = -0.5; tail.add(tm);
+        const legs = [[-0.12, 0.28], [0.12, 0.28], [-0.12, -0.28], [0.12, -0.28]].map(([x, z]) => {
+          const pv = new THREE.Group(); pv.position.set(x, 0.46, z);
+          const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.46, 0.09), dark); l.position.y = -0.23; l.castShadow = true; pv.add(l);
+          g.add(pv); return pv;
+        });
+        g.scale.setScalar(1.25);
+        const gy = this.world.getGroundHeight(c.pos.x, c.pos.z);
+        g.position.set(c.pos.x - 1.2, gy, c.pos.z - 0.8);
+        this.scene.add(g);
+        const leash = this._makeLeash();
+        c.dog = { sc: 1.25, collar: new THREE.Vector3(0, 0.78, 0.4), goat: true, root: g, head, tail, legs, leash, pos: g.position, yaw: c.yaw, cycle: Math.random() * 6, speed: 0, barkT: 3 + Math.random() * 4, side: Math.random() < 0.5 ? 1 : -1, sniff: 0, wander: new THREE.Vector3() };
         return c.dog;
       }
 
@@ -4689,6 +4936,11 @@
         this.list.forEach(c => {
           const d = c.dog;
           if (!d) return;
+          if (!d.root.parent) this.scene.add(d.root);
+          if (!d.leash.parent) this.scene.add(d.leash);
+          if (!isFinite(d.pos.x) || !isFinite(d.pos.z)) { d.pos.set(c.pos.x - 1, c.pos.y, c.pos.z - 1); }
+          d.root.visible = true;
+          d.leash.visible = true;
           const hx = hero.pos.x - d.pos.x; const hz = hero.pos.z - d.pos.z;
           const heroD = Math.hypot(hx, hz);
           const fighting = (c.hostile > 0) || (c.flee > 0) || (c.atk != null);
@@ -4745,18 +4997,20 @@
           if (d.barkT <= 0) {
             d.barkT = fighting ? 1.2 + Math.random() : 4 + Math.random() * 6;
             if (heroD < 18 && (heroD < 7 || fighting)) {
-              if (this.sound.playBark) this.sound.playBark();
-              if (app && app.fx) app.fx.floatText(new THREE.Vector3(d.pos.x, d.pos.y + 1.1, d.pos.z), fighting ? 'GRRR! GUK!' : 'Guk!', '#fde68a', 0.8);
+              if (d.goat) { this.sound.playTone(520, 0.3, 'sawtooth', 0.045, 380); this.sound.playTone(540, 0.22, 'sawtooth', 0.04, 400, 0.18); }
+              else if (this.sound.playBark) this.sound.playBark();
+              if (app && app.fx) app.fx.floatText(new THREE.Vector3(d.pos.x, d.pos.y + 1.1, d.pos.z), d.goat ? 'Mbeee!' : (fighting ? 'GRRR! GUK!' : 'Guk!'), '#fde68a', 0.8);
               d.head.rotation.x = -0.4;
             }
           }
           // tali
           const hxp = c.pos.x + Math.sin(c.yaw + 1.1) * 0.35; const hzp = c.pos.z + Math.cos(c.yaw + 1.1) * 0.35;
-          const pa = d.leash.geometry.attributes.position;
-          pa.setXYZ(0, hxp, c.pos.y + 0.95, hzp);
-          const cp = new THREE.Vector3(0, 0.6 * 1.35, 0.3 * 1.35).applyAxisAngle(new THREE.Vector3(0, 1, 0), d.yaw);
-          pa.setXYZ(1, d.pos.x + cp.x, d.pos.y + cp.y, d.pos.z + cp.z);
-          pa.needsUpdate = true;
+          const a0 = new THREE.Vector3(hxp, c.pos.y + 0.95, hzp);
+          const cp = d.collar.clone().multiplyScalar(d.sc).applyAxisAngle(new THREE.Vector3(0, 1, 0), d.yaw);
+          const a1 = new THREE.Vector3(d.pos.x + cp.x, d.pos.y + cp.y, d.pos.z + cp.z);
+          d.leash.position.copy(a0).add(a1).multiplyScalar(0.5);
+          d.leash.scale.set(0.04, 0.04, Math.max(0.05, a0.distanceTo(a1)));
+          d.leash.lookAt(a1);
         });
       }
 
@@ -5843,6 +6097,7 @@
       consumeFoodItem(item) {
         GameState.health = Math.min(100, GameState.health + item.hpGain);
         GameState.nitro = Math.min(100, GameState.nitro + item.nitroGain);
+        if (this.app.extras) this.app.extras.onEat(item);
         if (item.consumeType === 'drink') {
           this.app.sound.playDrinkSip();
         } else {
@@ -8111,6 +8366,7 @@
         if (window.ngabragApp && window.ngabragApp.progress) window.ngabragApp.progress.bump('train');
         const before = this.level(k);
         GameState.stats[k] = (GameState.stats[k] || 0) + p;
+        if (window.ngabragApp && window.ngabragApp.extras) window.ngabragApp.extras.onTrain(p);
         const after = this.level(k);
         if (after > before) {
           const app = window.ngabragApp;
@@ -8125,7 +8381,7 @@
       dmgMult() { return 1 + 0.06 * (this.level('kekuatan') - 1); },
       staMult() { return 1 + 0.1 * (this.level('dayaTahan') - 1); },
       speedMult() {
-        return (1 + 0.015 * (this.level('kelincahan') - 1)) * (GameState.ownedItems.has('tool_sepatu') ? 1.06 : 1);
+        return (1 + 0.015 * (this.level('kelincahan') - 1)) * (GameState.ownedItems.has('tool_sepatu') ? 1.06 : 1) * (1 - 0.18 * (GameState.fat || 0));
       }
     };
 
@@ -9951,6 +10207,7 @@
           case 'treadmill': exit = new THREE.Vector3(A.st.worldX, 0.22, A.st.worldZ + 1.7); break;
           case 'rope': exit = hero.pos.clone().add(new THREE.Vector3(0, 0, 1.2)); break;
           case 'fish': exit = new THREE.Vector3(this.fishSpot.x, 0.36, this.fishSpot.z + 1.5); break;
+          case 'swim': exit = new THREE.Vector3(this.app.extras.pool.exitX, 0, this.app.extras.pool.exitZ); break;
           default: exit = hero.pos.clone();
         }
         hero.pos.copy(exit);
@@ -9970,6 +10227,7 @@
         if (A.type === 'bench') A.st.bar.position.y = 1.28;
         this.heroAct = null;
         this._panelEl.style.display = 'none';
+        if (A.type === 'swim') this.app.extras.onSwimEnd(A);
         if (A.type === 'fish' && A.caught) showToast(`Selesai memancing — ${A.caught} ikan tertangkap!`, 'trophy');
         else if (A.reps > 0) showToast(`Latihan selesai — ${A.reps} repetisi. Mantap!`, 'trophy');
       }
@@ -10055,13 +10313,14 @@
       }
 
       // returns true while a hero activity is controlling the hero
-      heroUpdate(dt, input) {
+      heroUpdate(dt, input, camYaw = 0) {
         const A = this.heroAct;
         if (!A) return false;
         const hero = this.hero;
         A.t += dt;
         const rig = hero.rig;
         rig.root.visible = true;
+        if (A.type === 'swim') return this.app.extras.swimUpdate(dt, input, A, camYaw);
         const props = this.heroProps;
         const mag = Math.hypot(input.moveX || 0, input.moveY || 0);
         if (A.t > 0.7 && mag > 0.55 && A.type !== 'rope') { this.endHeroActivity(); return false; }
@@ -10273,6 +10532,7 @@
             showToast('Hadap samsak lalu tekan F (Pukul) untuk latihan Kekuatan — gratis!', 'punch');
             return true;
           case 'fishing': this.startFish(); return true;
+          case 'pool_swim': this.app.extras.startSwim(); return true;
         }
         return false;
       }
@@ -10337,6 +10597,12 @@
             sub = 'Tekan [F]/[Lompat] sebelum tali menyentuh lantai • [E] selesai';
             bar = Math.min(1, A.streak / 20);
             info = `Lompatan ${A.reps} • Beruntun ${A.streak} • ${stat('kelincahan')}`;
+            break;
+          case 'swim':
+            title = 'BERENANG';
+            sub = 'Gerak untuk berenang • tahan Lari untuk ngebut • [E] naik';
+            bar = GameState.nitro / 100;
+            info = `Jarak ${Math.round(A.dist || 0)} m • ${stat('dayaTahan')} • Stamina ${Math.round(GameState.nitro)}%`;
             break;
           case 'fish':
             title = 'MANCING DI EMPANG';
@@ -10601,7 +10867,7 @@
 
       onCitizenKO(c) {
         const m = this.active;
-        if (c.tier && c.tier !== 'biasa' && c.tier !== 'satpol' && this.app.progress) { this.app.progress.count('tough_ko'); if (c.tier === 'preman') this.app.progress.count('preman_ko'); this.app.progress.bump('tough'); }
+        if (c.tier && c.tier !== 'biasa' && c.tier !== 'satpol' && c.tier !== 'polisi' && this.app.progress) { this.app.progress.count('tough_ko'); if (c.tier === 'preman') this.app.progress.count('preman_ko'); this.app.progress.bump('tough'); }
         if (m && m.type === 'bounty' && c === m.target) this._complete(` (${c.name} K.O.)`);
       }
 
@@ -10626,7 +10892,7 @@
         this.grace = 7;
         this._calcStars();
         if (this.stars > 0 && this.enforcers.length === 0) this.spawnT = Math.min(this.spawnT, 1.5);
-        if (this.stars > was && was === 0) { showToast('DICARI SATPOL PP! Kabur sebelum mereka menangkapmu!', 'alert'); this.app.sound.playHorn && this.app.sound.playHorn('coupe'); Haptics.buzz([50, 40, 50]); }
+        if (this.stars > was && was === 0) { showToast('DICARI PETUGAS! Kabur sebelum Satpol & Polisi menangkapmu!', 'alert'); this.app.sound.playHorn && this.app.sound.playHorn('coupe'); Haptics.buzz([50, 40, 50]); }
       }
 
       _calcStars() { this.stars = this.heat >= 20 ? Math.min(5, Math.ceil(this.heat / 22)) : 0; }
@@ -10691,22 +10957,57 @@
           const was = this.stars;
           this.heat = Math.max(0, this.heat - decay * dt);
           this._calcStars();
-          if (was > 0 && this.stars === 0) { showToast('Kamu berhasil lolos dari Satpol PP!', 'shield'); this.heat = 0; if (this.app.progress) { this.app.progress.count('escapes'); this.app.progress.bump('escape'); } }
+          if (was > 0 && this.stars === 0) { showToast('Kamu berhasil lolos dari kejaran petugas!', 'shield'); this.heat = 0; if (this.app.progress) { this.app.progress.count('escapes'); this.app.progress.bump('escape'); } }
         }
         const want = this.stars === 0 ? 0 : Math.min(4, this.stars === 5 ? 4 : Math.max(1, this.stars === 4 ? 3 : this.stars));
+        const polWant = this.stars >= 2 ? Math.min(3, this.stars - 1) : 0;
+        // keonaran: banyak warga berkelahi / tumbang di dekat Hero -> polisi dikerahkan
+        this.riotT = (this.riotT || 0) - dt;
+        this._riotChk = (this._riotChk || 0) - dt;
+        if (this._riotChk <= 0) {
+          this._riotChk = 1;
+          let n = 0;
+          cm.list.forEach(c => {
+            if (c.enforcer || c.mission) return;
+            if (Math.hypot(c.pos.x - seePos.x, c.pos.z - seePos.z) > 30) return;
+            if (c.hostile > 0 || c.downTimer > 0) n++;
+          });
+          if (n >= 2 && this.riotT <= 0) {
+            this.riotT = 30;
+            this.addHeat(26);
+            showToast('KERUSUHAN! Polisi dikerahkan ke lokasi!', 'alert');
+          }
+        }
         // spawn
         this.spawnT -= dt;
-        if (this.stars > 0 && this.enforcers.length < want && this.spawnT <= 0) {
-          this.spawnT = 5.5;
+        const polCount = this.enforcers.filter(e => e.tier === 'polisi').length;
+        const satCount = this.enforcers.length - polCount;
+        const needPol = polCount < polWant;
+        if (this.stars > 0 && (needPol || satCount < want) && this.spawnT <= 0) {
+          this.spawnT = needPol ? 4.5 : 5.5;
           const ang = Math.random() * Math.PI * 2;
           let x = seePos.x + Math.sin(ang) * (24 + Math.random() * 8); let z = seePos.z + Math.cos(ang) * (24 + Math.random() * 8);
           x = Math.max(-115, Math.min(115, x)); z = Math.max(-115, Math.min(115, z));
           const p = new THREE.Vector3(x, 0, z);
           for (let k = 0; k < 4; k++) this.app.world.resolveCircleCollision(p, 0.8);
-          const c = cm.spawnCitizen({ name: `Satpol ${['Budi', 'Anto', 'Dadang', 'Yoga', 'Tarno'][Math.floor(Math.random() * 5)]}`, shirt: '#1e3a8a', pants: '#0b1020', x: p.x, z: p.z, tier: 'satpol', skin: '#a0693a' });
-          c.enforcer = true;
-          this.enforcers.push(c);
-          this.app.life && this.app.life.say(c, 'Berhenti! Satpol PP!', 2.6);
+          let c;
+          if (needPol) {
+            c = cm.spawnCitizen({ name: `Polisi ${['Hendra', 'Bayu', 'Rizal', 'Ferry', 'Surya'][Math.floor(Math.random() * 5)]}`, shirt: '#8a6a3a', pants: '#3b2f1d', x: p.x, z: p.z, tier: 'polisi', skin: '#8d5524' });
+            c.rig.parts.hairShort.visible = false;
+            c.rig.parts.capGroup.visible = true;
+            c.rig.parts.capGroup.children[0].material.color.setHex(0x3b2f1d);
+            c.enforcer = true;
+            this.enforcers.push(c);
+            this.app.life && this.app.life.say(c, 'Polisi! Jangan bergerak!', 2.8);
+            this.app.sound.playTone(660, 0.28, 'sawtooth', 0.05, 880);
+            this.app.sound.playTone(880, 0.28, 'sawtooth', 0.05, 660, 0.3);
+            showToast('POLISI datang! Mereka lebih kuat dari Satpol — hati-hati.', 'shield');
+          } else {
+            c = cm.spawnCitizen({ name: `Satpol ${['Budi', 'Anto', 'Dadang', 'Yoga', 'Tarno'][Math.floor(Math.random() * 5)]}`, shirt: '#1e3a8a', pants: '#0b1020', x: p.x, z: p.z, tier: 'satpol', skin: '#a0693a' });
+            c.enforcer = true;
+            this.enforcers.push(c);
+            this.app.life && this.app.life.say(c, 'Berhenti! Satpol PP!', 2.6);
+          }
         }
         // kendalikan perilaku
         this.enforcers.forEach(e => {
@@ -10730,7 +11031,7 @@
             document.getElementById('wanted-stars').textContent = '★'.repeat(this.stars) + '☆'.repeat(5 - this.stars);
             document.getElementById('wanted-bar').style.width = `${Math.min(100, this.heat / 1.1)}%`;
             const near = this.enforcers.some(e => Math.hypot(e.pos.x - this.app.hero.pos.x, e.pos.z - this.app.hero.pos.z) < 18);
-            document.getElementById('wanted-hint').textContent = near ? 'Satpol dekat! Jauhi mereka agar bintang turun.' : (this.app.hero.stance >= 1 || GameState.currentBuilding ? 'Bersembunyi... bintang menurun.' : 'Menjauh & tiarap/jongkok untuk sembunyi.');
+            document.getElementById('wanted-hint').textContent = near ? 'Petugas dekat! Jauhi mereka agar bintang turun.' : (this.app.hero.stance >= 1 || GameState.currentBuilding ? 'Bersembunyi... bintang menurun.' : 'Menjauh & tiarap/jongkok untuk sembunyi.');
           } else wEl.classList.add('hidden');
         }
         const mEl = document.getElementById('hud-mission');
@@ -11037,7 +11338,7 @@
         if (!d) return false;
         try {
           const G = GameState;
-          ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
+          ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
           if (d.foodInventory) G.foodInventory = d.foodInventory;
           if (d.stats) G.stats = Object.assign({ kekuatan: 0, dayaTahan: 0, kelincahan: 0 }, d.stats);
           if (d.ownedItems) G.ownedItems = new Set(d.ownedItems);
@@ -11085,7 +11386,7 @@
           const m = this.app.missions;
           const d = {
             v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
-            timePresetIndex: G.timePresetIndex, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
+            timePresetIndex: G.timePresetIndex, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
             appearance: G.appearance, equipped: G.equipped, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
             audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
           };
@@ -11322,7 +11623,7 @@
       _cost(k, lvl) { return Math.round(GarageSystem.PARTS.find(p => p.k === k).base * (1 + lvl * 0.9) / 1000) * 1000; }
 
       _render() {
-        const list = this.app.vehicles.list;
+        const list = this.app.vehicles.list.filter(x => !x.noTune);
         if (this.sel >= list.length) this.sel = 0;
         const v = list[this.sel];
         const t = GameState.tuning[v.name] || (GameState.tuning[v.name] = {});
@@ -11377,6 +11678,605 @@
       }
     }
 
+    // ==========================================================================
+    // 12E. EXTRAS: FISIK HERO (OTOT / GENDUT), KOLAM RENANG, KANDANG KUDA, SEWA SEPEDA
+    // ==========================================================================
+    class ExtrasSystem {
+      constructor(app) {
+        this.app = app;
+        this.scene = app.scene;
+        this.world = app.world;
+        this.t = 0;
+        this.m = 0;
+        this.f = 0;
+        this.tier = undefined;
+        this.ftier = undefined;
+        this.debris = [];
+        this.rings = [];
+        this.swimmers = [];
+        this.mats = {};
+        GameState.fat = Math.max(0, Math.min(1, GameState.fat || 0));
+        this._buildPool();
+        this._buildStable();
+        this._buildBikeStand();
+        this.m = this._muscleRaw();
+        this.f = GameState.fat;
+        this._lastKey = '';
+        this.applyPhysique(app.hero.rig, true);
+      }
+
+      // ---------------- helpers ----------------
+      _mat(color, rough = 0.8, extra = null) {
+        const key = `${color}|${rough}|${extra ? JSON.stringify(extra) : ''}`;
+        if (!this.mats[key]) this.mats[key] = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: rough }, extra || {}));
+        return this.mats[key];
+      }
+
+      _box(parent, w, h, d, mat, x, y, z, cast = true) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.castShadow = cast;
+        m.receiveShadow = true;
+        parent.add(m);
+        return m;
+      }
+
+      // ======================== FISIK: OTOT & GENDUT ========================
+      _muscleRaw() {
+        const s = GameState.stats || {};
+        return clamp(((s.kekuatan || 0) + 0.5 * (s.dayaTahan || 0) + 0.25 * (s.kelincahan || 0)) / 34, 0, 1);
+      }
+
+      _tierOf(m) { return m >= 0.8 ? 3 : (m >= 0.55 ? 2 : (m >= 0.3 ? 1 : 0)); }
+
+      _ftierOf(f, cur) {
+        if (cur === 2) return f < 0.55 ? (f < 0.28 ? 0 : 1) : 2;
+        if (cur === 1) return f >= 0.62 ? 2 : (f < 0.26 ? 0 : 1);
+        return f >= 0.6 ? 2 : (f >= 0.34 ? 1 : 0);
+      }
+
+      onEat(item) {
+        let add = clamp((item.hpGain || 10) * 0.0016 + (item.nitroGain || 0) * 0.0007, 0.012, 0.13);
+        if (item.id === 'food_protein') add *= 0.25;
+        if (item.consumeType === 'drink' && item.id !== 'food_kopi_susu') add *= 0.5;
+        GameState.fat = clamp((GameState.fat || 0) + add, 0, 1);
+      }
+
+      onTrain(pts) {
+        GameState.fat = Math.max(0, (GameState.fat || 0) - 0.011 * pts);
+      }
+
+      _buildPh(rig) {
+        const b = rig.body;
+        const sk = rig.materials.skinMat;
+        const shirt = rig.materials.shirtMat;
+        const skD = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.6 });
+        const torso = rig.torso;
+        const P = { skD, parts: {} };
+        const mk = (parent, w, h, d, mat, x, y, z) => { const m = this._box(parent, w, h, d, mat, x, y, z, false); m.visible = false; return m; };
+        P.belly = mk(torso, 0.44, 0.3, 1, shirt, 0, 0.14, 0.14);
+        P.bellySkin = mk(torso, 0.4, 0.09, 1, sk, 0, 0.0, 0.14);
+        P.pecL = mk(torso, 0.21, 0.15, 0.06, skD, -0.12, 0.4, 0.15);
+        P.pecR = mk(torso, 0.21, 0.15, 0.06, skD, 0.12, 0.4, 0.15);
+        P.abs = [];
+        [0.29, 0.2, 0.11].forEach(y => [-0.055, 0.055].forEach(x => P.abs.push(mk(torso, 0.09, 0.065, 0.03, skD, x, y, 0.145))));
+        P.back = mk(torso, 0.5, 0.56, 0.04, shirt, 0, 0.28, -0.15);
+        P.collar = mk(torso, 0.34, 0.07, 0.3, shirt, 0, 0.53, 0.0);
+        P.hem = [];
+        [-0.18, -0.09, 0, 0.1, 0.19].forEach((x, i) => { const h = mk(torso, 0.08, 0.11 + (i % 2) * 0.05, 0.03, shirt, x, 0.06, 0.145); h.rotation.z = (i - 2) * 0.18; P.hem.push(h); });
+        P.stubs = [];
+        [rig.leftShoulderPivot, rig.rightShoulderPivot].forEach((sp, i) => {
+          const g = new THREE.Group();
+          g.visible = false;
+          sp.add(g);
+          this._box(g, 0.17, 0.1, 0.17, shirt, 0, -0.06, 0, false);
+          const s1 = this._box(g, 0.05, 0.1, 0.04, shirt, -0.05, -0.15, 0.04, false); s1.rotation.z = 0.25;
+          const s2 = this._box(g, 0.05, 0.07, 0.04, shirt, 0.04, -0.13, -0.03, false); s2.rotation.z = -0.3;
+          P.stubs.push(g);
+        });
+        return P;
+      }
+
+      applyPhysique(rig, force = false) {
+        const b = rig && rig.body;
+        if (!b) return;
+        if (!rig._ph) rig._ph = this._buildPh(rig);
+        const P = rig._ph;
+        const m = this.m;
+        const f = this.f;
+        const tier = this.tier || 0;
+        const mv = m * (1 - 0.75 * f);
+        const sk = rig.materials.skinMat;
+        const shirt = rig.materials.shirtMat;
+        P.skD.color.copy(sk.color).multiplyScalar(0.8);
+
+        const cx = 1 + 0.22 * mv + 0.4 * f;
+        const cz = 1 + 0.16 * mv + 0.45 * f;
+        b.chest.scale.set(cx, 1, cz);
+        b.jacket.scale.set(cx, 1, cz);
+        b.hip.scale.set(1 + 0.1 * mv + 0.45 * f, 1, 1 + 0.35 * f);
+        const ua = 1 + 0.7 * mv + 0.12 * f;
+        const fa = 1 + 0.45 * mv + 0.08 * f;
+        const th = 1 + 0.3 * mv + 0.45 * f;
+        b.uaL.scale.set(ua, 1, ua); b.uaR.scale.set(ua, 1, ua);
+        b.faL.scale.set(fa, 1, fa); b.faR.scale.set(fa, 1, fa);
+        b.thL.scale.set(th, 1, th); b.thR.scale.set(th, 1, th);
+        const sh = 1 + 0.15 * mv + 0.14 * f;
+        b.shL.scale.set(sh, 1, sh); b.shR.scale.set(sh, 1, sh);
+        rig.leftShoulderPivot.position.x = 0.32 + 0.07 * mv + 0.05 * f;
+        rig.rightShoulderPivot.position.x = -(0.32 + 0.07 * mv + 0.05 * f);
+        rig.leftHipPivot.position.x = 0.13 + 0.04 * f;
+        rig.rightHipPivot.position.x = -(0.13 + 0.04 * f);
+        b.headMesh.scale.set(1 + 0.22 * f, 1, 1 + 0.15 * f);
+
+        // baju sobek
+        b.uaL.material = b.uaR.material = tier >= 1 ? sk : shirt;
+        b.chest.material = tier >= 2 ? sk : shirt;
+        P.stubs.forEach(g => { g.visible = tier >= 1 && tier < 3; g.scale.set(ua, 1, ua); });
+        P.back.visible = tier === 2;
+        P.back.position.z = -(0.14 * cz + 0.01);
+        P.back.scale.set(cx, 1, 1);
+        P.collar.visible = tier >= 2;
+        P.collar.scale.set(cx * 0.9, 1, cz);
+        rig.parts.jacketStripe.visible = tier < 2 && GameState.appearance.top !== 'top_kaos';
+
+        // perut buncit
+        const bd = 0.04 + 0.55 * f;
+        const showBelly = f > 0.1;
+        P.belly.visible = showBelly;
+        P.belly.material = tier >= 2 ? sk : shirt;
+        P.belly.scale.set(1 + 0.5 * f, 0.6 + 1.0 * f, bd);
+        P.belly.position.set(0, 0.17 - 0.03 * f, 0.14 * cz - 0.04 + bd / 2);
+        P.bellySkin.visible = f > 0.3 && tier < 2;
+        P.bellySkin.scale.set(1 + 0.5 * f, 1, bd * 0.98);
+        P.bellySkin.position.set(0, 0.0 - 0.03 * f, 0.14 * cz - 0.04 + bd / 2);
+
+        // otot dada & perut kotak-kotak
+        const showMuscle = tier >= 2 && mv > 0.32;
+        const pm = 0.65 + 0.7 * mv;
+        P.pecL.visible = P.pecR.visible = showMuscle;
+        P.pecL.scale.set(pm, pm, 1 + mv); P.pecR.scale.set(pm, pm, 1 + mv);
+        P.pecL.position.set(-0.12 * cx, 0.4, 0.14 * cz + 0.01);
+        P.pecR.position.set(0.12 * cx, 0.4, 0.14 * cz + 0.01);
+        const showAbs = showMuscle && f < 0.25;
+        P.abs.forEach(a => { a.visible = showAbs; a.position.z = 0.14 * cz + 0.005; });
+        // sisa sobekan di tepi bawah baju
+        P.hem.forEach(h => { h.visible = tier >= 2 && f < 0.3; h.position.z = 0.14 * cz + 0.005; });
+        this._at = tier;
+        this._am = m;
+        this._af = f;
+      }
+
+      _tearFx(tier) {
+        const app = this.app;
+        const hero = app.hero;
+        const lines = ['', 'LENGAN BAJU ROBEK!', 'BAJU SOBEK! OTOT KEKAR!', 'BAJU HANCUR! BODY BUILDER!'];
+        const up = hero.pos.clone();
+        up.y += 2.5;
+        if (app.fx) {
+          app.fx.floatText(up, lines[tier], '#fbbf24', 1.35);
+          app.fx.screenFlash('250,204,21', 0.35, 520);
+          app.fx.impactBurst(hero.pos.clone().setY(hero.pos.y + 1.3), new THREE.Vector3(0, 0.4, 1), 0.9);
+        }
+        if (app.camCtrl && app.camCtrl.addShake) app.camCtrl.addShake(0.14, 0.3);
+        app.sound.playLevelUp();
+        app.sound.playNoiseBurst && app.sound.playNoiseBurst({ duration: 0.22, filterType: 'highpass', startFreq: 2600, endFreq: 900, Q: 1.1, gainVal: 0.2, wet: 0.1 });
+        Haptics.buzz([40, 20, 70]);
+        showToast(tier === 1 ? 'Lengan makin kekar — lengan baju robek!' : (tier === 2 ? 'Dada membesar! Bajumu sobek terkoyak otot!' : 'Fisik puncak! Bajumu hancur jadi serpihan!'), 'trophy');
+        const shirtMat = hero.rig.materials.shirtMat;
+        const dir = new THREE.Vector3(Math.sin(hero.yaw), 0, Math.cos(hero.yaw));
+        for (let i = 0; i < 6 + tier * 3; i++) {
+          const w = 0.07 + Math.random() * 0.1;
+          const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, w * 1.4), shirtMat);
+          mesh.position.copy(hero.pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.4, 1.1 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3));
+          this.scene.add(mesh);
+          this.debris.push({
+            mesh, life: 1.6 + Math.random() * 0.6,
+            v: new THREE.Vector3((Math.random() - 0.5) * 3.4 + dir.x * 1.5, 2.2 + Math.random() * 2.6, (Math.random() - 0.5) * 3.4 + dir.z * 1.5),
+            r: new THREE.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9)
+          });
+        }
+      }
+
+      _updateDebris(dt) {
+        for (let i = this.debris.length - 1; i >= 0; i--) {
+          const d = this.debris[i];
+          d.life -= dt;
+          if (d.life <= 0) { this.scene.remove(d.mesh); d.mesh.geometry.dispose(); this.debris.splice(i, 1); continue; }
+          d.v.y -= 7 * dt;
+          d.v.x *= 1 - 0.8 * dt; d.v.z *= 1 - 0.8 * dt;
+          d.mesh.position.addScaledVector(d.v, dt);
+          const gy = this.world.getGroundHeight(d.mesh.position.x, d.mesh.position.z) + 0.02;
+          if (d.mesh.position.y < gy) { d.mesh.position.y = gy; d.v.set(0, 0, 0); d.r.multiplyScalar(0.1); }
+          d.mesh.rotation.x += d.r.x * dt; d.mesh.rotation.y += d.r.y * dt; d.mesh.rotation.z += d.r.z * dt;
+        }
+      }
+
+      // ======================== KOLAM RENANG ========================
+      _buildPool() {
+        const life = this.app.life;
+        const CX = 36; const CZ = 106;
+        const W = 24; const D = 12;
+        const x0 = CX - W / 2; const x1 = CX + W / 2; const z0 = CZ - D / 2; const z1 = CZ + D / 2;
+        const waterY = 0.26;
+        this.pool = { x0, x1, z0, z1, waterY, exitX: x0 - 1.7, exitZ: CZ, entryX: x0 + 1.6, entryZ: CZ };
+        const g = new THREE.Group();
+        this.scene.add(g);
+        const tile = this._mat(0xe2e8f0, 0.5);
+        const stone = this._mat(0xcbd5e1, 0.85);
+
+        // lantai dek (keramik) di sekeliling kolam
+        const deckTex = (() => {
+          const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+          const x = cv.getContext('2d'); x.fillStyle = '#d6d3d1'; x.fillRect(0, 0, 128, 128);
+          x.strokeStyle = 'rgba(0,0,0,0.12)'; x.lineWidth = 2;
+          for (let i = 0; i <= 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); }
+          const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 8); return t;
+        })();
+        const deck = new THREE.Mesh(new THREE.PlaneGeometry(W + 12, D + 14), new THREE.MeshStandardMaterial({ map: deckTex, roughness: 0.9 }));
+        deck.rotation.x = -Math.PI / 2; deck.position.set(CX, 0.012, CZ + 0.5); deck.receiveShadow = true; g.add(deck);
+
+        // lantai dasar kolam bergaris lintasan
+        const floorTex = (() => {
+          const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+          const x = cv.getContext('2d'); x.fillStyle = '#38bdf8'; x.fillRect(0, 0, 256, 128);
+          x.strokeStyle = 'rgba(255,255,255,0.35)'; x.lineWidth = 1.5;
+          for (let i = 0; i <= 256; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); }
+          for (let j = 0; j <= 128; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); }
+          x.fillStyle = '#0c4a6e';
+          [32, 64, 96].forEach(y => x.fillRect(10, y - 2, 236, 4));
+          return new THREE.CanvasTexture(cv);
+        })();
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.4 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(CX, 0.02, CZ); floor.receiveShadow = true; g.add(floor);
+
+        // air
+        const wTex = (() => {
+          const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+          const x = cv.getContext('2d'); x.fillStyle = 'rgba(14,165,233,1)'; x.fillRect(0, 0, 128, 128);
+          for (let i = 0; i < 46; i++) {
+            x.strokeStyle = `rgba(207,250,254,${0.1 + Math.random() * 0.25})`; x.lineWidth = 1 + Math.random() * 1.6;
+            const px = Math.random() * 128; const py = Math.random() * 128;
+            x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + 9, py - 4, px + 20, py); x.stroke();
+          }
+          const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 2.5); return t;
+        })();
+        this.waterTex = wTex;
+        this.waterMat = new THREE.MeshStandardMaterial({ map: wTex, transparent: true, opacity: 0.68, roughness: 0.1, metalness: 0.2, emissive: 0x0369a1, emissiveIntensity: 0.12 });
+        const water = new THREE.Mesh(new THREE.PlaneGeometry(W, D), this.waterMat);
+        water.rotation.x = -Math.PI / 2; water.position.set(CX, waterY, CZ); water.renderOrder = 3; g.add(water);
+
+        // bibir kolam
+        const rimH = 0.42; const rimW = 0.5;
+        const rim = (w, d, x, z) => { this._box(g, w, rimH, d, stone, x, rimH / 2, z); this.world.addBoxCollider(x, z, w, d); };
+        rim(W + rimW * 2, rimW, CX, z0 - rimW / 2);
+        rim(W + rimW * 2, rimW, CX, z1 + rimW / 2);
+        rim(rimW, D, x1 + rimW / 2, CZ);
+        rim(rimW, 4.2, x0 - rimW / 2, z0 + 2.1);
+        rim(rimW, 4.2, x0 - rimW / 2, z1 - 2.1);
+        // tangga masuk (celah di sisi barat)
+        const ladderMat = this._mat(0xe5e7eb, 0.25, { metalness: 0.8 });
+        [-0.5, 0.5].forEach(dz => {
+          const arc = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 12, Math.PI), ladderMat);
+          arc.position.set(x0 - 0.25, 0.5, CZ + dz);
+          arc.rotation.y = Math.PI / 2;
+          g.add(arc);
+        });
+        for (let i = 0; i < 3; i++) this._box(g, 0.05, 0.03, 1.0, ladderMat, x0 - 0.26 - i * 0.1, 0.18 + i * 0.1, CZ, false);
+
+        // tali lintasan
+        const laneMat = [this._mat(0xef4444, 0.5), this._mat(0xf8fafc, 0.5)];
+        [-2, 2].forEach(zz => {
+          for (let i = 0; i < 24; i++) {
+            const s = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), laneMat[i % 2]);
+            s.position.set(x0 + 0.5 + i * 0.98, waterY + 0.04, CZ + zz);
+            g.add(s);
+          }
+        });
+
+        // papan loncat
+        const board = this._box(g, 0.7, 0.08, 2.6, this._mat(0x2563eb, 0.4), x1 + 1.2, 0.85, CZ, true);
+        this._box(g, 0.5, 0.85, 0.5, stone, x1 + 1.2, 0.42, CZ - 0.9);
+        this.world.addBoxCollider(x1 + 1.2, CZ - 0.9, 0.7, 0.7);
+        board.rotation.x = 0.04;
+
+        // kursi berjemur & payung
+        const wood = this._mat(0xb45309, 0.8);
+        [[-8, z0 - 3.2], [-4, z0 - 3.2], [8, z0 - 3.2], [-8, z1 + 3.4], [8, z1 + 3.4]].forEach(([dx, zz], i) => {
+          const lg = new THREE.Group(); lg.position.set(CX + dx, 0, zz); lg.rotation.y = zz < CZ ? Math.PI : 0; g.add(lg);
+          this._box(lg, 0.7, 0.1, 1.9, this._mat(i % 2 ? 0xfacc15 : 0xf97316, 0.7), 0, 0.32, 0);
+          const back = this._box(lg, 0.7, 0.1, 0.7, this._mat(i % 2 ? 0xfacc15 : 0xf97316, 0.7), 0, 0.6, -0.78); back.rotation.x = -0.9;
+          [-0.3, 0.3].forEach(lx => [-0.8, 0.8].forEach(lz => this._box(lg, 0.06, 0.28, 0.06, wood, lx, 0.14, lz, false)));
+          this.world.addBoxCollider(CX + dx, zz, 0.8, 1.9);
+        });
+        [[-4, z0 - 3.2, 0xef4444], [8, z1 + 3.4, 0x38bdf8]].forEach(([dx, zz, col]) => {
+          this._cyl(g, 0.04, 0.04, 2.6, this._mat(0xe5e7eb, 0.4), CX + dx + 2, 1.3, zz);
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.5, 8), this._mat(col, 0.6)); cone.position.set(CX + dx + 2, 2.55, zz); cone.castShadow = true; g.add(cone);
+        });
+
+        // ruang bilas / loket
+        const hut = new THREE.Group(); hut.position.set(CX + 2, 0, z1 + 8.6); g.add(hut);
+        this._box(hut, 12, 3.2, 3.4, this._mat(0x0ea5e9, 0.7), 0, 1.6, 0);
+        this._box(hut, 12.6, 0.3, 4, this._mat(0xf8fafc, 0.7), 0, 3.35, 0);
+        this._box(hut, 1.6, 2.4, 0.1, this._mat(0x1e3a8a, 0.6), -3, 1.2, -1.74);
+        this._box(hut, 1.6, 2.4, 0.1, this._mat(0x9d174d, 0.6), 1, 1.2, -1.74);
+        this.world.addBoxCollider(CX + 2, z1 + 8.6, 12, 3.4);
+        if (life && life._sign) life._sign(g, 'KOLAM RENANG', 'Tirta Pantura • Berenang tiap hari', '#38bdf8', 7.4, 1.5, CX + 2, 5.0, z1 + 6.9, Math.PI);
+
+        // gerbang masuk dari jalan
+        [CX - 5, CX + 5].forEach(px => this._cyl(g, 0.22, 0.22, 3.2, this._mat(0xf8fafc, 0.6), px, 1.6, z0 - 7.4));
+        if (life && life._sign) life._sign(g, 'KOLAM RENANG', 'Tirta Pantura', '#22d3ee', 10, 1.2, CX, 3.7, z0 - 7.4, 0);
+
+        // lampu bawah air
+        if (life && life._light) life._light(CX, 1.4, CZ, 0x22d3ee, 1.8, 0.1, 24);
+
+        // zona interaksi
+        if (life) life._zone(this.pool.exitX + 0.3, CZ, 2.0, 'pool_swim', 'Berenang di Kolam Tirta Pantura [E]');
+
+        // perenang & penjaga (hiasan hidup)
+        const mkSwimmer = (shirt, skin, lane, spd, ph) => {
+          const rig = CharacterRigFactory.createRig({ hair: 'hair_short', top: 'top_kaos', pants: 'pants_jeans', shirtColor: shirt, pantsColor: '#0ea5e9', shoesColor: '#f8fafc', skinColor: skin });
+          rig.root.rotation.order = 'YXZ';
+          this.scene.add(rig.root);
+          this.swimmers.push({ rig, lane: CZ + lane, spd, ph, x: x0 + 4 + Math.random() * 12, dir: Math.random() < 0.5 ? 1 : -1, t: Math.random() * 6 });
+        };
+        mkSwimmer('#ef4444', '#c68642', -3.9, 1.5, 0);
+        mkSwimmer('#f59e0b', '#8d5524', 0, 1.1, 1.2);
+        mkSwimmer('#22c55e', '#e0ac69', 3.9, 1.8, 2.4);
+      }
+
+      _cyl(parent, rt, rb, h, mat, x, y, z, seg = 10) {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
+        m.position.set(x, y, z);
+        m.castShadow = true;
+        parent.add(m);
+        return m;
+      }
+
+      static poseSwim(rig, t, moving, floatBack = false) {
+        const ph = t * (moving ? 6.2 : 1.6);
+        const amp = moving ? 1 : 0.25;
+        rig.leftShoulderPivot.rotation.set(Math.PI + Math.sin(ph) * 1.5 * amp - (moving ? 0 : 1.4), 0, 0.15);
+        rig.rightShoulderPivot.rotation.set(Math.PI + Math.sin(ph + Math.PI) * 1.5 * amp - (moving ? 0 : 1.4), 0, -0.15);
+        rig.leftElbowPivot.rotation.set(-0.35 - Math.max(0, Math.sin(ph)) * 0.5 * amp, 0, 0);
+        rig.rightElbowPivot.rotation.set(-0.35 - Math.max(0, -Math.sin(ph)) * 0.5 * amp, 0, 0);
+        const kick = Math.sin(t * (moving ? 14 : 3));
+        rig.leftHipPivot.rotation.set(kick * 0.38 * (moving ? 1 : 0.4), 0, 0.04);
+        rig.rightHipPivot.rotation.set(-kick * 0.38 * (moving ? 1 : 0.4), 0, -0.04);
+        rig.leftKneePivot.rotation.set(0.15 + Math.max(0, -kick) * 0.35, 0, 0);
+        rig.rightKneePivot.rotation.set(0.15 + Math.max(0, kick) * 0.35, 0, 0);
+        rig.torso.rotation.set(0, moving ? Math.sin(ph) * 0.22 : 0, 0);
+        rig.head.rotation.set(floatBack ? 0.1 : -1.05, moving ? Math.sin(ph) * 0.5 : 0, 0);
+        rig.pelvis.position.y = 0.95;
+        rig.pelvis.rotation.set(0, 0, 0);
+      }
+
+      // menempatkan rig horizontal (telungkup) di air: x,z = titik tengah badan
+      _placeSwimRig(rig, x, z, yaw, floatBack, bob) {
+        const fx = Math.sin(yaw); const fz = Math.cos(yaw);
+        rig.root.visible = true;
+        rig.root.rotation.set(1.5, yaw, 0);
+        rig.root.position.set(x - fx * 0.9, this.pool.waterY + 0.02 + bob, z - fz * 0.9);
+      }
+
+      _ring(x, z) {
+        const wy = this.pool.waterY + 0.02;
+        const m = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.3, 20), new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(x, wy, z);
+        m.renderOrder = 4;
+        this.scene.add(m);
+        this.rings.push({ m, t: 0 });
+      }
+
+      _updateRings(dt) {
+        for (let i = this.rings.length - 1; i >= 0; i--) {
+          const r = this.rings[i];
+          r.t += dt;
+          const k = r.t / 1.1;
+          if (k >= 1) { this.scene.remove(r.m); r.m.geometry.dispose(); r.m.material.dispose(); this.rings.splice(i, 1); continue; }
+          r.m.scale.setScalar(1 + k * 4);
+          r.m.material.opacity = 0.7 * (1 - k);
+        }
+      }
+
+      startSwim() {
+        const life = this.app.life;
+        const P = this.pool;
+        if (life.busy) return;
+        life._begin({ type: 'swim', dist: 0, acc: 0, splT: 0, h: 0, dive: 0 });
+        life.heroAct.dist = 0;
+        this.app.sound.playSplash(true);
+        this._ring(P.entryX, P.entryZ);
+        showToast('Masuk kolam! Gerak untuk berenang • tahan Lari untuk ngebut • [E] naik', 'wave');
+      }
+
+      swimUpdate(dt, input, A, camYaw) {
+        const hero = this.app.hero;
+        const rig = hero.rig;
+        const P = this.pool;
+        const fatPen = 1 - 0.25 * (GameState.fat || 0);
+        const fwdAmt = -input.moveY;
+        const rightAmt = input.moveX;
+        const mag = Math.min(1, Math.hypot(rightAmt, fwdAmt));
+        const blend = Math.min(1, A.t / 0.7);
+        const eb = blend * blend * (3 - 2 * blend);
+        if (A.t < 0.7) {
+          hero.pos.set(A.from.x + (P.entryX - A.from.x) * eb, A.from.y + (P.waterY - A.from.y) * eb + Math.sin(eb * Math.PI) * 0.9, A.from.z + (P.entryZ - A.from.z) * eb);
+        } else {
+          let wx = 0; let wz = 0;
+          if (mag > 0.1) {
+            wx = Math.sin(camYaw) * fwdAmt + (-Math.cos(camYaw)) * rightAmt;
+            wz = Math.cos(camYaw) * fwdAmt + Math.sin(camYaw) * rightAmt;
+            const l = Math.hypot(wx, wz) || 1; wx /= l; wz /= l;
+          }
+          const sprint = input.sprint && mag > 0.2 && GameState.nitro > 3;
+          const sp = (sprint ? 3.8 : 2.2) * fatPen * mag;
+          if (sprint) GameState.nitro = Math.max(0, GameState.nitro - 9 * dt);
+          hero.pos.x = clamp(hero.pos.x + wx * sp * dt, P.x0 + 0.6, P.x1 - 0.6);
+          hero.pos.z = clamp(hero.pos.z + wz * sp * dt, P.z0 + 0.6, P.z1 - 0.6);
+          hero.pos.y = P.waterY;
+          if (mag > 0.1) {
+            const want = Math.atan2(wx, wz);
+            let da = want - hero.yaw; da = Math.atan2(Math.sin(da), Math.cos(da));
+            hero.yaw += da * Math.min(1, dt * 7);
+          }
+          A.dist += sp * dt;
+          A.acc += dt * (0.1 + mag * 0.2) * (sprint ? 1.6 : 1);
+          if (A.acc >= 1) {
+            A.acc = 0;
+            GameStats.add('dayaTahan', 0.6);
+            GameStats.add('kelincahan', 0.15);
+            if (this.app.fx) this.app.fx.floatText(hero.pos.clone().setY(hero.pos.y + 1.3), '+DAYA TAHAN', '#22d3ee', 0.8);
+          }
+          A.splT -= dt;
+          if (A.splT <= 0 && mag > 0.15) {
+            A.splT = sprint ? 0.3 : 0.5;
+            this._ring(hero.pos.x, hero.pos.z);
+            this.app.sound.playSplash(false);
+            if (this.app.fx && sprint) this.app.fx.impactBurst(hero.pos.clone().setY(P.waterY + 0.3), new THREE.Vector3(-wx, 0.8, -wz), 0.25);
+          }
+          // keluar lewat tangga
+          if (A.t > 1.4 && hero.pos.x < P.x0 + 1.3 && Math.abs(hero.pos.z - P.entryZ) < 1.4 && wx < -0.3) { this.app.life.endHeroActivity(); return true; }
+        }
+        const moving = mag > 0.12 && A.t > 0.7;
+        A.h += ((moving ? 1 : 0.55) - A.h) * Math.min(1, dt * 4);
+        const bob = Math.sin(this.t * 2.2) * 0.02;
+        ExtrasSystem.poseSwim(rig, A.t, moving, false);
+        this._placeSwimRig(rig, hero.pos.x, hero.pos.z, hero.yaw, false, bob);
+        if (!moving) {
+          rig.root.rotation.x = 1.5 - 0.1 * Math.sin(this.t * 1.5);
+        }
+        return true;
+      }
+
+      onSwimEnd(A) {
+        const rig = this.app.hero.rig;
+        rig.root.rotation.set(0, this.app.hero.yaw, 0);
+        if (A.dist > 1) showToast(`Selesai berenang — ${Math.round(A.dist)} m. Badan segar!`, 'trophy');
+      }
+
+      _updateSwimmers(dt) {
+        const P = this.pool;
+        const near = Math.hypot(this.app.hero.pos.x - (P.x0 + P.x1) / 2, this.app.hero.pos.z - (P.z0 + P.z1) / 2) < 70;
+        this.swimmers.forEach(s => {
+          s.rig.root.visible = near;
+          if (!near) return;
+          s.t += dt;
+          s.x += s.dir * s.spd * dt;
+          if (s.x > P.x1 - 1.2) { s.dir = -1; this._ring(s.x, s.lane); }
+          if (s.x < P.x0 + 1.4) { s.dir = 1; this._ring(s.x, s.lane); }
+          ExtrasSystem.poseSwim(s.rig, s.t + s.ph, true);
+          this._placeSwimRig(s.rig, s.x, s.lane, s.dir > 0 ? Math.PI / 2 : -Math.PI / 2, false, Math.sin(s.t * 2 + s.ph) * 0.02);
+          if (Math.random() < dt * 0.9) this._ring(s.x, s.lane);
+        });
+      }
+
+      // ======================== KANDANG KUDA ========================
+      _buildStable() {
+        const life = this.app.life;
+        const CX = -36; const CZ = 106;
+        const g = new THREE.Group();
+        this.scene.add(g);
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(36, 30), this._grassHay());
+        ground.rotation.x = -Math.PI / 2; ground.position.set(CX, 0.012, CZ); ground.receiveShadow = true; g.add(ground);
+        const woodMat = this._mat(0x8b5a2b, 0.9);
+        const post = (x, z) => this._box(g, 0.22, 1.5, 0.22, woodMat, x, 0.75, z);
+        const rail = (x0, z0, x1, z1) => {
+          const len = Math.hypot(x1 - x0, z1 - z0);
+          const cx = (x0 + x1) / 2; const cz = (z0 + z1) / 2;
+          const ang = Math.atan2(x1 - x0, z1 - z0);
+          [0.55, 1.1].forEach(y => { const r = this._box(g, 0.1, 0.1, len, woodMat, cx, y, cz); r.rotation.y = ang; });
+          this.world.addBoxCollider(cx, cz, Math.abs(x1 - x0) < 0.01 ? 0.4 : len, Math.abs(z1 - z0) < 0.01 ? 0.4 : len);
+        };
+        const X0 = CX - 16; const X1 = CX + 16; const Z0 = CZ - 13; const Z1 = CZ + 6;
+        for (let x = X0; x <= X1 + 0.1; x += 4) { if (Math.abs(x - CX) > 3.9) post(x, Z0); post(x, Z1); }
+        for (let z = Z0; z <= Z1 + 0.1; z += 4) { post(X0, z); post(X1, z); }
+        rail(X0, Z0, CX - 4, Z0);
+        rail(CX + 4, Z0, X1, Z0);
+        rail(X0, Z0, X0, Z1);
+        rail(X1, Z0, X1, Z1);
+        rail(X0, Z1, X1, Z1);
+        // lumbung kuda
+        const barn = new THREE.Group(); barn.position.set(CX, 0, CZ + 12); g.add(barn);
+        this._box(barn, 16, 4, 6, this._mat(0xb91c1c, 0.8), 0, 2, 0);
+        const roof1 = this._box(barn, 17, 0.3, 4.2, this._mat(0x3f2a1d, 0.9), 0, 4.9, -1.6); roof1.rotation.x = 0.42;
+        const roof2 = this._box(barn, 17, 0.3, 4.2, this._mat(0x3f2a1d, 0.9), 0, 4.9, 1.6); roof2.rotation.x = -0.42;
+        this._box(barn, 5, 3, 0.2, this._mat(0x451a03, 0.9), 0, 1.5, -3.05);
+        this._box(barn, 5.4, 0.25, 0.3, this._mat(0xf8fafc, 0.9), 0, 3.1, -3.1);
+        this.world.addBoxCollider(CX, CZ + 12, 16, 6);
+        if (life && life._sign) life._sign(g, 'KANDANG KUDA', 'Naik kuda keliling Pantura', '#f59e0b', 8, 1.4, CX, 5.8, CZ + 8.8, 0);
+        // jerami & palung air
+        for (let i = 0; i < 4; i++) {
+          const hb = this._box(g, 1.2, 0.8, 0.8, this._mat(0xd4a24c, 1), CX - 12 + i * 1.3, 0.4, CZ + 4.2 - (i % 2) * 0.4);
+          hb.rotation.y = i * 0.2;
+        }
+        this.world.addBoxCollider(CX - 10.7, CZ + 4.0, 5.4, 1.4);
+        this._box(g, 2.8, 0.6, 0.8, this._mat(0x64748b, 0.6), CX + 10, 0.3, CZ - 10);
+        this._box(g, 2.5, 0.05, 0.6, this._mat(0x38bdf8, 0.2), CX + 10, 0.58, CZ - 10, false);
+        this.world.addBoxCollider(CX + 10, CZ - 10, 2.8, 0.8);
+        // kuda
+        const horses = [
+          { name: 'Kuda Coklat "Kuncung"', color: 0x8b5a2b, x: CX - 6, z: CZ - 4, yaw: 1.2 },
+          { name: 'Kuda Hitam "Bayu"', color: 0x1f1a17, x: CX + 4, z: CZ - 8, yaw: -0.6 },
+          { name: 'Kuda Putih "Salju"', color: 0xe5e7eb, x: CX + 8, z: CZ - 1, yaw: 2.6 }
+        ];
+        horses.forEach(h => this.app.vehicles.addVehicle({ name: h.name, type: 'horse', color: h.color, maxSpeed: 15, accel: 10, turnRate: 2.7, x: h.x, z: h.z, yaw: h.yaw }));
+      }
+
+      _grassHay() {
+        const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+        const x = cv.getContext('2d'); x.fillStyle = '#7a7040'; x.fillRect(0, 0, 128, 128);
+        for (let i = 0; i < 260; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(80,100,40,0.35)' : 'rgba(200,170,90,0.35)'; x.fillRect(Math.random() * 128, Math.random() * 128, 2, 5); }
+        const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 8);
+        return new THREE.MeshStandardMaterial({ map: t, roughness: 1 });
+      }
+
+      // ======================== SEWA SEPEDA ========================
+      _buildBikeStand() {
+        const life = this.app.life;
+        const CX = 15; const CZ = 82;
+        const g = new THREE.Group();
+        this.scene.add(g);
+        const metal = this._mat(0x1f2937, 0.5, { metalness: 0.5 });
+        [-3.2, 3.2].forEach(dx => [-1.3, 1.3].forEach(dz => this._cyl(g, 0.08, 0.08, 3, metal, CX + dx, 1.5, CZ + dz)));
+        this._box(g, 7.2, 0.18, 3.2, this._mat(0x16a34a, 0.7), CX, 3.05, CZ);
+        this._box(g, 6.6, 0.06, 2.6, this._mat(0x14532d, 0.9), CX, 0.02, CZ, false);
+        this.world.addBoxCollider(CX - 3.2, CZ - 1.3, 0.3, 0.3);
+        this.world.addBoxCollider(CX + 3.2, CZ - 1.3, 0.3, 0.3);
+        this.world.addBoxCollider(CX - 3.2, CZ + 1.3, 0.3, 0.3);
+        this.world.addBoxCollider(CX + 3.2, CZ + 1.3, 0.3, 0.3);
+        if (life && life._sign) life._sign(g, 'SEWA SEPEDA', 'Gratis • keliling Pantura', '#4ade80', 5.2, 0.9, CX, 3.7, CZ - 1.4, 0);
+        const cols = [0xef4444, 0x2563eb, 0xfacc15, 0x16a34a];
+        cols.forEach((c, i) => this.app.vehicles.addVehicle({ name: `Sepeda Pantura ${i + 1}`, type: 'bicycle', color: c, maxSpeed: 9, accel: 6.5, turnRate: 2.7, x: CX - 2.7 + i * 1.8, z: CZ, yaw: Math.PI / 2 }));
+      }
+
+      // ======================== LOOP ========================
+      update(dt) {
+        this.t += dt;
+        GameState.fat = Math.max(0, (GameState.fat || 0) - dt * 0.0004);
+        const tm = this._muscleRaw();
+        const tf = clamp(GameState.fat, 0, 1);
+        this.m += (tm - this.m) * Math.min(1, dt * 1.5);
+        this.f += (tf - this.f) * Math.min(1, dt * 1.5);
+        const tier = this._tierOf(tm);
+        if (this.tier === undefined) { this.tier = tier; this.ftier = this._ftierOf(tf, 0); this._lastKey = ''; }
+        if (tier > this.tier) { this.tier = tier; this._tearFx(tier); this._lastKey = ''; } else if (tier < this.tier) { this.tier = tier; this._lastKey = ''; }
+        const ft = this._ftierOf(tf, this.ftier);
+        if (ft !== this.ftier) {
+          if (ft > this.ftier) showToast(ft === 2 ? 'Hero jadi GENDUT! Gerak melambat — ayo olahraga/renang & kurangi jajan.' : 'Perut mulai buncit... kurangi jajan, rajin olahraga!', 'alert');
+          else showToast(ft === 0 ? 'Badan kembali ideal. Mantap!' : 'Perut mengecil, lanjutkan olahraga!', 'trophy');
+          this.ftier = ft;
+        }
+        const key = `${this.tier}|${this.m.toFixed(2)}|${this.f.toFixed(2)}`;
+        if (key !== this._lastKey) { this._lastKey = key; this.applyPhysique(this.app.hero.rig); }
+        this._updateDebris(dt);
+        this._updateRings(dt);
+        if (this.waterTex) { this.waterTex.offset.x += dt * 0.012; this.waterTex.offset.y += dt * 0.006; }
+        if (this.pool) this._updateSwimmers(dt);
+      }
+    }
+
     class PanturaGameApp {
       constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -11408,6 +12308,7 @@
         this.weather = new WeatherSystem(this);
         this.garage = new GarageSystem(this);
         this.progress = new ProgressSystem(this);
+        this.extras = new ExtrasSystem(this);
         this.hero.life = this.life;
         this.citizens.life = this.life;
 
@@ -11610,6 +12511,7 @@
         let hm = false; try { hm = localStorage.getItem('ngabrag_hudmin') === '1'; } catch (e) { /* abaikan */ }
         applyMin(hm);
         document.getElementById('btn-hud-collapse')?.addEventListener('click', () => applyMin(!document.body.classList.contains('hud-min')));
+        this._tidyHud();
         const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
         const syncFs = () => {
           const ic = document.getElementById('hud-fs-icon');
@@ -11789,6 +12691,31 @@
         this.hero.triggerEmote();
       }
 
+      // Rapikan HUD: menu fitur & pengaturan jadi flyout lipat agar area bermain lega
+      _tidyHud() {
+        const row = document.querySelector('.hud-pill-row');
+        const menuBtn = document.getElementById('btn-hud-menu');
+        const tr = document.getElementById('hud-tr-row');
+        const moreBtn = document.getElementById('btn-hud-more');
+        if (!row || !menuBtn || !tr || !moreBtn) return;
+        // pil statistik masuk ke menu
+        const sp = document.getElementById('stats-pill');
+        if (sp && sp.parentElement !== row) row.insertBefore(sp, row.firstChild);
+        // tombol pengaturan masuk panel "lainnya"
+        let panel = document.getElementById('hud-more-panel');
+        if (!panel) { panel = document.createElement('div'); panel.id = 'hud-more-panel'; tr.appendChild(panel); }
+        ['btn-hud-collapse', 'btn-hud-weather', 'btn-hud-cam-settings', 'btn-hud-audio', 'btn-hud-fs', 'btn-hud-vib', 'btn-hud-touch'].forEach(id => {
+          const b = document.getElementById(id); if (b && b.parentElement !== panel) panel.appendChild(b);
+        });
+        moreBtn.style.display = 'flex';
+        const closeAll = () => { row.classList.remove('open'); panel.classList.remove('open'); };
+        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.remove('open'); row.classList.toggle('open'); });
+        moreBtn.addEventListener('click', (e) => { e.stopPropagation(); row.classList.remove('open'); panel.classList.toggle('open'); });
+        row.addEventListener('click', (e) => { if (e.target.closest('button')) setTimeout(closeAll, 0); });
+        document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.hud-pill-row, #hud-more-panel, #btn-hud-menu, #btn-hud-more')) closeAll(); });
+        this.updateGearBadge();
+      }
+
       updateGearBadge() {
         const items = [];
         if (GameState.equipped.gloves) items.push('Sarung Tinju');
@@ -11798,6 +12725,7 @@
         if (GameState.equipped.mask) items.push('Masker');
         const el = document.getElementById('hud-gear-text');
         if (el) el.textContent = items.length ? items.join(' • ') : 'Tangan Kosong';
+        document.getElementById('hud-gear-pill')?.classList.toggle('empty', !items.length);
       }
 
       _updateProximityAndPickups() {
@@ -11854,6 +12782,9 @@
 
       _getZoneName(x, z) {
         if (GameState.currentBuilding) return GameState.currentBuilding.title.toUpperCase();
+        if (x > 18 && x < 56 && z > 90 && z < 128) return 'KOLAM RENANG TIRTA PANTURA';
+        if (x > -54 && x < -16 && z > 90 && z < 128) return 'KANDANG KUDA PANTURA';
+        if (x > 6 && x < 24 && z > 76 && z < 88) return 'SEWA SEPEDA';
         if (x < -35 && z < -35) return 'SUMMARECON BEKASI';
         if (x >= -35 && x <= 35 && z < -35) return 'WARTEG BAHARI PANTURA';
         if (x > 35 && z < -35) return 'INDUSTRI JABABEKA CIKARANG';
@@ -11895,7 +12826,7 @@
             promptEl.classList.add('hidden');
           } else if (GameState.nearestVehicle) {
             promptEl.classList.remove('hidden');
-            if (promptIcon) promptIcon.innerHTML = GameIcons.svg(GameState.nearestVehicle.type === 'motorbike' ? 'bike' : 'car', 'w-4 h-4');
+            if (promptIcon) promptIcon.innerHTML = GameIcons.svg(isTwoWheel(GameState.nearestVehicle.type) ? 'bike' : 'car', 'w-4 h-4');
             promptText.textContent = `Naik ${GameState.nearestVehicle.name} [E / G]`;
           } else if (GameState.nearestDoor) {
             promptEl.classList.remove('hidden');
@@ -11948,6 +12879,7 @@
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
             this.life.update(dt);
+            this.extras.update(dt);
             this.missions.update(dt);
             this.weather.update(dt);
             this.progress.update(dt);
