@@ -1874,6 +1874,7 @@
       constructor(scene) {
         this.scene = scene;
         this.colliders = [];
+        this.cameraObstacles = [];
         this.buildings = [];
         this.elevatedZones = [];
         this.doors = [];
@@ -1904,6 +1905,10 @@
         };
         this.colliders.push(collider);
         return collider;
+      }
+
+      addCameraObstacle(mesh, landmark = null) {
+        this.cameraObstacles.push({ bounds: new THREE.Box3().setFromObject(mesh).expandByScalar(0.2), landmark });
       }
 
       resolveCircleCollision(pos, radius = 0.58) {
@@ -1938,7 +1943,13 @@
               pos.x += (dx / dist) * overlap;
               pos.z += (dz / dist) * overlap;
             } else {
-              pos.z += radius;
+              const left = pos.x - b.minX, right = b.maxX - pos.x;
+              const north = pos.z - b.minZ, south = b.maxZ - pos.z;
+              const nearest = Math.min(left, right, north, south);
+              if (nearest === left) pos.x = b.minX - radius;
+              else if (nearest === right) pos.x = b.maxX + radius;
+              else if (nearest === north) pos.z = b.minZ - radius;
+              else pos.z = b.maxZ + radius;
             }
           }
         }
@@ -2259,6 +2270,7 @@
               collapsed: false, collapseTime: 0, rubble: []
             };
             this.destructionTargets.push(target);
+            this.addCameraObstacle(box, target);
             const savedDamage = Number((GameState.cityDamage || {})[target.id] || 0);
             target.damage = clamp(savedDamage, 0, 100);
             if (target.damage >= 100) this._collapseLandmark(target, true);
@@ -2374,6 +2386,10 @@
         southTop.position.set(lm.x, doorH + headerH * 0.5, southZ);
         this.scene.add(southTop);
 
+        [northWall, westWall, eastWall, southLeft, southRight, southTop, roof].forEach(mesh => {
+          this.addCameraObstacle(mesh);
+        });
+
         // Hinged Glass & Wood Door
         const doorPivot = new THREE.Group();
         doorPivot.position.set(lm.x - doorW * 0.5, 0.25, southZ);
@@ -2427,8 +2443,14 @@
           emissiveIntensity: 0.45
         });
         this.neonSigns.push(signMat);
-        const sign = new THREE.Mesh(new THREE.BoxGeometry(lm.w * 0.82, 2.2, 0.35), signMat);
-        sign.position.set(lm.x, lm.h - 1.5, southZ + 0.35);
+        const signHeight = Math.min(2.1, (lm.h - doorH) * 0.5);
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.72 });
+        const signWidth = signHeight * 4;
+        const sign = new THREE.Mesh(new THREE.BoxGeometry(signWidth, signHeight, 0.18), frameMat);
+        sign.position.set(lm.x, (doorH + lm.h) * 0.5, southZ + wallThick * 0.5 + 0.09);
+        const signFace = new THREE.Mesh(new THREE.PlaneGeometry(signWidth, signHeight), signMat);
+        signFace.position.z = 0.091;
+        sign.add(signFace);
         this.scene.add(sign);
 
         // Service Zone inside building near counter
@@ -2468,9 +2490,34 @@
           y: 0.22
         });
 
+        const turf = document.createElement('canvas');
+        turf.width = 512;
+        turf.height = 352;
+        const field = turf.getContext('2d');
+        for (let band = 0; band < 8; band++) {
+          field.fillStyle = band % 2 ? '#377a42' : '#3d8549';
+          field.fillRect(band * 64, 0, 64, 352);
+        }
+        field.strokeStyle = '#d3e0ce';
+        field.lineWidth = 2.5;
+        field.strokeRect(13, 13, 486, 326);
+        field.strokeRect(13, 120, 64, 112);
+        field.strokeRect(435, 120, 64, 112);
+        field.beginPath();
+        field.moveTo(256, 13);
+        field.lineTo(256, 339);
+        field.stroke();
+        field.beginPath();
+        field.arc(256, 176, 38, 0, Math.PI * 2);
+        field.stroke();
+        field.fillStyle = field.strokeStyle;
+        field.beginPath();
+        field.arc(256, 176, 3, 0, Math.PI * 2);
+        field.fill();
+
         const pitch = new THREE.Mesh(
           new THREE.PlaneGeometry(32, 22),
-          new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.85 })
+          new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(turf), roughness: 0.92 })
         );
         pitch.rotation.x = -Math.PI / 2;
         pitch.position.set(0, 0.225, 0);
@@ -2527,6 +2574,15 @@
         const ringBanner = new THREE.Mesh(new THREE.BoxGeometry(10.5, 2.0, 0.35), ringSignMat);
         ringBanner.position.set(bx, 4.4, bz - 5.2);
         this.scene.add(ringBanner);
+        const bannerSupport = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.78 });
+        for (const offset of [-4.7, 4.7]) {
+          const postHeight = 4.4 - 0.22;
+          const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, postHeight, 0.16), bannerSupport);
+          const x = bx + offset, z = bz - 5.45;
+          post.position.set(x, 0.22 + postHeight * 0.5, z);
+          this.scene.add(post);
+          this.addBoxCollider(x, z, 0.16, 0.16);
+        }
 
         this.serviceZones.push({
           pos: new THREE.Vector3(bx, 0.22, bz - 7.5),
@@ -5045,6 +5101,7 @@
           const tex = new THREE.CanvasTexture(cv);
           const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
           sp.scale.set(2.5, 0.94, 1);
+          sp.visible = false;
           sp.renderOrder = 25;
           this.scene.add(sp);
           c.tag = { cv, tex, sp };
@@ -5647,9 +5704,10 @@
         const L = this.list;
         const R = 0.9;
         const mobile = c => !c._busy && c.downBlend < 0.3;
+        const startX = hero?.pos.x, startZ = hero?.pos.z;
         for (let i = 0; i < L.length; i++) {
           const a = L[i];
-          if (!a.rig.root.visible) continue;
+          if (!a.rig.root.visible || a.atHome || a.offShift) continue;
           for (let j = i + 1; j < L.length; j++) {
             const b = L[j];
             if (!b.rig.root.visible || b.atHome || b.offShift) continue;
@@ -5660,9 +5718,9 @@
             const am = mobile(a);
             const bm = mobile(b);
             if (!am && !bm) continue;
-            const d = Math.sqrt(d2) || 0.001;
-            const nx = dx / d;
-            const nz = dz / d;
+            const d = Math.sqrt(d2);
+            const nx = d > 0.001 ? dx / d : 1;
+            const nz = d > 0.001 ? dz / d : 0;
             const pen = R - d;
             const wa = am ? (bm ? 0.5 : 1) : 0;
             const wb = bm ? (am ? 0.5 : 1) : 0;
@@ -5674,15 +5732,15 @@
             if (bm) b.turnTimer = 1.5 + Math.random();
           }
           // Hero vs warga
-          if (hero && !GameState.inVehicle && !GameState.vehicleTransition) {
+          if (hero && !GameState.inVehicle && !GameState.vehicleTransition && !GameState.roomTransition) {
             const dx = a.pos.x - hero.pos.x;
             const dz = a.pos.z - hero.pos.z;
             const d2 = dx * dx + dz * dz;
             const HR = 0.95;
             if (d2 < HR * HR && Math.abs(a.pos.y - hero.pos.y) < 1.2 && a.downBlend < 0.3) {
-              const d = Math.sqrt(d2) || 0.001;
-              const nx = dx / d;
-              const nz = dz / d;
+              const d = Math.sqrt(d2);
+              const nx = d > 0.001 ? dx / d : Math.sin(hero.yaw);
+              const nz = d > 0.001 ? dz / d : Math.cos(hero.yaw);
               const pen = HR - d;
               const busyHero = hero.life && hero.life.busy;
               if (mobile(a)) {
@@ -5696,18 +5754,32 @@
               }
             }
           }
-          if (mobile(a)) this.world.resolveCircleCollision(a.pos, 0.55);
-          // tag nama/HP warga kuat
-          if (a.tag) {
-            const dd = hero ? Math.hypot(hero.pos.x - a.pos.x, hero.pos.z - a.pos.z) : 99;
-            const show = dd < 24 && a.rig.root.visible && a.downBlend < 0.6;
-            a.tag.sp.visible = show;
-            if (show) {
-              a.tag.sp.position.set(a.pos.x, a.pos.y + 2.55 * (a.rig.root.scale.y || 1), a.pos.z);
-              const key = `${Math.ceil(a.hp)}|${a.hostile > 0 ? 1 : 0}`;
-              if (key !== a._tagKey) this._drawTag(a);
-            }
+          if (mobile(a)) {
+            this.world.resolveCircleCollision(a.pos, 0.55);
+            const ground = this.world.getGroundHeight(a.pos.x, a.pos.z);
+            a.rig.root.position.x = a.pos.x;
+            a.rig.root.position.z = a.pos.z;
+            a.rig.root.position.y += ground - a.pos.y;
+            a.pos.y = ground;
           }
+        }
+
+        if (hero && (hero.pos.x !== startX || hero.pos.z !== startZ)) {
+          this.world.resolveCircleCollision(hero.pos, 0.58);
+          hero.rig.root.position.x += hero.pos.x - startX;
+          hero.rig.root.position.z += hero.pos.z - startZ;
+        }
+
+        for (const c of L) {
+          if (!c.tag) continue;
+          const sprite = c.tag.sp;
+          sprite.visible = c.rig.root.visible && !c.atHome && !c.offShift && c.downBlend < 0.6 &&
+            !!hero && Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 24;
+          if (!sprite.visible) continue;
+          c.rig.head.getWorldPosition(sprite.position);
+          sprite.position.y += 0.92 * c.rig.root.scale.y;
+          const key = `${Math.ceil(c.hp)}|${c.hostile > 0 ? 1 : 0}`;
+          if (key !== c._tagKey) this._drawTag(c);
         }
       }
 
@@ -5903,9 +5975,12 @@
     // 9. CAMERA CONTROLLER (3RD-PERSON ORBIT, INDOOR ADAPTATION & HOOD VIEW)
     // ==========================================================================
     class CameraController {
-      constructor(camera, canvas) {
+      constructor(camera, canvas, world) {
         this.camera = camera;
         this.canvas = canvas;
+        this.world = world;
+        this.obstructionRay = new THREE.Ray();
+        this.obstructionHit = new THREE.Vector3();
         this.yaw = Math.PI;
         this.pitch = 0.38;
         this.currentLookAt = new THREE.Vector3(0, 1.5, 16);
@@ -5956,6 +6031,23 @@
         };
         window.addEventListener('pointerup', endDrag);
         window.addEventListener('pointercancel', endDrag);
+      }
+
+      avoidObstacles(origin, position) {
+        const ray = this.obstructionRay;
+        ray.origin.copy(origin);
+        ray.direction.subVectors(position, origin);
+        let distance = ray.direction.length();
+        if (distance < 0.001) return;
+        ray.direction.multiplyScalar(1 / distance);
+
+        for (const { bounds, landmark } of this.world.cameraObstacles) {
+          if (landmark?.collapsed || bounds.containsPoint(origin)) continue;
+          if (!ray.intersectBox(bounds, this.obstructionHit)) continue;
+          const hitDistance = origin.distanceTo(this.obstructionHit);
+          if (hitDistance < distance) distance = Math.max(0.06, hitDistance - 0.04);
+        }
+        position.copy(origin).addScaledVector(ray.direction, distance);
       }
 
       update(dt, targetPos, targetYaw, isDriving, isCrouching = false, currentBuilding = null) {
@@ -6039,8 +6131,17 @@
           if (this.shakeTime <= 0) this.shakeMag = 0.25;
         }
 
-        this.camera.position.lerp(desiredPos, Math.min(1, dt * 12));
-        const lookGoal = new THREE.Vector3(targetPos.x, targetPos.y + (isCrouching >= 2 ? 0.5 : (isCrouching ? 0.95 : 1.45)), targetPos.z);
+        const focusHeight = isCrouching >= 2 ? 0.5 : (isCrouching ? 0.95 : 1.45);
+        const lookGoal = new THREE.Vector3(targetPos.x, targetPos.y + focusHeight, targetPos.z);
+        this.avoidObstacles(lookGoal, desiredPos);
+        if (this.camera.position.lengthSq() === 0) this.camera.position.copy(desiredPos);
+        else this.camera.position.lerp(desiredPos, Math.min(1, dt * 12));
+        this.avoidObstacles(lookGoal, this.camera.position);
+
+        // Beri ruang di atas adegan untuk HUD saat bermain dengan layar tegak.
+        if (!isDriving && !currentBuilding && this.camera.aspect < 1) {
+          lookGoal.y += Math.min(0.64, (1 - this.camera.aspect) * 1.3);
+        }
         this.currentLookAt.lerp(lookGoal, Math.min(1, dt * 14));
         this.camera.lookAt(this.currentLookAt);
       }
@@ -10337,7 +10438,11 @@
             if (c.offShift && !off) c.pos.copy(c.nightAnchor);
             c.offShift = off;
             c.rig.root.visible = !off;
-            if (off) { c.hostile = 0; c.atk = null; }
+            if (off) {
+              c.hostile = 0;
+              c.atk = null;
+              if (c.tag) c.tag.sp.visible = false;
+            }
           });
           for (const c of this.citizens.list) {
             const r = c.routine;
@@ -10505,7 +10610,16 @@
           this._box(this.scene, 0.8, 0.5 + i * 0.1, 0.6, crate, x, 0.35 + i * 0.1, z);
           this.world.addBoxCollider(x, z, 0.8, 0.6);
         });
-        this._sign(this.scene, 'AWAS BOLA LIAR', 'Lapangan Alun-Alun Pantura', '#facc15', 3.6, 1.0, 0, 1.4, 23.2, Math.PI);
+        const signX = 13.5, signZ = 21.05;
+        const groundY = this.world.getGroundHeight(signX, signZ);
+        this._sign(this.scene, 'AWAS BOLA LIAR', 'Lapangan Alun-Alun Pantura', '#facc15', 3.6, 1.0,
+          signX, groundY + 1.35, signZ, Math.PI);
+        const postMat = this._mat(0x475569, 0.75);
+        for (const offset of [-1.25, 1.25]) {
+          const x = signX + offset;
+          this._box(this.scene, 0.12, 1.45, 0.12, postMat, x, groundY + 0.725, signZ, false);
+          this.world.addBoxCollider(x, signZ, 0.12, 0.12);
+        }
       }
 
       // ======================== ACTORS (WARGA BERAKTIVITAS) ========================
@@ -15315,7 +15429,7 @@
         this.hero = new HeroController(this.scene, this.world, this.sound);
         this.vehicles = new VehicleManager(this.scene, this.world, this.sound);
         this.citizens = new CitizenManager(this.scene, this.world, this.sound);
-        this.camCtrl = new CameraController(this.camera, this.canvas);
+        this.camCtrl = new CameraController(this.camera, this.canvas, this.world);
         this.fx = new EffectsManager(this.scene, this.camera);
         this.fx.camCtrl = this.camCtrl;
         this.hero.fx = this.fx;
