@@ -1923,6 +1923,8 @@
         // Static wall colliders
         for (let i = 0; i < this.colliders.length; i++) {
           const b = this.colliders[i];
+          if (pos.x < b.minX - radius || pos.x > b.maxX + radius ||
+              pos.z < b.minZ - radius || pos.z > b.maxZ + radius) continue;
           const closestX = clamp(pos.x, b.minX, b.maxX);
           const closestZ = clamp(pos.z, b.minZ, b.maxZ);
           const dx = pos.x - closestX;
@@ -1979,6 +1981,7 @@
         }
         for (let i = 0; i < this.colliders.length; i++) {
           const b = this.colliders[i];
+          if (x < b.minX - radius || x > b.maxX + radius || z < b.minZ - radius || z > b.maxZ + radius) continue;
           const closestX = clamp(x, b.minX, b.maxX);
           const closestZ = clamp(z, b.minZ, b.maxZ);
           const dx = x - closestX;
@@ -9440,7 +9443,7 @@
       }
 
       // ---------------- benches in the plaza ----------------
-      _makeBench(x, z, yaw, y = 0.22, withZone = true, label = 'Duduk Santai & Nongkrong [E]') {
+      _makeBench(x, z, yaw, y = 0.22, withZone = true, label = 'Duduk Santai & Nongkrong [E]', sideAccess = false) {
         const g = new THREE.Group();
         g.position.set(x, y, z);
         g.rotation.y = yaw;
@@ -9463,7 +9466,10 @@
         };
         this.benches.push(bench);
         if (withZone) {
-          const zp = bench.pos.clone().addScaledVector(fwd, 0.75).addScaledVector(right, 0.6);
+          const zp = sideAccess
+            ? bench.pos.clone().addScaledVector(fwd, -0.85).addScaledVector(right, 1.45)
+            : bench.pos.clone().addScaledVector(fwd, 0.75).addScaledVector(right, 0.6);
+          if (sideAccess) bench.exit = zp;
           this._zone(zp.x, zp.z, 1.6, 'bench_sit', label, { bench });
         }
         return bench;
@@ -9482,6 +9488,7 @@
           this._cyl(g, 0.28, 0.24, 0.75, binMat, 0, 0.38, 0, 10);
           this._cyl(g, 0.3, 0.3, 0.06, this._mat(0x166534, 0.6), 0, 0.77, 0, 10);
           this.scene.add(g);
+          this.world.addBoxCollider(x, z, 0.55, 0.55);
         });
         const potMat = this._mat(0xb45309, 0.8);
         const leaf = this._mat(0x22c55e, 0.8);
@@ -9497,6 +9504,7 @@
             g.add(lf);
           }
           this.scene.add(g);
+          this.world.addBoxCollider(x, z, 0.7, 0.7);
         });
       }
 
@@ -9800,24 +9808,21 @@
           this._cyl(t, 0.06, 0.06, 0.15, this._mat(0xf8fafc, 0.4), 0, 0.88, 0, 8);
           g.add(t);
           this.world.addBoxCollider(tx, tz, 2.3, 1.0);
-          this._makeBench(tx, tz - 1.0, 0, 0.1, true, 'Duduk di Warkop & Nongkrong [E]');
-          this._makeBench(tx, tz + 1.0, Math.PI, 0.1, true, 'Duduk di Warkop & Nongkrong [E]');
+          this._makeBench(tx, tz - 1.45, 0, 0.1, true, 'Duduk di Warkop & Nongkrong [E]', true);
+          this._makeBench(tx, tz + 1.45, Math.PI, 0.1, true, 'Duduk di Warkop & Nongkrong [E]', true);
         });
 
         // string lights & gate sign
-        for (let k = 0; k < 2; k++) {
-          const z = 23.6 + k * 0;
-          for (let i = 0; i <= 16; i++) {
-            const x = 24 + i * 2.25;
-            const sag = Math.sin((i / 16) * Math.PI) * 0.5;
-            this._bulb(g, x, 4.0 - sag, z, 0.075);
-          }
+        for (let i = 0; i <= 16; i++) {
+          const x = 24 + i * 2.25;
+          const sag = Math.sin((i / 16) * Math.PI) * 0.5;
+          this._bulb(g, x, 4.0 - sag, 23.6, 0.075);
         }
         [24, 60].forEach(px => this._cyl(g, 0.09, 0.09, 4.1, this._mat(0x475569, 0.6), px, 2.0, 23.6, 8));
         this._sign(g, 'JAJAN MALAM PANTURA', 'Warkop Buka sampai Tengah Malam', '#f472b6', 9, 1.5, 42, 5.0, 22.6, Math.PI);
 
         // parked ojek motorbikes
-        [[24.5, 45.5, 0.3], [25.8, 46.2, 0.5]].forEach(([mx, mz, ry]) => {
+        [[24.5, 45.5, 0.3], [27, 46.8, 0.5]].forEach(([mx, mz, ry]) => {
           const m = new THREE.Group();
           m.position.set(mx, 0.1, mz);
           m.rotation.y = ry;
@@ -10229,8 +10234,8 @@
         this._light(-178, 4.2, 34, 0xfcd38a, 1.1, 0.03);
 
         const trail = this._mat(0xb89965);
-        this._box(this.scene, 3.2, 0.1, 43, trail, 34, 0, 179, false);
-        this._box(this.scene, 26, 0.1, 3.2, trail, 34, 0, 180, false);
+        this._box(this.scene, 3.2, 0.1, 38, trail, 34, 0, 179, false);
+        for (const x of [26.7, 41.3]) this._box(this.scene, 11.4, 0.1, 3.2, trail, x, 0, 180, false);
         for (const x of [18, 23, 42, 48]) {
           this._box(this.scene, 2.6, 0.18, 13, this._mat(0x65432b), x, 0.07, 169);
           for (let i = 0; i < 6; i++) {
@@ -10416,7 +10421,10 @@
         if (c.routineMoving) {
           r.elapsed += dt;
           r.retry -= dt;
-          if (!r.path && r.retry <= 0) {
+          if (!r.path && r.retry <= 0 && this.routeBudget === 0) {
+            r.retry = 0.05 + (r.index % 5) * 0.016;
+          } else if (!r.path && r.retry <= 0) {
+            if (this.routeBudget > 0) this.routeBudget--;
             this.world.resolveCircleCollision(c.pos, 0.64);
             r.path = this.world.pedestrianPath(c.pos, goal);
             if (!r.path.length) r.path = this.world.pedestrianPath(c.pos, goal, 2);
@@ -10494,7 +10502,8 @@
         // a few extra street details: power-line style banners & fruit crates near the food court
         const crate = this._mat(0xa16207, 0.9);
         [[22.5, 31], [22.6, 32.1]].forEach(([x, z], i) => {
-          const m = this._box(this.scene, 0.8, 0.5 + i * 0.1, 0.6, crate, x, 0.35 + i * 0.1, z);
+          this._box(this.scene, 0.8, 0.5 + i * 0.1, 0.6, crate, x, 0.35 + i * 0.1, z);
+          this.world.addBoxCollider(x, z, 0.8, 0.6);
         });
         this._sign(this.scene, 'AWAS BOLA LIAR', 'Lapangan Alun-Alun Pantura', '#facc15', 3.6, 1.0, 0, 1.4, 23.2, Math.PI);
       }
@@ -10601,8 +10610,8 @@
           if (s.type === 'warkop') v.eveningOut = true;
         });
         const tbl = [[36, 42], [46, 42]];
-        const bT0 = B.find(b => Math.abs(b.pos.x - 36) < 0.1 && Math.abs(b.pos.z - 41) < 0.1);
-        const bT1 = B.find(b => Math.abs(b.pos.x - 46) < 0.1 && Math.abs(b.pos.z - 43) < 0.1);
+        const bT0 = B.find(b => b.pos.x === 36 && Math.abs(b.pos.z - 40.55) < 0.1);
+        const bT1 = B.find(b => b.pos.x === 46 && Math.abs(b.pos.z - 43.45) < 0.1);
         if (bT0) {
           mk(false, 0, 0, { type: 'sit', sitKind: 'coffee', bench: bT0, slot: seat(bT0, 0), eat: true }, { fixed: true, yaw: bT0.yaw, lines: ['Baksonya juara!'] });
         }
@@ -11258,7 +11267,7 @@
         let exit = null;
         const f = new THREE.Vector3(Math.sin(hero.yaw), 0, Math.cos(hero.yaw));
         switch (A.type) {
-          case 'sit': exit = hero.pos.clone().addScaledVector(A.bench.fwd, 1.1); break;
+          case 'sit': exit = A.bench.exit || hero.pos.clone().addScaledVector(A.bench.fwd, 1.1); break;
           case 'bench': exit = new THREE.Vector3(A.st.worldX + 1.2, 0.22, A.st.worldZ + 0.9); break;
           case 'treadmill': exit = new THREE.Vector3(A.st.worldX, 0.22, A.st.worldZ + 1.7); break;
           case 'rope': exit = hero.pos.clone().add(new THREE.Vector3(0, 0, 1.2)); break;
@@ -12566,7 +12575,10 @@
         const roof = mat(0x147d77);
         life._box(c, 5.8, 0.06, 5.7, tile, 0, 0.04, 0, false);
         for (const x of [-2.55, 2.55]) {
-          for (const z of [-2.45, 2.45]) life._box(c, 0.14, 3.25, 0.14, metal, x, 1.63, z);
+          for (const z of [-2.45, 2.45]) {
+            life._box(c, 0.14, 3.25, 0.14, metal, x, 1.63, z);
+            this.app.world.addBoxCollider(c.position.x + x, c.position.z + z, 0.2, 0.2);
+          }
         }
         life._box(c, 6.2, 0.18, 6.1, roof, 0, 3.28, 0);
         life._box(c, 6.25, 0.22, 0.24, mat(0xf9c76d), 0, 3.19, 2.95, false);
@@ -15328,6 +15340,10 @@
         this.hero.forest = this.forest;
         this.clock = new ClockSystem(this);
         this.recovery = new HospitalRecovery(this);
+        this.localLights = [];
+        this.scene.traverse(obj => { if (obj.isPointLight) this.localLights.push(obj); });
+        this.lightLimit = isMobileDevice ? 5 : this.localLights.length;
+        this._refreshLocalLights();
         this.clock.apply();
         this.hero.life = this.life;
         this.citizens.life = this.life;
@@ -15872,24 +15888,24 @@
         const promptIcon = document.getElementById('context-prompt-icon');
         const promptText = document.getElementById('context-prompt-text');
         if (promptEl && promptText) {
+          const setPrompt = (icon, label) => {
+            promptEl.classList.remove('hidden');
+            if (promptIcon && promptIcon.dataset.iconType !== icon) {
+              promptIcon.dataset.iconType = icon;
+              promptIcon.innerHTML = GameIcons.svg(icon, 'w-4 h-4');
+            }
+            if (promptText.textContent !== label) promptText.textContent = label;
+          };
           if (GameState.inVehicle || (this.life && this.life.busy)) {
             promptEl.classList.add('hidden');
           } else if (GameState.nearestVehicle) {
-            promptEl.classList.remove('hidden');
-            if (promptIcon) promptIcon.innerHTML = GameIcons.svg(isTwoWheel(GameState.nearestVehicle.type) ? 'bike' : 'car', 'w-4 h-4');
-            promptText.textContent = `Naik ${GameState.nearestVehicle.name} [E / G]`;
+            setPrompt(isTwoWheel(GameState.nearestVehicle.type) ? 'bike' : 'car', `Naik ${GameState.nearestVehicle.name} [E / G]`);
           } else if (GameState.nearestDoor) {
-            promptEl.classList.remove('hidden');
-            if (promptIcon) promptIcon.innerHTML = GameIcons.svg('door', 'w-4 h-4');
-            promptText.textContent = `${GameState.currentBuilding ? 'Keluar' : 'Masuk'} Pintu ${GameState.nearestDoor.buildingTitle} [E]`;
+            setPrompt('door', `${GameState.currentBuilding ? 'Keluar' : 'Masuk'} Pintu ${GameState.nearestDoor.buildingTitle} [E]`);
           } else if (GameState.nearestServiceZone) {
-            promptEl.classList.remove('hidden');
-            if (promptIcon) promptIcon.innerHTML = GameIcons.svg('store', 'w-4 h-4');
-            promptText.textContent = GameState.nearestServiceZone.label;
+            setPrompt('store', GameState.nearestServiceZone.label);
           } else if (GameState.nearestCitizen) {
-            promptEl.classList.remove('hidden');
-            if (promptIcon) promptIcon.innerHTML = GameIcons.svg('wave', 'w-4 h-4');
-            promptText.textContent = `Sapa ${GameState.nearestCitizen.name} [E]`;
+            setPrompt('wave', `Sapa ${GameState.nearestCitizen.name} [E]`);
           } else {
             promptEl.classList.add('hidden');
           }
@@ -15943,6 +15959,13 @@
         if (this.fx) this.fx.update(dt);
       }
 
+      _refreshLocalLights() {
+        if (this.lightLimit >= this.localLights.length) return;
+        const focus = this.hero.pos;
+        this.localLights.sort((a, b) => a.position.distanceToSquared(focus) - b.position.distanceToSquared(focus));
+        this.localLights.forEach((light, i) => { light.visible = i < this.lightLimit; });
+      }
+
       _adjustRenderQuality(seconds) {
         this.slowFrameTime = seconds >= 0.047
           ? (this.slowFrameTime || 0) + Math.min(seconds, 0.125)
@@ -15955,6 +15978,9 @@
           this.renderer.setPixelRatio(lowerRatio);
         } else if (this.renderer.shadowMap.enabled) {
           this.renderer.shadowMap.enabled = false;
+        } else if (this.lightLimit > 5) {
+          this.lightLimit = 5;
+          this._refreshLocalLights();
         }
       }
 
@@ -15965,6 +15991,10 @@
         const dt = Math.min(0.125, frameTime);
         if (this.recovery.active) {
           this.recovery.update(dt);
+          if (now >= (this.nextLightRefresh || 0)) {
+            this._refreshLocalLights();
+            this.nextLightRefresh = now + 350;
+          }
           this.renderer.render(this.scene, this.camera);
           return;
         }
@@ -15972,6 +16002,7 @@
         if (GameState.started) this._adjustRenderQuality(frameTime);
 
         this.input.poll();
+        this.life.routeBudget = 4;
         const steps = Math.max(1, Math.ceil(dt / 0.05 - 1e-9));
         const step = dt / steps;
         for (let i = 0; i < steps; i++) {
@@ -15986,6 +16017,10 @@
           this.hero.stance, GameState.currentBuilding);
 
         if (GameState.started) {
+          if (now >= (this.nextLightRefresh || 0)) {
+            this._refreshLocalLights();
+            this.nextLightRefresh = now + 350;
+          }
           this._updateProximityAndPickups();
           if (now >= (this.nextHudFrame || 0)) {
             this.nextHudFrame = now + 32;
