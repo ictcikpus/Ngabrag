@@ -2,7 +2,7 @@
 
 const scope = self.registration.scope;
 const prefix = 'ngabrag-pwa:' + scope + ':';
-const cacheName = prefix + '61b2e5ac7b9c';
+const cacheName = prefix + 'f3ff168a2127';
 const shell = new URL('./index.html', scope).href;
 const files = new Set([
   './index.html',
