@@ -5814,10 +5814,12 @@
           }
 
           const targetGroundY = this.world.getGroundHeight(c.pos.x, c.pos.z);
-          c.pos.y += (targetGroundY - c.pos.y) * Math.min(1, dt * 20);
+          c.pos.y = targetGroundY;
 
           c.rig.root.position.copy(c.pos);
           c.rig.root.rotation.y = c.yaw;
+          c.rig.pelvis.position.y = 0.975;
+          c.rig.pelvis.rotation.set(0, 0, 0);
 
           // Knockdown blend (falls backward, then gets back up)
           const downTarget = c.downTimer > 0.5 ? 1 : Math.max(0, c.downTimer / 0.5);
@@ -6354,6 +6356,11 @@
       }
 
       updateDockLabels() {
+        const state = [GameState.inVehicle, GameState.heroStance, Boolean(GameState.nearestVehicle),
+          Boolean(GameState.nearestDoor), Boolean(GameState.nearestServiceZone), GameState.equipped.blaster,
+          this.cb.isFlying()].join('|');
+        if (this.dockLabelState === state) return;
+        this.dockLabelState = state;
         const setSlot = (slot, key, icon, label, extraClass = '') => {
           const kEl = document.getElementById(`slot-${slot}-key`);
           const iEl = document.getElementById(`slot-${slot}-icon`);
@@ -9142,7 +9149,7 @@
             };
           }
           case 'sit': {
-            const base = { py: 0.54, hl: [-1.5, 0.05, 0.06], hr: [-1.5, -0.05, -0.06], kl: 1.5, kr: 1.5, torso: [0.06, 0, 0] };
+            const base = { py: 0.56, hl: [-1.57, 0.05, 0.06], hr: [-1.57, -0.05, -0.06], kl: 1.5, kr: 1.5, torso: [0.06, 0, 0] };
             switch (a.sitKind) {
               case 'phone':
                 return Object.assign(base, {
@@ -10388,7 +10395,6 @@
         const distance = Math.hypot(goal.x - c.pos.x, goal.z - c.pos.z);
         const arrived = distance < 0.85;
         const near = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z) < 92;
-        c.rig.root.visible = near;
         c.routineMoving = returning || !arrived;
 
         if (returning && (arrived || r.elapsed > 52)) {
@@ -10405,6 +10411,7 @@
         }
 
         r.working = false;
+        c.rig.root.visible = near;
         let pose;
         if (c.routineMoving) {
           r.elapsed += dt;
@@ -10757,10 +10764,11 @@
         const A = c.act;
         const dh = Math.hypot(hero.pos.x - c.pos.x, hero.pos.z - c.pos.z);
         const vis = dh < 78;
+        const justShown = vis && !c.rig.root.visible;
         if (c.rig.root.visible !== vis) c.rig.root.visible = vis;
         if (!vis) return;
-        if (dh > 42 && ((this._frame + c.idx) % 3) !== 0) return;
-        if (dh > 42) dt *= 3;
+        if (dh > 42 && !justShown && ((this._frame + c.idx) % 3) !== 0) return;
+        if (dh > 42 && !justShown) dt *= 3;
         const rig = c.rig;
         const t = this.t + A.phase;
         const sm = (target) => {
@@ -10791,7 +10799,7 @@
           case 'phone': pose = LifePoses.pose('phone', t, {}); break;
           case 'sit': {
             const sl = A.slot;
-            c.pos.set(sl.pos.x - A.bench.fwd.x * 0.06, sl.pos.y, sl.pos.z - A.bench.fwd.z * 0.06);
+            c.pos.set(sl.pos.x + A.bench.fwd.x * 0.1, sl.pos.y, sl.pos.z + A.bench.fwd.z * 0.1);
             c.yaw = A.bench.yaw;
             if (A.sitKind === 'chat' && A.partner) {
               const want = Math.atan2(A.partner.pos.x - c.pos.x, A.partner.pos.z - c.pos.z);
@@ -10924,7 +10932,8 @@
           default: pose = {};
         }
 
-        rig.root.position.set(c.pos.x, rootY !== null ? rootY : c.pos.y, c.pos.z);
+        if (rootY === null) c.pos.y = this.world.getGroundHeight(c.pos.x, c.pos.z);
+        rig.root.position.set(c.pos.x, rootY ?? c.pos.y, c.pos.z);
         rig.root.rotation.set(lying ? -Math.PI / 2 : 0, c.yaw, 0);
         LifePoses.apply(rig, pose || {});
       }
@@ -11424,7 +11433,7 @@
             break;
           case 'sit': {
             const sl = A.slot;
-            lerpTo(sl.pos.x - A.bench.fwd.x * 0.06, sl.pos.y, sl.pos.z - A.bench.fwd.z * 0.06);
+            lerpTo(sl.pos.x + A.bench.fwd.x * 0.1, sl.pos.y, sl.pos.z + A.bench.fwd.z * 0.1);
             yaw = A.bench.yaw;
             rootY = sl.pos.y + 0.02 + (1 - eb) * (A.from.y - sl.pos.y);
             hero.yaw = yaw;
@@ -15375,10 +15384,11 @@
             antialias: !isMobileDevice,
             powerPreference: 'high-performance'
           });
-          this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.5 : 2));
+          this.renderRatio = Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1 : 1.5);
+          this.renderer.setPixelRatio(this.renderRatio);
           this.renderer.setSize(window.innerWidth, window.innerHeight);
-          this.renderer.shadowMap.enabled = true;
-          this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          this.renderer.shadowMap.enabled = !isMobileDevice;
+          this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
           window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -15909,60 +15919,76 @@
         this.input.updateDockLabels();
       }
 
+      _simulate(dt) {
+        this.world.update(dt, this.sound, this.hero.pos);
+        if (!GameState.started) return;
+
+        this.clock.update(dt);
+        this.life.updateRoutines(dt);
+        this.marketRain.update(dt);
+        this.hero.update(dt, this.input, this.camCtrl.yaw, this.citizens);
+        this.power.update(dt);
+        this.vehicles.update(dt, this.input, this.citizens);
+        this.citizens.update(dt, this.hero);
+        if (this.recovery.active) return;
+        this.life.update(dt);
+        this.extras.update(dt);
+        this.forest.update(dt);
+        if (this.recovery.active) return;
+        this.missions.update(dt);
+        this.roadside.update(dt);
+        this.weather.update(dt);
+        if (this.recovery.active) return;
+        this.progress.update(dt);
+        if (this.fx) this.fx.update(dt);
+      }
+
+      _adjustRenderQuality(seconds) {
+        this.slowFrameTime = seconds >= 0.047
+          ? (this.slowFrameTime || 0) + Math.min(seconds, 0.125)
+          : Math.max(0, (this.slowFrameTime || 0) - seconds * 2);
+        if (this.slowFrameTime < 2) return;
+        this.slowFrameTime = 0;
+        const lowerRatio = Math.max(0.7, this.renderRatio * 0.84);
+        if (lowerRatio < this.renderRatio) {
+          this.renderRatio = lowerRatio;
+          this.renderer.setPixelRatio(lowerRatio);
+        } else if (this.renderer.shadowMap.enabled) {
+          this.renderer.shadowMap.enabled = false;
+        }
+      }
+
       _loop(now) {
         requestAnimationFrame(this._loop);
-        let dt = Math.min(0.05, (now - this.lastTime) / 1000);
+        const frameTime = Math.max(0, (now - this.lastTime) / 1000);
         this.lastTime = now;
+        const dt = Math.min(0.125, frameTime);
         if (this.recovery.active) {
           this.recovery.update(dt);
           this.renderer.render(this.scene, this.camera);
           return;
         }
-        if (this.fx) dt = this.fx.processDt(dt);
+        if (GameState.paused) return;
+        if (GameState.started) this._adjustRenderQuality(frameTime);
 
-        if (!GameState.paused) {
-          this.input.poll();
-          this.world.update(dt, this.sound, this.hero.pos);
+        this.input.poll();
+        const steps = Math.max(1, Math.ceil(dt / 0.05 - 1e-9));
+        const step = dt / steps;
+        for (let i = 0; i < steps; i++) {
+          this._simulate(this.fx ? this.fx.processDt(step) : step);
+          if (this.recovery.active || GameState.paused) return;
+        }
 
-          if (GameState.started) {
-            this.clock.update(dt);
-            this.life.updateRoutines(dt);
-            this.marketRain.update(dt);
-            this.hero.update(dt, this.input, this.camCtrl.yaw, this.citizens);
-            this.power.update(dt);
-            this.vehicles.update(dt, this.input, this.citizens);
-            this.citizens.update(dt, this.hero);
-            if (this.recovery.active) return;
-            this.life.update(dt);
-            this.extras.update(dt);
-            this.forest.update(dt);
-            if (this.recovery.active) return;
-            this.missions.update(dt);
-            this.roadside.update(dt);
-            this.weather.update(dt);
-            if (this.recovery.active) return;
-            this.progress.update(dt);
-            if (this.fx) this.fx.update(dt);
-            this._updateProximityAndPickups();
-          }
+        const vehicle = GameState.inVehicle && GameState.activeVehicle;
+        const focusPos = vehicle ? vehicle.pos : this.hero.pos;
+        const focusYaw = vehicle ? vehicle.yaw : this.hero.yaw;
+        this.camCtrl.update(Math.min(dt, 0.05), focusPos, focusYaw, GameState.inVehicle,
+          this.hero.stance, GameState.currentBuilding);
 
-          const focusPos = (GameState.inVehicle && GameState.activeVehicle)
-            ? GameState.activeVehicle.pos
-            : this.hero.pos;
-          const focusYaw = (GameState.inVehicle && GameState.activeVehicle)
-            ? GameState.activeVehicle.yaw
-            : this.hero.yaw;
-
-          this.camCtrl.update(
-            dt,
-            focusPos,
-            focusYaw,
-            GameState.inVehicle,
-            this.hero.stance,
-            GameState.currentBuilding
-          );
-
-          if (GameState.started) {
+        if (GameState.started) {
+          this._updateProximityAndPickups();
+          if (now >= (this.nextHudFrame || 0)) {
+            this.nextHudFrame = now + 32;
             this.power.updateGuide();
             this.updateHUD();
             this.minimap.render(focusPos, focusYaw, this.world, this.vehicles, this.citizens);
