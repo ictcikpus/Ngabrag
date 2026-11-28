@@ -352,6 +352,14 @@
   <!-- ===================================================================== -->
   <!-- MAIN IN-GAME HUD                                                      -->
   <!-- ===================================================================== -->
+  <section id="recovery-overlay" hidden role="status" aria-live="polite"
+    style="position:fixed;inset:0;z-index:100;color:#ecfdfa;pointer-events:auto">
+    <div id="recovery-card" class="glass-panel" style="position:absolute;bottom:8%;left:50%;transform:translateX(-50%);width:min(88%,390px);border:1px solid #47756d;border-radius:18px;padding:16px;text-align:center;background:#081821">
+      <strong id="recovery-title" style="font-size:15px;letter-spacing:.04em"></strong>
+      <p id="recovery-info" style="margin:5px 0;font-size:13px;color:#b9e5df"></p>
+      <div style="margin-top:9px;height:5px;border-radius:10px;background:#21404a;overflow:hidden"><div id="recovery-fill" style="height:100%;background:#6ee7b7"></div></div>
+    </div>
+  </section>
   <div id="hud-root" class="hidden fixed inset-0 z-20 pointer-events-none">
     <!-- Top Bar Container -->
     <div class="flex items-start justify-between gap-2 safe-hud-top">
@@ -460,6 +468,7 @@
         <span id="context-prompt-text" class="text-[11px] sm:text-xs font-bold text-emerald-300">Tekan [E] untuk berinteraksi</span>
       </button>
 
+      <button id="hud-power-guide" type="button" hidden class="pointer-events-auto glass-pill rounded-xl border border-cyan-400/40 px-3 py-1.5 text-xs font-bold text-cyan-100" aria-label="Hentikan petunjuk arah"></button>
       <div id="hud-jurus-actions" class="hidden pointer-events-auto flex items-center gap-1.5">
         <button id="btn-use-jurus" type="button" class="glass-pill rounded-xl px-3 py-2 text-xs font-bold text-cyan-100" title="Gunakan jurus [X]">Jurus [X]</button>
         <button id="btn-use-petir" type="button" class="hidden glass-pill rounded-xl px-3 py-2 text-xs font-bold text-cyan-200" title="Aktifkan Mode Petir [V]">Petir [V]</button>
@@ -699,6 +708,11 @@
         </button>
       </div>
       <p id="jurus-milestones" class="mb-3 text-xs text-slate-300"></p>
+      <div class="mb-3 grid grid-cols-2 gap-2">
+        <button id="guide-musala" type="button" class="rounded-xl border border-emerald-300/30 px-2 py-2 text-xs font-bold text-emerald-100">Tandai Musala</button>
+        <button id="guide-hutan" type="button" class="rounded-xl border border-violet-300/30 px-2 py-2 text-xs font-bold text-violet-100">Tandai Gerbang Hutan</button>
+      </div>
+      <button id="guide-latihan" type="button" class="mb-3 w-full rounded-xl border border-cyan-300/30 px-2 py-2 text-left text-xs font-bold text-cyan-100">Latihan Jurus di Samsak</button>
       <div id="jurus-options" class="grid gap-2"></div>
       <button id="btn-consume-pil-kuat" type="button" class="hidden mt-3 w-full rounded-xl bg-cyan-200 px-3 py-2.5 text-sm font-black text-slate-950"></button>
       <p id="jurus-petir-info" class="mt-3 text-xs text-cyan-200"></p>
@@ -992,7 +1006,8 @@
       audioEnabled: true,
       timePresetIndex: 0, // 0: Golden Afternoon, 1: Bright Noon, 2: Night Neon
       clock: 16.5, dark: 0, bossKills: 0, cityDamage: {},
-      jurus: { ibadah: 0, doa: 0, pills: 0, forest: false, selected: null, playedDays: 0, lastPlayDay: null, flightEarned: false },
+      hospitalPending: false,
+      jurus: { training: 0, ibadah: 0, doa: 0, pills: 0, forest: false, selected: null, playedDays: 0, lastPlayDay: null, flightEarned: false },
       cameraMode: 0,      // 0: Standard, 1: Wide, 2: Close, 3: First-Person/Hood
       cameraSensitivity: 1.0,
       cameraDistanceMult: 1.0,
@@ -3209,7 +3224,7 @@
             return d > 0.08 && d <= move.reach && (dx * fwd.x + dz * fwd.z) / d >= move.cone;
           })
           : [citizens.findInCone(this.pos, fwd, move.reach, move.cone)].filter(Boolean);
-        if (!targets.length) { this.life?.tryHitBag(this, move.combo); return; }
+        if (!targets.length) { this.life?.tryHitBag(this, move.combo, move); return; }
         const dmg = Math.round((GameState.equipped.gloves ? 28 : 18) * GameStats.dmgMult() * move.damage * this.power.damageFactor);
         for (const target of targets) {
           const dir = move.splash ? target.pos.clone().sub(this.pos).setY(0).normalize() : fwd;
@@ -5058,7 +5073,7 @@
       _hurtHero(c, dmg) {
         const app = this.life.app;
         const hero = app.hero;
-        if (app.power?.flying && hero.pos.y - c.pos.y > 3) return;
+        if (app.recovery.active || (app.power?.flying && hero.pos.y - c.pos.y > 3)) return;
         const up = hero.pos.clone();
         up.y += 2.2;
         if (hero.rollTimer > 0) {
@@ -5083,51 +5098,13 @@
         }
         if (app.camCtrl) app.camCtrl.addShake(0.12, 0.22);
         hero.pos.addScaledVector(dir, 0.45);
-        if (GameState.health <= 0) this._heroKO(c);
-      }
-
-      _heroKO(by) {
-        const app = this.life.app;
-        const hero = app.hero;
-        if (GameState.inVehicle || GameState.vehicleTransition) {
-          if (GameState.activeVehicle) GameState.activeVehicle.speed = 0;
-          GameState.inVehicle = false;
-          GameState.activeVehicle = null;
-          GameState.vehicleTransition = null;
-          this.sound.stopVehicleEngine();
-          this.sound.syncRadio(false);
-          hero.rig.pelvis.position.y = 0.95;
-        }
-        if (this.life.busy) this.life.endHeroActivity();
-        if (app.power?.flying) app.power.stopFlight();
-        if (app.power) app.power.surge = 0;
-        if (app.forest && app.forest.active) app.forest.leave(true);
-        const cost = Math.min(GameState.cash, 50000);
-        GameState.cash -= cost;
-        GameState.health = 100;
-        this.list.forEach(c => { c.hostile = 0; c.atk = null; c.truce = 25; });
-        if (app.missions) app.missions.onHeroKO();
-        if (this.fx) this.fx.screenFlash('0,0,0', 0.95, 1100);
-        this.sound.playKnockdown();
-        hero.pos.set(0, this.world.getGroundHeight(0, 16), 16);
-        hero.velY = 0;
-        hero.isGrounded = true;
-        hero.jumpCount = 0;
-        hero.pendingHit = null;
-        hero.attackTimer = 0;
-        hero.lungeVel = 0;
-        hero.rollTimer = 0;
-        hero.stance = GameState.heroStance = 0;
-        hero.isCrouching = false;
-        hero.rig.root.position.copy(hero.pos);
-        showToast(`Hero pulih dengan 100% HP setelah K.O. Biaya perawatan ${formatRupiah(cost)}.`, 'heart');
-        app.updateHUD();
+        app.recovery.checkDamage();
       }
 
       // Dapat dipanggil oleh petugas maupun warga yang sangat marah.
       forceHeroOut(vehicle, actor = null, destroyed = false) {
         const app = this.life && this.life.app;
-        if (!app || !GameState.inVehicle || GameState.activeVehicle !== vehicle || GameState.vehicleTransition) return false;
+        if (!app || app.recovery.active || !GameState.inVehicle || GameState.activeVehicle !== vehicle || GameState.vehicleTransition) return false;
         vehicle.speed = 0;
         app.hero.startVehicleTransition(vehicle, false);
         if (GameState.vehicleTransition) {
@@ -5142,7 +5119,7 @@
           this.fx.floatText(app.hero.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), `-${damage} HP`, '#fb7185', 0.9);
         }
         showToast(destroyed ? 'Kendaraan lumpuh! Hero terjatuh dan terluka.' : `${actor ? actor.name : 'Warga'} menarik Hero keluar dari kendaraan!`, 'alert');
-        if (GameState.health <= 0) this._heroKO(actor || { name: 'kecelakaan kendaraan' });
+        app.recovery.checkDamage();
         return true;
       }
 
@@ -11348,7 +11325,7 @@
         this.app.updateHUD();
       }
 
-      tryHitBag(hero, combo) {
+      tryHitBag(hero, combo, move = null) {
         const fwd = new THREE.Vector3(Math.sin(hero.yaw), 0, Math.cos(hero.yaw));
         for (let i = 0; i < this.bags.length; i++) {
           const b = this.bags[i];
@@ -11363,6 +11340,7 @@
           this.fx.floatText(hp.clone().setY(2.1), `+KEKUATAN`, '#fbbf24', 0.7);
           GameStats.add('kekuatan', 0.3 + combo * 0.05);
           this.camCtrlShake(combo);
+          if (move) this.app.power.recordPractice();
           return true;
         }
         return false;
@@ -12229,7 +12207,7 @@
             if (e.leave > 3.5) this._remove(e);
           }
         });
-        // tangkap: Hero terkena KO ditangani _heroKO
+        // Pemulihan Hero ditangani HospitalRecovery.
       }
 
       _updateHud() {
@@ -12522,7 +12500,7 @@
         const perp = Math.abs((hp.x - bx) * dz - (hp.z - bz) * dx);
         const pd = Math.hypot(hp.x - bx, hp.z - bz);
         if (pd < 40 && app.camCtrl && app.camCtrl.addShake) app.camCtrl.addShake(0.45);
-        if (!GameState.inVehicle && along > -0.5 && along < len + 1 && perp < 2.3) {
+        if (!app.recovery.active && !GameState.inVehicle && along > -0.5 && along < len + 1 && perp < 2.3) {
           GameState.health = Math.max(5, GameState.health - 22);
           app.sound.playHeroHurt();
           if (app.fx) { app.fx.screenFlash('239,68,68', 0.45, 400); app.fx.floatText(hp.clone().setY(hp.y + 2.4), 'TERTIMPA POHON! -22', '#f87171', 1.2); }
@@ -12530,6 +12508,7 @@
           app.hero.pos.x += dz * sg * 2.2; app.hero.pos.z += -dx * sg * 2.2;
           showToast('Kamu tertimpa pohon tumbang! Hati-hati saat badai.', 'alert');
           if (app.progress) app.progress.count('tree_hit');
+          app.recovery.checkDamage();
           app.updateHUD();
         }
       }
@@ -12926,7 +12905,9 @@
           const G = GameState;
           ['heroName', 'cash', 'boxingStage', 'gymPassUntil', 'fishCaught', 'boxingWins', 'timePresetIndex', 'fat', 'clock', 'bossKills'].forEach(k => { if (d[k] !== undefined) G[k] = d[k]; });
           if (d.cityDamage && typeof d.cityDamage === 'object') G.cityDamage = d.cityDamage;
+          G.hospitalPending = d.hospitalPending === true;
           if (d.jurus && typeof d.jurus === 'object') {
+            G.jurus.training = Number.isInteger(d.jurus.training) ? clamp(d.jurus.training, 0, 3) : 0;
             for (const key of ['ibadah', 'doa', 'pills']) {
               if (Number.isFinite(d.jurus[key])) G.jurus[key] = Math.max(0, Math.floor(d.jurus[key]));
             }
@@ -12984,7 +12965,7 @@
           const d = {
             v: 1, heroName: G.heroName, cash: G.cash, boxingStage: G.boxingStage, gymPassUntil: G.gymPassUntil, fishCaught: G.fishCaught, boxingWins: G.boxingWins,
             timePresetIndex: G.timePresetIndex, clock: G.clock, bossKills: G.bossKills || 0, cityDamage: G.cityDamage || {}, fat: G.fat || 0, foodInventory: G.foodInventory, stats: G.stats, ownedItems: [...G.ownedItems], eduSolved: [...G.eduSolved],
-            appearance: G.appearance, equipped: G.equipped, jurus: G.jurus, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
+            appearance: G.appearance, equipped: G.equipped, jurus: G.jurus, hospitalPending: G.hospitalPending, mgWins: G.mgWins || {}, counters: G.counters, achievements: G.achievements, daily: G.daily, streak: G.streak, tuning: G.tuning || {},
             audioEnabled: G.audioEnabled, missions: { done: m ? m.done : 0, earned: m ? m.earned : 0 }
           };
           localStorage.setItem(ProgressSystem.KEY, JSON.stringify(d));
@@ -14356,6 +14337,7 @@
 
       _hurt(dmg, srcX, srcZ) {
         const app = this.app, hero = app.hero, fx = app.fx;
+        if (app.recovery.active) return false;
         const up = hero.pos.clone(); up.y += 2.3;
         if (hero.rollTimer > 0) { if (fx) fx.floatText(up, 'DIHINDARI!', '#67e8f9', 1.0); return false; }
         const dir = new THREE.Vector3(hero.pos.x - srcX, 0, hero.pos.z - srcZ); if (dir.lengthSq() < 1e-4) dir.set(0, 0, 1); dir.normalize();
@@ -14368,8 +14350,8 @@
         if (app.camCtrl) app.camCtrl.addShake(0.2, 0.35);
         hero.pos.addScaledVector(dir, 1.6);
         Haptics.buzz([40, 20, 60]);
-        if (GameState.health <= 0) app.citizens._heroKO({ name: 'Raksasa Hutan' });
-        return true;
+        app.recovery.checkDamage();
+        return !app.recovery.active;
       }
 
       // ----- serangan Hero ke boss -----
@@ -14633,6 +14615,204 @@
       }
     }
 
+    class HospitalRecovery {
+      static CRITICAL_HP = 25;
+      static TREATMENT_TIME = 5;
+
+      constructor(app) {
+        this.app = app;
+        this.phase = '';
+        this.elapsed = 0;
+        this.building = app.world.buildings.find(b => b.title === 'RS PANTURA SEHAT');
+        const b = this.building;
+        this.bed = new THREE.Vector3(b.x + 5.7, b.floorY + 0.64, b.z - 1.2);
+        this.standing = new THREE.Vector3(this.bed.x - 1.65, b.floorY, this.bed.z - 0.85);
+        this._buildWard();
+        this.bandages = this._buildBandages();
+        this.overlay = document.getElementById('recovery-overlay');
+        this.title = document.getElementById('recovery-title');
+        this.info = document.getElementById('recovery-info');
+        this.fill = document.getElementById('recovery-fill');
+      }
+
+      get active() { return Boolean(this.phase); }
+
+      _buildWard() {
+        const { scene, life } = this.app;
+        const { x, y, z } = this.bed;
+        const box = (w, h, d, color, px, py, pz) => life._box(scene, w, h, d, life._mat(color), px, py, pz);
+        box(1.8, 0.17, 2.95, 0x527981, x, y - 0.28, z - 0.68);
+        box(1.62, 0.20, 2.76, 0xcce6e8, x, y - 0.105, z - 0.68);
+        box(1.15, 0.12, 0.52, 0xf8fafc, x, y + 0.016, z - 1.65);
+        for (const dx of [-0.65, 0.65]) {
+          for (const dz of [-1.55, 0.46]) box(0.11, 0.37, 0.11, 0x90a8b1, x + dx, y - 0.46, z + dz);
+        }
+        box(1.82, 0.60, 0.10, 0x28727e, x, y - 0.05, z - 2.12);
+        box(0.72, 0.65, 0.65, 0xa6c9c9, x + 1.48, y - 0.31, z - 1.58);
+        life._sign(scene, 'RUANG PEMULIHAN', 'RS PANTURA SEHAT', '#a7f3d0', 3.7, 0.8, x - 0.3, y + 1.75, z - 3.2, 0);
+        life._light(x - 1, y + 2.7, z - 0.8, 0xcdfff6, 1.5, 0.8, 13);
+        this.app.world.addBoxCollider(x, z - 0.68, 1.8, 2.95);
+        this.app.world.addBoxCollider(x + 1.48, z - 1.58, 0.72, 0.65);
+        this.app.world.serviceZones.push({
+          pos: new THREE.Vector3(this.building.x, this.building.floorY, this.building.z + 2.9),
+          radius: 1.9, action: 'hospital_treatment', label: 'Rawat Luka di RS [E]',
+        });
+      }
+
+      _buildBandages() {
+        const rig = this.app.hero.rig;
+        const material = new THREE.MeshStandardMaterial({ color: 0xf2f5ec, roughness: 0.85 });
+        const build = (parent, geometry, x, y, z) => {
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(x, y, z);
+          mesh.visible = false;
+          parent.add(mesh);
+          return mesh;
+        };
+        const head = build(rig.head, new THREE.BoxGeometry(0.35, 0.061, 0.35), 0, 0.27, 0);
+        const patch = build(rig.head, new THREE.BoxGeometry(0.095, 0.11, 0.023), -0.105, 0.129, 0.168);
+        const arm = build(rig.leftElbowPivot, new THREE.BoxGeometry(0.137, 0.14, 0.137), 0, -0.15, 0);
+        return [head, patch, arm];
+      }
+
+      checkDamage() {
+        if (!this.active && GameState.health <= HospitalRecovery.CRITICAL_HP) {
+          this.begin(GameState.health <= 0 ? 'ko' : 'critical');
+        }
+      }
+
+      begin(reason) {
+        if (this.active) return;
+        if (reason === 'visit' && GameState.health >= 100) {
+          showToast('Darah Hero sudah penuh. Obat tersedia di meja layanan.', 'heart');
+          return;
+        }
+        const { hero, life, power, forest, missions, citizens, sound } = this.app;
+        this.phase = 'transfer';
+        this.elapsed = 0;
+        this.fromHp = reason === 'resume' ? 30 : Math.max(30, GameState.health);
+        this.arrivalTitle = reason === 'ko' ? 'HERO K.O.' : (reason === 'critical' ? 'LUKA BERAT' : 'RUANG PEMULIHAN');
+        this.fall = reason === 'ko' && !GameState.inVehicle && !GameState.vehicleTransition;
+        GameState.paused = true;
+
+        if (GameState.activeVehicle) {
+          GameState.activeVehicle.speed = 0;
+          sound.stopVehicleEngine();
+          sound.syncRadio(false);
+        }
+        GameState.inVehicle = false;
+        GameState.activeVehicle = null;
+        GameState.vehicleTransition = null;
+        GameState.roomTransition = null;
+        if (life.busy) life.endHeroActivity();
+        if (power.flying) power.stopFlight();
+        power.surge = 0;
+        power.update(0);
+        hero.pendingHit = null;
+        hero.attackTimer = hero.lungeVel = hero.rollTimer = hero.guardTimer = hero.emoteTimer = hero.consumeTimer = 0;
+        hero.stance = GameState.heroStance = 0;
+        hero.isCrouching = false;
+        hero.rig.foodBowlMesh.visible = false;
+        hero.rig.drinkCupMesh.visible = false;
+
+        if (reason === 'ko' || reason === 'critical') {
+          citizens.list.forEach(c => { c.hostile = 0; c.atk = null; c.truce = 25; });
+          missions.onHeroKO();
+          const cost = Math.min(GameState.cash, reason === 'ko' ? 50000 : 25000);
+          GameState.cash -= cost;
+          this.initialInfo = `Dibawa ke RS Pantura Sehat · biaya ${formatRupiah(cost)}`;
+          if (reason === 'ko') sound.playKnockdown();
+        } else this.initialInfo = 'Perawatan di RS Pantura Sehat';
+
+        this.fromForest = forest.active;
+        GameState.hospitalPending = true;
+        this.app.progress.save();
+        this.overlay.hidden = false;
+        this.overlay.style.background = 'rgba(3,8,15,0)';
+        this.title.textContent = this.arrivalTitle;
+        this.info.textContent = this.initialInfo;
+        this.fill.parentElement.hidden = true;
+        this.fill.style.width = '0%';
+        this.app.updateHUD();
+      }
+
+      _arrive() {
+        const { hero, forest, clock, camera, camCtrl } = this.app;
+        if (this.fromForest && forest.active) forest.leave(true);
+        GameState.currentBuilding = this.building;
+        GameState.health = this.fromHp;
+        hero.pos.copy(this.bed);
+        hero.velY = 0;
+        hero.isGrounded = true;
+        hero.jumpCount = 0;
+        hero.yaw = 0;
+        hero.rig.root.visible = true;
+        hero.rig.root.position.copy(this.bed);
+        hero.rig.root.rotation.set(-Math.PI / 2, 0, 0, 'YXZ');
+        LifePoses.apply(hero.rig, {});
+        this.bandages.forEach(mesh => { mesh.visible = true; mesh.scale.setScalar(1); });
+        this.title.textContent = 'DIRAWAT DI RS PANTURA SEHAT';
+        this.fill.parentElement.hidden = false;
+        const { x, y, z } = this.bed;
+        this.wardLook = new THREE.Vector3(x, y + 0.22, z - 0.74);
+        camera.position.set(x - 3.35, y + 1.75, z + 2.05);
+        camera.lookAt(this.wardLook);
+        camCtrl.currentLookAt.copy(this.wardLook);
+        camCtrl.yaw = Math.PI / 2;
+        camCtrl.indoorBlend = 1;
+        clock.apply();
+      }
+
+      update(dt) {
+        this.elapsed += dt;
+        const { hero, camera, camCtrl } = this.app;
+        if (this.phase === 'transfer') {
+          const blend = clamp(this.elapsed / 0.95, 0, 1);
+          this.overlay.style.background = `rgba(3,8,15,${blend})`;
+          if (this.fall) hero.rig.root.rotation.x = -Math.PI * 0.44 * Math.min(1, blend * 1.7);
+          if (blend >= 1) {
+            this._arrive();
+            this.phase = 'treatment';
+            this.elapsed = 0;
+          }
+        } else if (this.phase === 'treatment') {
+          const progress = clamp(this.elapsed / HospitalRecovery.TREATMENT_TIME, 0, 1);
+          const fade = 1 - clamp(this.elapsed / 0.65, 0, 1);
+          this.overlay.style.background = `rgba(3,8,15,${fade})`;
+          GameState.health = this.fromHp + (100 - this.fromHp) * progress;
+          this.info.textContent = `Pemulihan · ${Math.round(GameState.health)}% HP`;
+          this.fill.style.width = `${progress * 100}%`;
+          if (progress >= 1) {
+            this.phase = 'release';
+            this.elapsed = 0;
+            this.title.textContent = 'PULIH SEPENUHNYA';
+            this.info.textContent = '100% HP · Perban dilepas';
+          }
+        } else {
+          const progress = clamp(this.elapsed / 0.85, 0, 1);
+          this.bandages.forEach(mesh => { mesh.scale.setScalar(Math.max(0.02, 1 - progress * 1.8)); });
+          const eased = progress * progress * (3 - 2 * progress);
+          hero.rig.root.position.lerpVectors(this.bed, this.standing, eased);
+          hero.rig.root.rotation.x = -Math.PI * 0.5 * (1 - eased);
+          camera.lookAt(this.wardLook);
+          if (progress >= 1) {
+            hero.pos.copy(this.standing);
+            hero.rig.root.position.copy(this.standing);
+            this.bandages.forEach(mesh => { mesh.visible = false; mesh.scale.setScalar(1); });
+            camCtrl.currentLookAt.copy(hero.pos).add(new THREE.Vector3(0, 1.35, 0));
+            camCtrl.shakeTime = 0;
+            GameState.health = 100;
+            GameState.hospitalPending = false;
+            GameState.paused = false;
+            this.phase = '';
+            this.overlay.hidden = true;
+            this.app.progress.save();
+          }
+        }
+        this.app.updateHUD();
+      }
+    }
+
     class JurusSystem {
       static techniques = [
         { id: 'telapak', name: 'Telapak Tenang', description: 'Dorongan dua telapak ke satu lawan.', requirement: 'Selesaikan 3 sesi ibadah.',
@@ -14663,6 +14843,14 @@
         this.flightButton = document.getElementById('btn-fly-jurus');
         this.consumeButton = document.getElementById('btn-consume-pil-kuat');
         this.arcs = this._createElectricArcs();
+        this.guideLabel = document.getElementById('hud-power-guide');
+        this.guide = null;
+        this.guideMark = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.29, 0.74, 7, 12, 1, true),
+          new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false }),
+        );
+        this.guideMark.visible = false;
+        this.app.scene.add(this.guideMark);
 
         document.getElementById('btn-hud-jurus').addEventListener('click', () => this.open());
         document.getElementById('btn-close-jurus').addEventListener('click', () => {
@@ -14673,6 +14861,10 @@
         this.surgeButton.addEventListener('click', () => this.activateSurge());
         this.flightButton.addEventListener('click', () => this.toggleFlight());
         this.consumeButton.addEventListener('click', () => this.consumePill());
+        for (const id of ['musala', 'hutan', 'latihan']) {
+          document.getElementById('guide-' + id).addEventListener('click', () => this.setGuide(id));
+        }
+        this.guideLabel.addEventListener('click', () => { this.guide = null; this.updateGuide(); });
       }
 
       get selected() {
@@ -14701,6 +14893,9 @@
         const selected = this.selected?.id;
         document.getElementById('jurus-milestones').textContent =
           `Musala Pantura, utara alun-alun · Ibadah ${Math.min(3, state.ibadah)}/3 · Doa ${Math.min(3, state.doa)}/3`;
+        document.getElementById('guide-latihan').textContent = state.training >= 3
+          ? 'Tandai Samsak · Bonus latihan sudah diraih'
+          : `Latihan Jurus di Samsak · ${state.training}/3 · Rp35.000`;
         const list = document.getElementById('jurus-options');
         list.replaceChildren();
         for (const move of JurusSystem.techniques) {
@@ -14736,6 +14931,75 @@
         document.getElementById('jurus-flight-info').textContent = this.flightUnlocked
           ? 'Terbang [Y] · Naik [Spasi] · Turun [Z] · Boost [Shift]'
           : `Terbang Super memerlukan Pil Kuat dan 7 hari bermain berturut-turut (${streak}/7 hari).`;
+      }
+
+      setGuide(id) {
+        const { world, forest, life } = this.app;
+        const bag = life.bags[0].base;
+        this.guide = {
+          musala: { name: 'Musala Pantura', ...world.prayerSpot, color: 0x6ee7b7,
+            hint: 'Dekati area Ibadah atau Doa di teras, lalu tekan E hingga sesi selesai.' },
+          hutan: { name: 'Gerbang Hutan', x: forest.EX, z: forest.EZ, color: 0xc4a4ff,
+            hint: 'Masuk lewat gerbang ungu dengan berjalan kaki. Kalahkan Grakhor, lalu gunakan Pil Kuat di Menu → Jurus.' },
+          latihan: { name: 'Samsak Pantura', x: bag.x, z: bag.z, color: 0x67e8f9,
+            hint: 'Setelah membuka jurus, hadap samsak dan tekan X. Tiga jurus yang mengenai samsak memberi bonus latihan.' },
+        }[id];
+        this.modal.classList.add('hidden');
+        GameState.paused = false;
+        this.updateGuide();
+      }
+
+      _guideDestination() {
+        const forest = this.app.forest;
+        if (this.guide && forest?.active) {
+          return { name: 'Gerbang Keluar Hutan', x: forest.exitX, z: forest.exitZ, color: 0x86efac };
+        }
+        return this.guide;
+      }
+
+      updateGuide() {
+        let target = this._guideDestination();
+        if (target?.hint && Math.hypot(this.hero.pos.x - target.x, this.hero.pos.z - target.z) < 7) {
+          showToast(target.hint, 'route');
+          this.guide = target = null;
+        }
+        this.guideMark.visible = Boolean(target);
+        this.guideLabel.hidden = !target;
+        if (!target) return;
+        const distance = Math.round(Math.hypot(this.hero.pos.x - target.x, this.hero.pos.z - target.z));
+        const text = `${target.name} · ${distance} m · ×`;
+        if (this.guideLabel.textContent !== text) this.guideLabel.textContent = text;
+        this.guideMark.position.set(target.x, this.app.world.getGroundHeight(target.x, target.z) + 3.5, target.z);
+        this.guideMark.material.color.setHex(target.color);
+      }
+
+      drawGuide(canvas, heroPos) {
+        const target = this._guideDestination();
+        if (!target || !canvas) return;
+        const ctx = canvas.getContext('2d');
+        const x = clamp(canvas.width / 2 + (target.x - heroPos.x) * 0.58, 11, canvas.width - 11);
+        const y = clamp(canvas.height / 2 + (target.z - heroPos.z) * 0.58, 11, canvas.height - 11);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#' + target.color.toString(16).padStart(6, '0');
+        ctx.strokeStyle = '#08131b';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-5, -5, 10, 10);
+        ctx.strokeRect(-5, -5, 10, 10);
+        ctx.restore();
+      }
+
+      recordPractice() {
+        const state = GameState.jurus;
+        if (state.training >= 3) return;
+        state.training++;
+        if (state.training === 3) {
+          GameState.cash += 35000;
+          this.app.sound.playLevelUp();
+          showToast('Latihan jurus selesai! Bonus Rp35.000.', 'trophy');
+        } else showToast(`Latihan jurus ${state.training}/3`, 'bolt');
+        this.app.progress.save();
       }
 
       recordSession(kind) {
@@ -15044,6 +15308,7 @@
         this.forest = new ForestSystem(this);
         this.hero.forest = this.forest;
         this.clock = new ClockSystem(this);
+        this.recovery = new HospitalRecovery(this);
         this.clock.apply();
         this.hero.life = this.life;
         this.citizens.life = this.life;
@@ -15207,7 +15472,8 @@
           document.getElementById('start-screen')?.classList.add('hidden');
           document.getElementById('hud-root')?.classList.remove('hidden');
           this.updateHUD();
-          showToast(`Selamat datang di Pantura, ${GameState.heroName}!`, 'route');
+          if (GameState.hospitalPending) this.recovery.begin('resume');
+          else showToast('Buka Menu → Jurus untuk menemukan panduan kekuatan.', 'route');
         };
         document.getElementById('btn-start-game')?.addEventListener('click', startGame);
         startName?.addEventListener('keydown', (event) => {
@@ -15429,6 +15695,8 @@
           const act = GameState.nearestServiceZone.action;
           if (act === 'food_warteg' || act === 'food_minimarket') {
             this.shopCtrl.openShop('food');
+          } else if (act === 'hospital_treatment') {
+            this.recovery.begin('visit');
           } else if (act === 'hospital') {
             this.shopCtrl.openShop('medicine', ['med_perban', 'med_obat', 'med_kit']);
           } else if (act === 'workshop') {
@@ -15635,6 +15903,11 @@
         requestAnimationFrame(this._loop);
         let dt = Math.min(0.05, (now - this.lastTime) / 1000);
         this.lastTime = now;
+        if (this.recovery.active) {
+          this.recovery.update(dt);
+          this.renderer.render(this.scene, this.camera);
+          return;
+        }
         if (this.fx) dt = this.fx.processDt(dt);
 
         if (!GameState.paused) {
@@ -15649,12 +15922,15 @@
             this.power.update(dt);
             this.vehicles.update(dt, this.input, this.citizens);
             this.citizens.update(dt, this.hero);
+            if (this.recovery.active) return;
             this.life.update(dt);
             this.extras.update(dt);
             this.forest.update(dt);
+            if (this.recovery.active) return;
             this.missions.update(dt);
             this.roadside.update(dt);
             this.weather.update(dt);
+            if (this.recovery.active) return;
             this.progress.update(dt);
             if (this.fx) this.fx.update(dt);
             this._updateProximityAndPickups();
@@ -15677,9 +15953,11 @@
           );
 
           if (GameState.started) {
+            this.power.updateGuide();
             this.updateHUD();
             this.minimap.render(focusPos, focusYaw, this.world, this.vehicles, this.citizens);
             this.missions.drawMinimap(this.minimap.canvas, focusPos);
+            this.power.drawGuide(this.minimap.canvas, focusPos);
           }
         }
 
